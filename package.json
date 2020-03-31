@@ -1,0 +1,26 @@
+{
+  "name": "release-lite",
+  "version": "0.1.0",
+  "description": "Miminal release tool for a small website for tar-gzip'ing files and micro services, scp up to host, ssh remote script for install with a pm2 ecosystem. ",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "node test"
+  },
+  "keywords": [
+    "html",
+    "and",
+    "microservice",
+    "release",
+    "tool"
+  ],
+  "author": "copious.world",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "html-minifier": "^4.0.0",
+    "node-scp": "0.0.3",
+    "tar": "^6.0.1"
+  }
+}

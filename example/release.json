@@ -1,0 +1,68 @@
+{
+    "target" : { 
+        "user" : "root",
+        "host" : "your.ip.address",
+        "password" : ""
+    },
+    "remote_control" : "ssh ${target.user}@${target.host} 'bash -s' < ./releaser.sh",
+    "remote_html" : "/var/www/html",
+    "remote_micros" : "/home/${domains.$keys().micros.subdir}",
+    "dont_compress" : {
+        "match_head" : "<ul class=\"navbar-nav\">",
+        "match_tail" : "</ul>",
+        "replace_var" : "$menu_preservation_var"
+    },
+    "domains" : {
+        "www.copious.world" : {
+            "ports" : {
+                "keys" : {
+                    "html" : ":200",
+                    "micros" : "|| 200"
+                },
+                "captcha" : ":2004",
+                "signup" : ":2006",
+                "upload" : ":2008"
+            },
+            "html" : {
+                "from" : ".",
+                "file" : "index",
+                "subdir" : ""
+            },
+            "micros" :  {
+                "from" : "./src",
+                "files" :  [ "express-captcha.js", "express-signup.js", "register.html" ],
+                "subdir" : "copious.world"
+            }
+        },
+        "www.popsongnow.com" : {
+            "ports" : {
+                "keys" : {
+                    "html" : ":200",
+                    "micros" : "|| 200"
+                },
+                "captcha" : ":3004",
+                "signup" : ":3006",
+                "upload" : ":3008"
+            },
+            "html" : {
+                "from" : "popsongnow.com",
+                "file" : "index",
+                "subdir" : "popsongnow/"
+            },
+            "micros" :  {
+                "from" : "./src",
+                "files" : [ "express-captcha.js", "express-signup.js", "media-uploader.js", "register.html", "uploader.html"  ],
+                "subdir" : "popsongnow.com"
+            }
+        }
+    },
+    "staging" : {
+        "folder" : "release",
+        "special_node_modules" : [ "node_citadel" ],
+        "special_content" : [ {
+            "file" : "citpass.txt",
+            "text" : "citadel"
+        }]
+    }
+}
+
