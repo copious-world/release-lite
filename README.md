@@ -44,7 +44,7 @@ For now, the **ecosystem** is passed to the Releaser object constructer (see tes
 
 ## usage
 
- npm test <your ssh password>
+ npm test **your ssh password**
  
  NOTE: you will have to edit test.js in order to set up your pm2 ecosystem.
  NOTE: you will need to create your own releaser.json that moves your files. No files for the example are included.
