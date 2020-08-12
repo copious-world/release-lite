@@ -42,3 +42,13 @@ in the name of this module.
 One improvement that may happen fairly soon is that **ecosystem** for pm2 may be constructed by the tool.
 For now, the **ecosystem** is passed to the Releaser object constructer (see test.js).
 
+## usage
+
+ npm test **your ssh password**
+ 
+ NOTE: you will have to edit test.js in order to set up your pm2 ecosystem.
+ NOTE: you will need to create your own releaser.json that moves your files. No files for the example are included.
+ 
+ 
+ 
+ 
