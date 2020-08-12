@@ -1,6 +1,6 @@
 {
   "name": "release-lite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Miminal release tool for a small website for tar-gzip'ing files and micro services, scp up to host, ssh remote script for install with a pm2 ecosystem. ",
   "main": "index.js",
   "directories": {
@@ -16,6 +16,10 @@
     "release",
     "tool"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copious-world/release-lite.git"
+  },
   "author": "copious.world",
   "license": "GPL-3.0-or-later",
   "dependencies": {
