@@ -5,14 +5,21 @@
 const {
     strip_front,
     popout,
+    extract_popout,
     replace_eol,
     has_symbol,
+    all_var_forms,
     trimmer,
     after_first_line,
     first_line,
     is_ipv6_at_first,
     is_octet_at_first,
-    get_end_var_name
+    get_end_var_name,
+    gulp_section,
+    extract_object_field,
+    subst_all,
+    eliminate_line_start_comments,
+    eliminate_empty_lines
 } = require('../lib/utilities')
 
 const {path_table} = require('../lib/figure_paths')
@@ -117,13 +124,22 @@ function process_preamble(preamble) {   // definite def and act section for firs
 
 
 
+function map_by_key(h,tiny_cloud) {
+    let hmap = {}
+    for ( let cel of tiny_cloud ) {
+        hmap[cel[h]] = cel
+    }
+    return hmap
+}
+
+
+
 function process_host_table(table_str) {
 
-    let tiny_cloud = []
+    let tiny_cloud_list = []
     let table = table_str.split('\n')
     let header = table.shift()
-
-
+    //
     header = header.split('=')
     header.shift()
 
@@ -137,7 +153,17 @@ function process_host_table(table_str) {
         for ( let i = 0; i < n; i++ ) {
             rmap[header[i]] = els[i]
         }
-        tiny_cloud.push(rmap)
+        tiny_cloud_list.push(rmap)
+    }
+
+    let by_key = {}
+    for ( let h of header ) {
+        by_key[h] = map_by_key(h,tiny_cloud_list)
+    }
+
+    let tiny_cloud = {
+        "_list" : tiny_cloud_list,
+        "by_key" : by_key
     }
 
     return tiny_cloud
@@ -145,10 +171,9 @@ function process_host_table(table_str) {
 
 
 function process_ssh_map(ssh_def_str) {
-
     let final_map = {}
 
-    let def_sections = ssh_def_str.split('--')
+    let def_sections = ssh_def_str.split('~!')
 
     def_sections.forEach(asection => {
 
@@ -197,13 +222,23 @@ function process_path_abbreviations(path_defs_str) {
 }
 
 
-function subst_all(str,svar,value) {
-    console.log(svar)
-    while ( str.indexOf(svar) >= 0 ) {
-        str = str.replace(svar,value)
+
+
+
+// ---- expand_section
+function expand_section(section_def,rest_sect_str) {
+    let spec_vars = section_def.top_dir_location
+    let section = rest_sect_str.trim()
+    if ( spec_vars ) {
+        for ( let [pth,pstr] of Object.entries(spec_vars) ) {
+            section = subst_all(section,`$\{${pth}}`,pstr)
+        }
     }
-    return str
+    section_def.converted = section
+    return section_def
 }
+
+
 
 
 function process_act_entry(act_str,preamble_obj,defs_obj) {
@@ -214,6 +249,12 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
         let abs_dir = process.cwd()
         return `${abs_dir}/${act_str}`
     } else {
+        let top_vars = preamble_obj.scope
+        for ( let [k,v]  of Object.entries(top_vars) ) {
+            act_str = subst_all(act_str,`$\{${k}}`,v)
+            act_str = subst_all(act_str,`$${k}`,v)
+        }
+
         let path_subst = defs_obj.path_abbreviations
         for ( let pth in path_subst.local ) {
             let pstr = path_subst.local[pth]
@@ -223,8 +264,133 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
             let pstr = path_subst.remotes[pth]
             act_str = subst_all(act_str,`$${pth}`,pstr)
         }
-        let act_section = act_str
+        let act_section = {}
+        //
+        let [sect_str,rest_sect] = gulp_section(act_str,'|-','-|')
+        //
+        if ( sect_str ) {
+            let fieldobj_list = sect_str.split('--')
+            fieldobj_list = trimmer(fieldobj_list)
+            for ( let fo of fieldobj_list ) {
+                if ( fo.length ) {
+                    let [sect_key,sect_object] = extract_object_field(fo)
+                    act_section[sect_key] = sect_object
+                }
+            }
+            //
+            act_section = expand_section(act_section,rest_sect)    
+        } else {
+            act_section.converted = act_str
+        }       
+        //
         return act_section
+    }
+    //
+    return false
+}
+
+
+function host_abbrev_to_addr(hname,hosts) {
+console.log(hname)
+console.log(hosts)
+    let hmap = hosts.by_key['abbr']
+console.log(hmap)
+    return hmap[hname].addr
+}
+
+
+function get_dot_val(lk,access) {
+    let i = 0;
+    let v = access[lk[0]]
+    let n = lk.length
+    for ( let i = 1; i < n; i++ ) {
+        if ( v === undefined ) return ""
+        v = v[lk[i]]
+    }
+    return v
+}
+
+// ---
+
+function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
+    //
+    for ( let [act,code] of Object.entries(act_map) ) {
+        //
+        switch ( act ) {
+            case "of-this-world" : {
+                //break
+            }
+            default : {
+                if ( typeof code === 'object') {
+                    let c_str = code.converted
+                    let string_parts = {}
+                    //
+                    let host_list = []
+                    //
+                    let tindex = c_str.indexOf('!~')
+                    if ( tindex >= 0 ) {
+                        //
+                        let host_sections = c_str.split('!~')
+                        if ( host_sections[0].length === 0 ) host_sections.shift()
+                        //
+                        for ( let sect of host_sections ) {
+                            let hname = first_line(sect).trim()
+                            let txt = after_first_line(sect)
+                            let addr = host_abbrev_to_addr(hname,defs_obj.host)
+                            string_parts[addr] = txt
+                            host_list.push(addr)
+                        }
+                        //
+                    } else {
+                        host_list = defs_obj.host._list.map(h => h.addr)
+                    }
+
+
+                    //
+                    let output_map = {}
+                    let sshvals = defs_obj.ssh
+                    let hosts = defs_obj.host.by_key.addr
+                    let access = {
+                        "host" : hosts,
+                        "ssh" : sshvals
+                    }
+                    let var_forms = all_var_forms(c_str)
+    //console.dir(var_forms)
+                    let unwrapped_vars = Object.keys(var_forms).map(vf => { 
+                        let stopper = '}'
+                        if ( vf[1] === '[') stopper = ']'
+                        let vk = vf.substring(2).replace(stopper,'')
+                        let fields = vk.split('.')
+                        return [vf,fields]
+                    })
+                    //
+                    let vf_lookup = {}
+                    for ( let vfpair of unwrapped_vars ) {
+                        vf_lookup[[vfpair[0]]] = vfpair[1]
+                    }
+                    //
+                    for ( let h of host_list ) {
+                        let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
+                        for ( let vf in var_forms ) {
+                            let lk = [].concat(vf_lookup[vf])
+                            lk.splice(1,0,h)
+                            let val = get_dot_val(lk,access)
+                            //
+                            let starters = h_out.split(vf)
+                            h_out = starters.join(val)
+                            // 
+                        }
+                        //
+                        output_map[h] = h_out
+                    }
+                    //
+                    act_map[act].outputs = output_map   
+                }
+                //
+                break;
+            }
+        }
+        //
     }
     //
 }
@@ -234,9 +400,10 @@ function process_acts(acts_def,preamble_obj,defs_obj) {
 
     let act_map = {}
     for ( let [k,v] of Object.entries(acts_def) ) {
-        console.log(k)
         act_map[k] = process_act_entry(v,preamble_obj,defs_obj)
     }
+
+    acts_generator(act_map,acts_def,preamble_obj,defs_obj)
 
     return act_map
 }
@@ -315,14 +482,27 @@ function top_level_sections(file_str) {
 
 
 //
-
+confstr = eliminate_line_start_comments(confstr,'--')
+confstr = eliminate_empty_lines(confstr)
 let top_level = top_level_sections(confstr)
 
 ////
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
-console.dir(preamble_obj)
-console.dir(defs_obj)
-console.dir(acts_obj)
+//console.dir(preamble_obj)
+//console.dir(defs_obj)
+//console.log(JSON.stringify(defs_obj,null,2))
+// console.dir(acts_obj)
+//console.log(JSON.stringify(acts_obj,null,2))
 //
+
+
+for ( let ky in acts_obj ) {
+    let target = acts_obj[ky]
+    if ( target.outputs !== undefined ) {
+        for ( let [addr,output] of Object.entries(target.outputs) ) {
+            fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
+        }        
+    }
+}

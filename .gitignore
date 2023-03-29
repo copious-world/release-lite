@@ -1,3 +1,5 @@
 release.*
 releaser*
 release/*
+test/scripts
+test/*.conf
