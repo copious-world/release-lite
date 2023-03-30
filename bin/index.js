@@ -479,6 +479,113 @@ function top_level_sections(file_str) {
 }
 
 
+function gen_repstr(depth,c) {
+    let str = ''
+    while ( depth-- ) {
+        str += c
+    }
+    return str
+}
+
+
+function subsequence_output(o_vals,content,depth) {
+    //
+    let depth_indicator = gen_repstr(depth,'-')
+    let order_finder = `=${depth_indicator}>`
+    let depth_sep = `!${depth_indicator}`
+    let dsl = depth_sep.length
+    //
+    let i = content.indexOf(depth_sep)
+    let level_indicators = []
+    while ( i >= 0 ) {
+        if ( content[i+dsl] !== '-' ) {
+            level_indicators.push(i)
+        }
+        i = content.indexOf(depth_sep,i+1)
+    }
+    //
+    let n = level_indicators.length
+    let section_list = []
+    for ( let j = 0; j < n; j++ ) {
+        let start = level_indicators[j]
+        let end = level_indicators[j+1]
+        let section = ''
+        if ( end === undefined ) {
+            section = content.substring(start)
+        } else {
+            section = content.substring(start,end)
+        }
+        section_list.push(section)
+    }
+
+    let key_map = {}
+    for ( let sect of section_list ) {
+        sect = sect.trim()
+        let key = popout(sect,'>')
+        key = key.substring(depth+1,sect.indexOf('>'))
+        key_map[key] = sect.substring(sect.indexOf('>') + 1).trim()
+    }
+
+    let final_output = ""
+
+    for ( let ky of o_vals ) {
+
+        let sect = key_map[ky]
+
+        if ( sect === undefined ) {
+            console.log("undefined section name in ordering: ",ky," depth: ",depth)
+            console.dir(key_map)
+            continue
+        }
+
+        if ( sect[0] === '=' ) {
+            sect = sect.substring(1)
+        } else {
+            sect = sequence_output(sect,depth+1,order_finder)
+        }
+
+        final_output += sect
+        final_output += '\n'
+
+    }
+
+
+    //
+    return final_output
+}
+
+
+function sequence_output(output,depth=1,order_finder) {
+
+    let ordering_loc = order_finder ? output.indexOf(order_finder) : output.indexOf('=>')
+    let seq_output = ''
+    if ( ordering_loc > 0 ) {
+
+        let ordering = output.substring(ordering_loc)
+        let content = output.substring(0,ordering_loc)
+        //
+        try {
+            let o_vals = ordering.split(':')[1]
+            //
+            o_vals = o_vals.trim()
+            if ( o_vals[0] === '[' ) {
+                o_vals = o_vals.substring(1)
+                o_vals = o_vals.replace(']','')
+            }
+            //
+            o_vals = o_vals.split(',')
+            o_vals = trimmer(o_vals)
+    
+            seq_output = subsequence_output(o_vals,content,depth)
+        } catch (e) {
+            console.log(depth)
+            console.log("ordering line badly formatted")
+        }
+    }
+
+    return seq_output
+}
+
 
 
 //
@@ -502,7 +609,10 @@ for ( let ky in acts_obj ) {
     let target = acts_obj[ky]
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
-            fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
+            output = sequence_output(output)
+            //fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
+            console.log(output)
+            console.log('--------------------------------------------------------------')
         }        
     }
 }
