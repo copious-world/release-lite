@@ -291,10 +291,10 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
 
 
 function host_abbrev_to_addr(hname,hosts) {
-console.log(hname)
-console.log(hosts)
+//console.log(hname)
+//console.log(hosts)
     let hmap = hosts.by_key['abbr']
-console.log(hmap)
+//console.log(hmap)
     return hmap[hname].addr
 }
 
@@ -534,7 +534,7 @@ function subsequence_output(o_vals,content,depth) {
 
         if ( sect === undefined ) {
             console.log("undefined section name in ordering: ",ky," depth: ",depth)
-            console.dir(key_map)
+            //console.dir(key_map)
             continue
         }
 
@@ -605,14 +605,17 @@ let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
 //
 
 
-for ( let ky in acts_obj ) {
+//console.log(preamble_obj.prog.acts)
+
+for ( let ky of preamble_obj.prog.acts ) {
+    console.log(ky)
     let target = acts_obj[ky]
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
             output = sequence_output(output)
-            //fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
-            console.log(output)
-            console.log('--------------------------------------------------------------')
+            fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
+            //console.log(output)
+            //console.log('--------------------------------------------------------------')
         }        
     }
 }
