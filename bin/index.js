@@ -19,7 +19,10 @@ const {
     extract_object_field,
     subst_all,
     eliminate_line_start_comments,
-    eliminate_empty_lines
+    eliminate_empty_lines,
+    table_to_objects,
+    create_map_object,
+    object_list_to_object
 } = require('../lib/utilities')
 
 const {path_table} = require('../lib/figure_paths')
@@ -34,6 +37,12 @@ let confstr = fs.readFileSync(all_machines_script).toString() // will crash if t
 
 /// the file is not JSON parseable
 /// special format
+
+
+function get_type_specifier(str) {
+    let type = str.substring(str.indexOf('('),str.indexOf(')')+1)
+    return type
+}
 
 
 function process_preamble_acts(prog_form) {
@@ -122,74 +131,59 @@ function process_preamble(preamble) {   // definite def and act section for firs
     }
 }
 
-
-
-function map_by_key(h,tiny_cloud) {
-    let hmap = {}
-    for ( let cel of tiny_cloud ) {
-        hmap[cel[h]] = cel
+function get_type_marker(table_str,deflt) {
+    let table_type = deflt
+    if ( table_str[0] === '(' ) {
+        table_type = table_str.substring(0,table_str.indexOf(')')+1)
+        table_str = table_str.replace(table_type,'')
     }
-    return hmap
+
+    return [table_type,table_str]
 }
 
 
 
 function process_host_table(table_str) {
-
+    //
+    let [table_type,ts] = get_type_marker(table_str,'(=)')
+    //
     let tiny_cloud_list = []
-    let table = table_str.split('\n')
-    let header = table.shift()
-    //
-    header = header.split('=')
-    header.shift()
-
-    header = header.map(h => h.trim() )
-    //
-    for ( let row of table ) {
-        let els = row.split(':')
-        els = els.map(h => h.trim())
-        let n = header.length
-        let rmap = {}
-        for ( let i = 0; i < n; i++ ) {
-            rmap[header[i]] = els[i]
-        }
-        tiny_cloud_list.push(rmap)
-    }
-
     let by_key = {}
-    for ( let h of header ) {
-        by_key[h] = map_by_key(h,tiny_cloud_list)
+    if ( table_type === '(~!)' ) {
+        tiny_cloud_list = object_list_to_object(ts)
+        let header = Object.keys(tiny_cloud_list[0])
+        by_key = create_map_object(header,tiny_cloud_list)
+    } else {
+        let [tcl,bk,header] = table_to_objects(ts)
+        tiny_cloud_list = tcl
+        by_key = bk
     }
 
     let tiny_cloud = {
         "_list" : tiny_cloud_list,
         "by_key" : by_key
     }
-
+    
     return tiny_cloud
 }
 
 
+
 function process_ssh_map(ssh_def_str) {
-    let final_map = {}
-
-    let def_sections = ssh_def_str.split('~!')
-
-    def_sections.forEach(asection => {
-
-        let line1 = first_line(asection)
-        if ( (line1.length === 0) || !is_octet_at_first(line1) || !is_ipv6_at_first(line1)) {
-            asection = after_first_line(asection)
-            asection = asection.trim()
-        }
-        //
-        let sect_parts = asection.split(':')
-        let key = sect_parts.shift().trim()
-        sect_parts = sect_parts.join(':').replace('<!','').trim()
-
-        final_map[key] = JSON.parse(sect_parts.trim())
-    })
-
+    //
+    let [table_type,ts] = get_type_marker(ssh_def_str,'(~!)')
+    //
+    ssh_def_str = ts
+    ssh_def_str = ssh_def_str.replace('<!','')
+    //
+    let final_map
+    if ( table_type === '(~!)' ) {
+        final_map = object_list_to_object(ssh_def_str)
+    } else {
+        let [tiny_cloud_list,by_key,header] = table_to_objects(ts)
+        final_map = by_key[header[0]]
+    }
+    //
     return final_map
 }
 
@@ -463,11 +457,16 @@ function top_level_sections(file_str) {
             let maybe_def = lparts[1].substring(0,3)
             if ( maybe_def == 'act' || maybe_def == 'def' ) {
                 let key = lparts[0]
+                let type = ""
+                if ( has_symbol(lparts[1],'(') ) {
+                    type = get_type_specifier(lparts[1])
+                    lparts[1] = lparts[1].replace(type,'')
+                }
                 if ( has_symbol(lparts[1],'=') ) {
                     key = get_end_var_name(lparts[1])
                 }
                 if ( maybe_def == 'act' ) acts[key] = rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
-                if ( maybe_def == 'def' ) defs[key] = rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
+                if ( maybe_def == 'def' ) defs[key] = type + rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
             }
         } else {
             preamble = p
