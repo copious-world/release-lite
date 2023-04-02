@@ -1,0 +1,9 @@
+naming GET run
+/home/naming
+spawn scp root@192.168.1.77:/home/check_name.json .
+The authenticity of host '192.168.1.77 (192.168.1.77)' can't be established.
+ECDSA key fingerprint is SHA256:tHXTUc15MfXy+17TljJNbiXXtzi71+acHBaMUDD00YQ.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
+root@192.168.1.77's password: 
+check_name.json                                 0%    0     0.0KB/s   --:-- ETAcheck_name.json                               100%    3     1.7KB/s   00:00    

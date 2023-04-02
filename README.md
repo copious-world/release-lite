@@ -8,12 +8,12 @@ The main aim here is to have something workable that deals with a very small dom
 
 ## install
 
-This package provides two things: 1) classes accessible via the `require` function of node.js; 2) some command line entry point which are available when this package is installed gobally.
+This package provides two things: 1) classes accessible via the `require` function of node.js; 2) some command line entry points which are available when this package is installed gobally.
 
 
 The classes are for going through a sequence of operations that set up a particular kind of web server.
 
-The command line programs will generate some of the movable assets, shell scripts and place them in directories indicated in configuration scripts which may be written in a custom template language.
+The command line programs will generate some of the movable assets, shell scripts, and place them in directories indicated in configuration scripts which may be written in a custom template language.
 
 To install locally for using the classes, run the following in you node.js project directory:
 
@@ -34,7 +34,7 @@ This package started as a quick project to provide internal development classes.
 
 This revision adds the command line programs, but leaves the old export classes alone. A short roadmap is being followed for a short time to aid the installation and testing of other packages. The effort should result in a slightly more useful set of tools for starting up servers that are part of a cluster to run a usefull web concern. Initially, the plan is to just get things up and running after having taken down previous invokations of the services. One can find out more about the services elsewhere.
 
-This version adds the beginnings of the command language which deals with working with a number of machines known by IP address and names that are only known through this utility. 
+This version adds the beginnings of the command language which deals with working with a number of machines known by IP address and their assignd names that are only known through this utility; that is, this is not DNS.
 
 
 ## command line utilities
@@ -43,6 +43,7 @@ Here is a list of command line tools that are available in the current release:
 
 * **bash-file-gen** (along with abbreviation bfg)
 * **cluster-names**
+* **put-cluster-names**
 
 ### bash-file-gen
 

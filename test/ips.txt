@@ -1,0 +1,14 @@
+Starting Nmap 7.80 ( https://nmap.org ) at 2023-04-02 13:36 PDT
+Nmap scan report for DietPi.attlocal.net (192.168.1.71)
+Host is up (0.0031s latency).
+Nmap scan report for DietPi.attlocal.net (192.168.1.75)
+Host is up (0.0016s latency).
+Nmap scan report for DietPi.attlocal.net (192.168.1.77)
+Host is up (0.0026s latency).
+Nmap scan report for Rachio-BD0DD4.attlocal.net (192.168.1.79)
+Host is up (0.0046s latency).
+Nmap scan report for DietPi.attlocal.net (192.168.1.81)
+Host is up (0.0074s latency).
+Nmap scan report for dsldevice.attlocal.net (192.168.1.254)
+Host is up (0.00098s latency).
+Nmap done: 256 IP addresses (6 hosts up) scanned in 10.23 seconds{}
