@@ -17,7 +17,7 @@ tmpfs            50M     0   50M   0% /var/log
 /dev/sda1        58G   12M   58G   1% /media/services
 ---------------
                total        used        free      shared  buff/cache   available
-Mem:           976Mi       124Mi       504Mi        18Mi       347Mi       745Mi
+Mem:           976Mi       127Mi       501Mi        18Mi       347Mi       743Mi
 Swap:          1.0Gi       0.0Ki       1.0Gi
 ---------------
 processor	: 0

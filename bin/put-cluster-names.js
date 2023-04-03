@@ -25,6 +25,75 @@ const {
 } = require('../lib/utilities')
 
 
+const {nmap_parser} = require('../lib/parse-nmap')
+
+
+const readline = require('readline');
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const prompt = (query) => new Promise((resolve) => rl.question(query, resolve));
+
+// When done reading prompt, exit program 
+rl.on('close', () => process.exit(0));
+
+process.on('SIGINT',() => {
+    rl.close();
+})
+
+
+function feasable_addr_list(net_data) {
+    //
+    let addr_map = nmap_parser(net_data)
+    //
+    for ( let ky in addr_map ) {
+        let octet_parts = ky.split('.')
+        if ( octet_parts[3] === '254' ) {
+            delete addr_map[ky]
+            break
+        }
+    }
+    return addr_map
+}
+
+async function ask_user_name_and_pass(addr_table) {
+
+    let keepers = {}
+    for ( let [ky,label] of Object.entries(addr_table) ) {
+        console.log(`${label}@ ${ky}`)
+        try {
+            let keep = await prompt("Use this node?: ");
+            while ( (keep.toUpperCase() !== 'N') && (keep.toLowerCase() !== 'no') && (keep.toLowerCase() !== 'false') ) {
+                const user = await prompt(`${label}  user: `);
+                const pass = await prompt(`${label}  password: `);
+                keepers[ky] = {
+                    "label" : label,
+                    "user" : user,
+                    "pass" : pass
+                }
+                console.dir(keepers[ky])
+                keep = await prompt("Is this data correct?: ");
+                if ( (keep.toUpperCase() == 'N') || (keep.toLowerCase() == 'no') || (keep.toLowerCase() == 'false') ) {
+                    keep = "Y"
+                } else break
+            }
+            console.log("------")
+        } catch (e) {
+            console.error("Unable to prompt", e);
+        }
+    }
+
+    return keepers
+}
+
+
+async function prepare_controller_exec_ssh(addr_table,cluster_op_file) {
+    console.log("prepare_controller_exec_ssh")
+    for ( let [ky,info] of Object.entries(addr_table) ) {
+        console.log(`${ky} ::`)
+        console.dir(info)
+    }
+}
+
 
 function info_line_to_object(disk_line) {
     let components = disk_line.split(/\s+/)
@@ -113,42 +182,68 @@ function extract_core_info(core_str) {
 
 
 
+
+
+
+// ------- APPLICATION
+
+
 let cluster_master_user = process.argv[2]
 let cluster_master_addr = process.argv[3]
 
 const { execFileSync } = require('node:child_process');
-execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr])
 
-let node_data = fs.readFileSync('name_run.out','ascii').toString()
+async function run() {
+    //
+    let bash_op = "nmapper.sh"
+    execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])
+    let net_data = fs.readFileSync('name_run.out','ascii').toString()
+    //
+    console.log(net_data)
+    let addr_table = feasable_addr_list(net_data)
+    addr_table = await ask_user_name_and_pass(addr_table)
+    //
+    bash_op = "controller_exec_ssh.sh"  // update this file to get the program to run over a list of addresses
+    prepare_controller_exec_ssh(addr_table,bash_op) // write the file 
+    //
+    execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])
 
-let data_parts = node_data.split('---------------')
+    let node_data = fs.readFileSync('name_run.out','ascii').toString()
 
-let excessive = data_parts[0]
+    let data_parts = node_data.split('---------------')
 
-let ww = excessive.indexOf('password:')
-if ( ww > 0 ) {
-    while ( --ww > 0 ) {
-        let c = excessive[ww]
-        if ( c === '@' ) break
+    let excessive = data_parts[0]
+
+    let ww = excessive.indexOf('password:')
+    if ( ww > 0 ) {
+        while ( --ww > 0 ) {
+            let c = excessive[ww]
+            if ( c === '@' ) break
+        }
+        data_parts[0] = excessive.substring(ww+1)
     }
-    data_parts[0] = excessive.substring(ww+1)
+
+    data_parts = trimmer(data_parts)
+
+    let disk_data = data_parts[0]
+    let disk_info = {
+        "addr" : popout(disk_data,`'s`),
+        "disks" : extract_disk_devs(after_first_line(disk_data))
+    }
+    let mem_data = extract_mem_info(data_parts[1])
+
+    disk_info["memory"] = mem_data
+
+    let core_data = extract_core_info(data_parts[2])
+    disk_info["cpus"] = core_data
+
+    console.log(JSON.stringify(disk_info,null,2))
+
+
+    //execFileSync('bash',['./run-uploader.sh', cluster_master_user, cluster_master_addr])
+
 }
 
-data_parts = trimmer(data_parts)
-
-let disk_data = data_parts[0]
-let disk_info = {
-    "addr" : popout(disk_data,`'s`),
-    "disks" : extract_disk_devs(after_first_line(disk_data))
-}
-let mem_data = extract_mem_info(data_parts[1])
-
-disk_info["memory"] = mem_data
-
-let core_data = extract_core_info(data_parts[2])
-disk_info["cpus"] = core_data
-
-console.log(JSON.stringify(disk_info,null,2))
 
 
-//execFileSync('bash',['./run-uploader.sh', cluster_master_user, cluster_master_addr])
+run()
