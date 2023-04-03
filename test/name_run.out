@@ -1,9 +1,58 @@
-naming GET run
+naming EXEC run
 /home/naming
-spawn scp root@192.168.1.77:/home/check_name.json .
+spawn bash -c bash ./getpars.sh root 192.168.1.77 tst.sh
 The authenticity of host '192.168.1.77 (192.168.1.77)' can't be established.
 ECDSA key fingerprint is SHA256:tHXTUc15MfXy+17TljJNbiXXtzi71+acHBaMUDD00YQ.
 Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
 Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
 root@192.168.1.77's password: 
-check_name.json                                 0%    0     0.0KB/s   --:-- ETAcheck_name.json                               100%    3     1.7KB/s   00:00    
+Filesystem      Size  Used Avail Use% Mounted on
+udev            417M     0  417M   0% /dev
+tmpfs            98M   11M   88M  11% /run
+/dev/mmcblk0p1  118G  2.4G  114G   3% /
+tmpfs           489M     0  489M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.0G     0  1.0G   0% /tmp
+tmpfs            50M     0   50M   0% /var/log
+/dev/sda1        58G   12M   58G   1% /media/services
+---------------
+               total        used        free      shared  buff/cache   available
+Mem:           976Mi       124Mi       504Mi        18Mi       347Mi       745Mi
+Swap:          1.0Gi       0.0Ki       1.0Gi
+---------------
+processor	: 0
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 1
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 2
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 3
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
