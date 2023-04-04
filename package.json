@@ -32,7 +32,7 @@
   "dependencies": {
     "extra-file-class": "^0.9.16",
     "html-minifier": "^4.0.0",
-    "node-scp": "0.0.3",
+    "node-scp": "0.0.22",
     "tar": "^6.0.1"
   }
 }
