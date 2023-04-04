@@ -8,8 +8,10 @@
   },
   "bin": {
     "bash-file-gen": "./bin/index.js",
-    "bfg" :  "./bin/index.js",
-    "cluster-names" : "./bin/cluster-names.js"
+    "bfg": "./bin/index.js",
+    "cluster-names": "./bin/cluster-names.js",
+    "put-cluster-names": "./bin/cluster-names.js",
+    "cluster-info": "./bin/get-cluster-info.js"
   },
   "scripts": {
     "test": "node test"
@@ -28,6 +30,7 @@
   "author": "copious.world",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "extra-file-class": "^0.9.16",
     "html-minifier": "^4.0.0",
     "node-scp": "0.0.3",
     "tar": "^6.0.1"

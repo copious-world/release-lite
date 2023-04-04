@@ -95,9 +95,36 @@ async function ask_user_name_and_pass(addr_table) {
 }
 
 
+async function prepare_controller_exec_ssh(addr_table,cluster_op_file,user,addr) {
+    await send_up(user,addr,"pars-act.sh")
+    console.log("prepare_controller_exec_ssh")
+    let expect_list = ""
 
+    for ( let [ky,info] of Object.entries(addr_table) ) {
+        console.log(`${ky} ::`)
+        console.dir(info)
+        //
+        let expect_tmpl = `
+        expect ./expectpw-exec.sh ${info.pass} ${info.user} ${info.addr} pars-act.sh >> name_run.out
+        echo ">>>>>>${info.addr}<<<<<<" >> name_run.out
+        `
+        expect_list += expect_tmpl
+    }
 
+    let ctlr_out = `
+    pushd /home/naming
+    echo "naming EXEC run" > name_run.out
+    pwd >> name_run.out
+    ${expect_list}        
+    popd
+    pwd
+   `
+   
+   console.log(ctlr_out)
 
+   fs.writeFileSync(cluster_op_file,ctlr_out,'ascii')
+
+}
 
 
 function info_line_to_object(disk_line) {
@@ -223,48 +250,6 @@ function get_machine_info(addr,node_data) {
 
 
 
-// ------- APPLICATION
-
-// PUT CLUSTER
-async function prepare_controller_put_ssh(addr_table,cluster_op_file,user,addr) {
-    //
-    console.log("prepare_controller_put_ssh")
-
-    await send_up(user,addr,"expectpw-put_name.sh")
-
-    let expect_list = ""
-    //
-    for ( let [ky,info] of Object.entries(addr_table) ) {
-        //
-        await fos.output_json(`${ky}.json`,info)
-        await send_up(user,addr,`${ky}.json`)
-
-        console.log(`${ky} ::`)
-        console.dir(info)
-        //
-        let expect_tmpl = `
-        expect ./expectpw-put_name.sh ${info.pass} ${info.user} ${info.addr} ${ky}.json >> name_run.out
-        echo ">>>>>>${info.addr}<<<<<<" >> name_run.out
-        `
-        expect_list += expect_tmpl
-    }
-
-    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-    //
-    let ctlr_out = `
-    pushd /home/naming
-    echo "naming PUT run" > name_run.out
-    pwd >> name_run.out
-    ${expect_list}        
-    popd
-    pwd
-   `
-   
-   console.log(ctlr_out)
-
-   fs.writeFileSync(cluster_op_file,ctlr_out,'ascii')
-
-}
 
 // ------- APPLICATION
 
@@ -276,22 +261,76 @@ const { execFileSync } = require('node:child_process');
 
 async function run() {
     //
+    let bash_op = "nmapper.sh"
+    let do_fetch = true
     if ( await fos.exists('./save-data/addr_table.json') ) {
-        let addr_table = await fos.load_json_data_at_path('./save-data/addr_table.json')
-        let do_fetch = await fos.exists('./save-data/all_machine_info.json')
-        //
-        if ( do_fetch ) {
-            let name_map = await fos.load_json_data_at_path('./save-data/all_machine_info.json')
-            if ( name_map ) {
-                //
-                let bash_op = "controller_put_ssh.sh"  // update this file to get the program to run over a list of addresses
-                await prepare_controller_put_ssh(name_map, bash_op, cluster_master_user, cluster_master_addr) // write the file 
-                //
-                execFileSync('bash',['./run-uploader.sh', cluster_master_user, cluster_master_addr, bash_op])        
-            }
-        }
-
+        let YN = await prompt("The table of hosts already exists. Do you want to use it? ")
+        if ( (YN.toUpperCase() !== 'N') && (YN.toLowerCase() !== 'no') && (YN.toLowerCase() !== 'false') )  do_fetch = false
     }
+    //
+    let addr_table = false
+    if ( do_fetch ) {
+        execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])
+        let net_data = fs.readFileSync('name_run.out','ascii').toString()
+        //
+        console.log(net_data)
+        addr_table = feasable_addr_list(net_data)
+        addr_table = await ask_user_name_and_pass(addr_table)
+        //
+        await fos.output_json('./save-data/addr_table.json',addr_table)    
+    } else {
+        addr_table = await fos.load_json_data_at_path('./save-data/addr_table.json')
+    }
+
+    if ( (addr_table !== false) && (await fos.exists('./save-data/remote_table.json')) ) {
+        let YN = await prompt("Do you want to add the remote table in remote_table.json? ")
+        if ( (YN.toUpperCase() !== 'N') && (YN.toLowerCase() !== 'no') && (YN.toLowerCase() !== 'false') )  {
+            let remote_table = await fos.load_json_data_at_path('./save-data/remote_table.json')
+            if ( remote_table !== false ) {
+                addr_table = Object.assign(addr_table,addr_table)
+            } 
+        }
+    }
+ 
+
+
+    if ( addr_table === false ) {
+        console.log("Have not obtained an address table for a cluster... shuting down")
+        process.exit(0)
+    }
+
+
+    do_fetch = true
+    if ( await fos.exists('./name_run.out') ) {
+        let YN = await prompt("The file name_run.out already exists. Do you want to use it? ")
+        if ( (YN.toUpperCase() !== 'N') && (YN.toLowerCase() !== 'no') && (YN.toLowerCase() !== 'false') )  do_fetch = false
+    }
+ 
+    //
+    if ( do_fetch ) {
+        bash_op = "controller_exec_ssh.sh"  // update this file to get the program to run over a list of addresses
+        await prepare_controller_exec_ssh(addr_table, bash_op, cluster_master_user, cluster_master_addr) // write the file 
+        //
+        execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])    
+    }
+
+    let node_data = fs.readFileSync('name_run.out','ascii').toString()
+
+    let per_machine = node_data.split("<<<<<<")
+    per_machine = trimmer(per_machine)
+    //
+    let all_machine_info = {}
+    for ( let m of per_machine ) {
+        if ( m.length ) {
+            let [script,addr] = m.split(">>>>>>")
+            let machine_info = await get_machine_info(addr,script)
+            all_machine_info[addr] = machine_info
+        }
+    }
+ 
+    fs.writeFileSync('./save-data/all_machine_info.json',JSON.stringify(all_machine_info,null,2))
+
+    console.log(`machine info for ${Object.keys(all_machine_info).join(', ')} written`)
 
     rl.close();
 }

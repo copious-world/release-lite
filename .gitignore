@@ -3,3 +3,5 @@ releaser*
 release/*
 test/scripts
 test/*.conf
+node_modules
+test/save-data

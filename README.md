@@ -39,11 +39,12 @@ This version adds the beginnings of the command language which deals with workin
 
 ## command line utilities
 
-Here is a list of command line tools that are available in the current release:
+Here is a list of command line tools that are available in the current release (order of use):
 
-* **bash-file-gen** (along with abbreviation bfg)
-* **cluster-names**
+* **get-cluster-info**
 * **put-cluster-names**
+* **cluster-names**
+* **bash-file-gen** (along with abbreviation bfg)
 
 ### bash-file-gen
 

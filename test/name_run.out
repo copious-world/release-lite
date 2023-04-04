@@ -1,23 +1,86 @@
 naming EXEC run
 /home/naming
-spawn bash -c bash ./getpars.sh root 192.168.1.77 tst.sh
-The authenticity of host '192.168.1.77 (192.168.1.77)' can't be established.
-ECDSA key fingerprint is SHA256:tHXTUc15MfXy+17TljJNbiXXtzi71+acHBaMUDD00YQ.
+spawn bash -c bash ./getpars.sh root 192.168.1.71 pars-act.sh
+The authenticity of host '192.168.1.71 (192.168.1.71)' can't be established.
+ECDSA key fingerprint is SHA256:ZWdM6Xr6pfiphOLSwKMoWk/t2mRhukljrAKpONlX09Y.
 Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
 Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
-root@192.168.1.77's password: 
+root@192.168.1.71's password: 
+Filesystem      Size  Used Avail Use% Mounted on
+udev            190M     0  190M   0% /dev
+tmpfs            50M  1.1M   49M   3% /run
+/dev/mmcblk0p1   29G  2.4G   27G   9% /
+tmpfs           246M     0  246M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.0G     0  1.0G   0% /tmp
+tmpfs            50M     0   50M   0% /var/log
+---------------
+               total        used        free      shared  buff/cache   available
+Mem:           491Mi        44Mi       394Mi       1.0Mi        53Mi       434Mi
+Swap:          1.5Gi          0B       1.5Gi
+---------------
+processor	: 0
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 64.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 1
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 64.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 2
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 64.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 3
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 64.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+Hardware	: Allwinner sun8i Family
+Revision	: 0000
+Serial		: 02c0008150f28aba
+>>>>>>192.168.1.71<<<<<<
+spawn bash -c bash ./getpars.sh root 192.168.1.75 pars-act.sh
+The authenticity of host '192.168.1.75 (192.168.1.75)' can't be established.
+ECDSA key fingerprint is SHA256:N4zsPoqRrhDWuAAae8BS//6w7Mkul1xvw8vjrpGpOn4.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
+root@192.168.1.75's password: 
 Filesystem      Size  Used Avail Use% Mounted on
 udev            417M     0  417M   0% /dev
 tmpfs            98M   11M   88M  11% /run
-/dev/mmcblk0p1  118G  2.4G  114G   3% /
+/dev/mmcblk0p1  118G  2.3G  114G   2% /
 tmpfs           489M     0  489M   0% /dev/shm
 tmpfs           5.0M     0  5.0M   0% /run/lock
 tmpfs           1.0G     0  1.0G   0% /tmp
 tmpfs            50M     0   50M   0% /var/log
-/dev/sda1        58G   12M   58G   1% /media/services
+/dev/sda1        58G   13M   58G   1% /media/services
 ---------------
                total        used        free      shared  buff/cache   available
-Mem:           976Mi       127Mi       501Mi        18Mi       347Mi       743Mi
+Mem:           976Mi       138Mi       323Mi        25Mi       514Mi       723Mi
 Swap:          1.0Gi       0.0Ki       1.0Gi
 ---------------
 processor	: 0
@@ -56,3 +119,124 @@ CPU variant	: 0x0
 CPU part	: 0xd03
 CPU revision	: 4
 
+>>>>>>192.168.1.75<<<<<<
+spawn bash -c bash ./getpars.sh root 192.168.1.77 pars-act.sh
+The authenticity of host '192.168.1.77 (192.168.1.77)' can't be established.
+ECDSA key fingerprint is SHA256:tHXTUc15MfXy+17TljJNbiXXtzi71+acHBaMUDD00YQ.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
+root@192.168.1.77's password: 
+Filesystem      Size  Used Avail Use% Mounted on
+udev            417M     0  417M   0% /dev
+tmpfs            98M   11M   88M  11% /run
+/dev/mmcblk0p1  118G  2.4G  114G   3% /
+tmpfs           489M     0  489M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.0G     0  1.0G   0% /tmp
+tmpfs            50M     0   50M   0% /var/log
+/dev/sda1        58G   12M   58G   1% /media/services
+---------------
+               total        used        free      shared  buff/cache   available
+Mem:           976Mi       122Mi       506Mi        18Mi       347Mi       747Mi
+Swap:          1.0Gi       0.0Ki       1.0Gi
+---------------
+processor	: 0
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 1
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 2
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 3
+BogoMIPS	: 48.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+>>>>>>192.168.1.77<<<<<<
+spawn bash -c bash ./getpars.sh root 192.168.1.81 pars-act.sh
+The authenticity of host '192.168.1.81 (192.168.1.81)' can't be established.
+ECDSA key fingerprint is SHA256:/YHwPOMu/17CBelevvGqLOpyftmtiKW9D9KsGgxQvk4.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Failed to add the host to the list of known hosts (/home/richard/.ssh/known_hosts).
+root@192.168.1.81's password: 
+Filesystem      Size  Used Avail Use% Mounted on
+udev            190M     0  190M   0% /dev
+tmpfs            50M  1.8M   48M   4% /run
+/dev/mmcblk0p1  116G  2.6G  113G   3% /
+tmpfs           246M     0  246M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.0G     0  1.0G   0% /tmp
+tmpfs            50M     0   50M   0% /var/log
+---------------
+               total        used        free      shared  buff/cache   available
+Mem:           491Mi        50Mi       359Mi       4.0Mi        81Mi       425Mi
+Swap:          1.5Gi          0B       1.5Gi
+---------------
+processor	: 0
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 96.00
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 1
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 96.00
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 2
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 96.00
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 3
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 96.00
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+Hardware	: Allwinner sun8i Family
+Revision	: 0000
+Serial		: 02c00081fac6fba9
+>>>>>>192.168.1.81<<<<<<
