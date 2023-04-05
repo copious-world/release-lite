@@ -98,6 +98,9 @@ async function ask_user_name_and_pass(addr_table) {
 async function prepare_controller_exec_ssh(addr_table,cluster_op_file,user,addr) {
     await send_up(user,addr,"pars-act.sh")
     console.log("prepare_controller_exec_ssh")
+    //
+    await send_up(user,addr,"expectpw-exec.sh")
+    //
     let expect_list = ""
 
     for ( let [ky,info] of Object.entries(addr_table) ) {
@@ -105,7 +108,7 @@ async function prepare_controller_exec_ssh(addr_table,cluster_op_file,user,addr)
         console.dir(info)
         //
         let expect_tmpl = `
-        expect ./expectpw-exec.sh ${info.pass} ${info.user} ${info.addr} pars-act.sh >> name_run.out
+        expect ./expectpw-exec.sh '${info.pass}' ${info.user} ${info.addr} pars-act.sh >> name_run.out
         echo ">>>>>>${info.addr}<<<<<<" >> name_run.out
         `
         expect_list += expect_tmpl
@@ -193,8 +196,8 @@ function extract_core_info(core_str) {
     proto_core = proto_core.split('\r\n')
     //
     proto_core = proto_core.filter(line => {
-        let maybe_Bogo = ("BogoMIPS" == line.substring(0,"BogoMIPS".length))
-        let maybe_Features = ("Features" == line.substring(0,"Features".length))
+        let maybe_Bogo = ("BogoMIPS" == line.substring(0,"BogoMIPS".length)) || ("bogomips" == line.substring(0,"bogomips".length))
+        let maybe_Features = ("Features" == line.substring(0,"Features".length)) || ("flags" == line.substring(0,"flags".length))
         return maybe_Bogo || maybe_Features
     })
     //
@@ -287,11 +290,13 @@ async function run() {
         if ( (YN.toUpperCase() !== 'N') && (YN.toLowerCase() !== 'no') && (YN.toLowerCase() !== 'false') )  {
             let remote_table = await fos.load_json_data_at_path('./save-data/remote_table.json')
             if ( remote_table !== false ) {
-                addr_table = Object.assign(addr_table,addr_table)
+                addr_table = Object.assign(addr_table,remote_table)
             } 
         }
     }
  
+
+    console.dir(addr_table)
 
 
     if ( addr_table === false ) {

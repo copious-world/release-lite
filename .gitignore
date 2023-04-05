@@ -5,3 +5,7 @@ test/scripts
 test/*.conf
 node_modules
 test/save-data
+test/named-machines
+test/controller*
+test/*.txt
+

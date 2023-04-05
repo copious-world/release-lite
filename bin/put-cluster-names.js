@@ -48,6 +48,9 @@ async function send_up(user,addr,resident_bash_script) {
     execFileSync('bash',['./scp-helper.sh', user, addr, resident_bash_script])
 }
 
+async function send_dir_up(user,addr,dirname) {
+    execFileSync('bash',['./scp-dir-helper.sh', user, addr, dirname])
+}
 
 function feasable_addr_list(net_data) {
     //
@@ -226,7 +229,7 @@ function get_machine_info(addr,node_data) {
 // ------- APPLICATION
 
 // PUT CLUSTER
-async function prepare_controller_put_ssh(addr_table,cluster_op_file,user,addr) {
+async function prepare_controller_put_ssh(name_map,addr_table,cluster_op_file,user,addr) {
     //
     console.log("prepare_controller_put_ssh")
 
@@ -234,20 +237,25 @@ async function prepare_controller_put_ssh(addr_table,cluster_op_file,user,addr) 
 
     let expect_list = ""
     //
-    for ( let [ky,info] of Object.entries(addr_table) ) {
+    for ( let [ky,info] of Object.entries(name_map) ) {
         //
-        await fos.output_json(`${ky}.json`,info)
-        await send_up(user,addr,`${ky}.json`)
-
         console.log(`${ky} ::`)
         console.dir(info)
         //
+        await fos.output_json(`./named-machines/${ky}.json`,info)
+
+        let pinfo = addr_table[ky]
+
+        //
         let expect_tmpl = `
-        expect ./expectpw-put_name.sh ${info.pass} ${info.user} ${info.addr} ${ky}.json >> name_run.out
-        echo ">>>>>>${info.addr}<<<<<<" >> name_run.out
+        expect ./expectpw-put_name.sh '${pinfo.pass}' ${pinfo.user} ${pinfo.addr} ${ky}.json >> name_run.out
+        echo ">>>>>>${pinfo.addr}<<<<<<" >> name_run.out
         `
         expect_list += expect_tmpl
     }
+
+    await send_dir_up(user,addr,`named-machines`)
+
 
     // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
     //
@@ -278,6 +286,20 @@ async function run() {
     //
     if ( await fos.exists('./save-data/addr_table.json') ) {
         let addr_table = await fos.load_json_data_at_path('./save-data/addr_table.json')
+
+        if ( (addr_table !== false) && (await fos.exists('./save-data/remote_table.json')) ) {
+            let remote_table = await fos.load_json_data_at_path('./save-data/remote_table.json')
+            if ( remote_table !== false ) {
+                addr_table = Object.assign(addr_table,remote_table)
+                for ( let [ky,obj] of Object.entries(addr_table) ) {
+                    let addr = obj.addr
+                    if ( addr !== ky ) {
+                        addr_table[addr] = obj      // DNS has been used to keep copies.. they are the same machine so one object for address
+                    }
+                }
+            } 
+        }
+
         let do_fetch = await fos.exists('./save-data/all_machine_info.json')
         //
         if ( do_fetch ) {
@@ -285,7 +307,7 @@ async function run() {
             if ( name_map ) {
                 //
                 let bash_op = "controller_put_ssh.sh"  // update this file to get the program to run over a list of addresses
-                await prepare_controller_put_ssh(name_map, bash_op, cluster_master_user, cluster_master_addr) // write the file 
+                await prepare_controller_put_ssh(name_map, addr_table, bash_op, cluster_master_user, cluster_master_addr) // write the file 
                 //
                 execFileSync('bash',['./run-uploader.sh', cluster_master_user, cluster_master_addr, bash_op])        
             }
