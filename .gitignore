@@ -6,6 +6,10 @@ test/*.conf
 node_modules
 test/save-data
 test/named-machines
-test/controller*
+test/controller*.sh
 test/*.txt
+test/cluster
+test/*.out
+
+
 
