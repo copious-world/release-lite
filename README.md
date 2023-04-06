@@ -4,7 +4,7 @@ This package provides tools that generate scripts that prepare packages for tran
 
 ## purpose
 
-The main aim here is to have something workable that deals with a very small domain of concepts to do with building web server clusters. As such, it aims to have a very small code base and supports a command template language that is very limited syntactically. The tools target a very specific set of servers and addresses their configurations, but it may be more general. The most general aspect is that it will expand templates of bash commands over lists of host names and addresses. If there is a chance to make it more generalized the attempt will be made and noted.
+The main aim here is to have something workable that deals with a very small domain of concepts to do with building web server clusters. As such, it aims to have a very small code base and supports a command template language that is very limited syntactically. The tools target a very specific set of servers and addresses their configurations, but it may be more general. The most general aspect is that it will expand templates of bash commands, or other commands, over lists of host names and addresses. If there is a chance to make it more generalized the attempt will be made and noted.
 
 ## install
 
@@ -34,7 +34,7 @@ This package started as a quick project to provide internal development classes.
 
 This revision adds the command line programs, but leaves the old export classes alone. A short roadmap is being followed for a short time to aid the installation and testing of other packages. The effort should result in a slightly more useful set of tools for starting up servers that are part of a cluster to run a usefull web concern. Initially, the plan is to just get things up and running after having taken down previous invokations of the services. One can find out more about the services elsewhere.
 
-This version adds the beginnings of the command language which deals with working with a number of machines known by IP address and their assignd names that are only known through this utility; that is, this is not DNS.
+This version adds the beginnings of the command language which deals with working with a number of machines known by IP address and their assigned names that are only known through this utility; that is, this is not DNS.
 
 
 ## command line utilities
@@ -45,6 +45,25 @@ Here is a list of command line tools that are available in the current release (
 * **put-cluster-names**
 * **cluster-names**
 * **bash-file-gen** (along with abbreviation bfg)
+
+<a href='#cluster-info' /> </a>
+### [get-cluster-info](#cluster-info-detail)
+
+This command line program provides the first step in defining the use of nodes picked to be part of a cluster. Prior to the use of this command line, it is expected that a cluster node will have no special directories nor files that can be queried in order for an application to understand the service role of the node.
+
+After the use of this command, local files and directories should be ready for the use of `put-cluster-names`.
+
+
+### put-cluster-names
+
+
+
+
+
+
+### cluster-names
+
+This command line program queries a LAN for IP addresses. It then attempts to fetch a file using scp to see if there is a file indicating a name and other information for use in building a table of hosts that will be part of the cluster. Once the table is built it may be imported into the file `all-machines.conf`.
 
 ### bash-file-gen
 
@@ -62,9 +81,39 @@ $bfg
 
 The last two lines are the same. After running the command, the directories and files specified in the `all-machines.conf` should be available for use.
 
-### cluster-names
 
-This command line program queries a LAN for IP addresses. It then attempts to fetch a file using scp to see if there is a file indicating a name and other information for use in building a table of hosts that will be part of the cluster. Once the table is built it may be imported into the file `all-machines.conf`.
+<a href='#cluster-info-detail' /> </a>
+## using `get-cluster-info `
+
+
+This command knows of, at least, one cluster master. The master is not set up as a continuous controller of nodes, but acts as the first point of address when using `ssh`. The controlled will then use ssh to carry operations forward to internal LAN nodes and to extra nodes
+
+This command causes command files to be ported to the master which are then use to deal with running `ssh` and `scp` command and providing password and fingerprint responses. 
+
+This command first uses its `ssh` bashfile and `expect` framework to create a directory `/home/naming` on each node. This directory becomes the place where files will be stored so that commands used later can obtain coalesced and costomized information in order to how to use the nodes.
+
+The second thing this command does is to gather information about each node having to do with CPU cores, disk drives, and RAM availability. 
+
+The administrator using the results of this tool can set the application name of the nodes by editing the files that this command deposits in a local directory `named-machines` that makes in its working directory. Later, the next command, put-cluster-names, will store the update files on the node disks under `/home/naming`. 
+
+> The step this tool provide needs to be done, but does use some user input including input about external nodes. The tool will ask a user if the nodes returned in its query are to be included in further operations. 
+> 
+> Later tools may seem reduntant because information may already be on disk. But, it is possible that the files may change by the operations of more than one agent. Or, the requirement of local storage of information my be compromized. Finally, it is possible that IPs will change because of DHCP. So, there will be a way to reconstruct the current state of node roles after such changes.
+> 
+> The aim is to make it so that `cluster-names` will adapt to network changes when updating exising configurations of cluster nodes.
+
+
+
+
+## using `put-cluster-names`
+
+
+
+
+## using `cluster-names`
+
+
+
 
 A run might look like the following:
 
@@ -82,7 +131,8 @@ The extension 'bfg' may be used to indicate that the file has a special format f
 
 Here, `cn.conf` is a local file that contains password and user name pairs for tries on the IPs. (more below)
 
-## using `cluster-names`
+
+
 
 ### preparation 
 
@@ -97,6 +147,12 @@ TBD
 ### focusing and running
 
 `cluster-names` will sniff out the network using nmap. Once it has a list of IPs to examine, it will attempt to get the target file from home directories.
+
+
+## using `bash-file-gen`
+
+
+
 
 ## command file format
 
