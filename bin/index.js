@@ -5,6 +5,8 @@
 const {
     strip_front,
     popout,
+    popout_match,
+    popout_rest_match,
     extract_popout,
     replace_eol,
     has_symbol,
@@ -29,6 +31,15 @@ const {path_table} = require('../lib/figure_paths')
 
 
 const fs = require('fs')
+const {FileOperations} = require('extra-file-class')
+let fos = new FileOperations()
+
+
+
+const IMP_RULE_MARKER = '&|.'
+const OBJ_LIST_TYPE_MARKER = '(~!)'
+const TABLE_ROW_COL_TYPE_MARKER = '(=)'
+
 
 
 let all_machines_script = './all-machines.conf'
@@ -135,21 +146,99 @@ function get_type_marker(table_str,deflt) {
     let table_type = deflt
     if ( table_str[0] === '(' ) {
         table_type = table_str.substring(0,table_str.indexOf(')')+1)
-        table_str = table_str.replace(table_type,'')
+        table_str = table_str.replace(table_type,'').trim()
+    }
+    return [table_type,table_str]
+}
+
+
+function import_rule(ts) {
+    return ( ts.indexOf(IMP_RULE_MARKER) === 0 )
+}
+
+function figure_def_import_rule(ts,table_type) {
+    let rule = first_line(ts)
+    ts = after_first_line(ts)
+    rule = rule.replace(IMP_RULE_MARKER,'').trim()
+    let directive = popout_match(rule,/\s+/)
+    rule = popout_rest_match(rule,/\s+/)
+    let sourcer = popout_match(rule,/\s+/)
+    rule = popout_rest_match(rule,/\s+/)
+    //
+    if ( sourcer === 'import' ) {
+        try {
+            let srcd = fs.readFileSync(rule).toString()
+            srcd = srcd.trim()
+
+            if ( srcd[0] === '=' ) {
+                if ( table_type !== TABLE_ROW_COL_TYPE_MARKER ) {
+                    console.log("table type does not match data in file")
+                    directive = 'must'
+                    throw new Error("type/file mismatch in def section")
+                }
+                //
+                switch ( directive ) {
+                    case 'maybe' : {
+                        ts  = srcd
+                        break
+                    }
+                    case 'must' : {
+                        srcd = after_first_line(srcd)
+                        ts += '\n' + srcd
+                        break
+                    }
+                    default : break
+                }
+
+            } else {  // making assumption that it will be the right syntax for (~!)
+                if ( table_type !== OBJ_LIST_TYPE_MARKER ) {
+                    console.log("table type does not match data in file")
+                    directive = 'must'
+                    throw new Error("type/file mismatch in def section")
+                }
+                //
+                switch ( directive ) {
+                    case 'maybe' : {
+                        ts  = srcd
+                        break
+                    }
+                    case 'must' : {
+                        ts += OBJ_LIST_TYPE_MARKER
+                        ts += srcd
+                        break
+                    }
+                    default : break
+                }
+            }
+
+
+        } catch (e) {
+            if ( directive === "maybe" ) {
+                return ts
+            } else if ( directive === "must" ) {
+                console.log(e)
+                throw new Error(`Could not load file ${rule} when requiring extra host information`)
+            }
+        }
     }
 
-    return [table_type,table_str]
+
+    return ts
 }
 
 
 
 function process_host_table(table_str) {
     //
-    let [table_type,ts] = get_type_marker(table_str,'(=)')
+    let [table_type,ts] = get_type_marker(table_str,TABLE_ROW_COL_TYPE_MARKER)
+    //
+    if ( import_rule(ts) ) {
+        ts = figure_def_import_rule(ts,table_type)
+    }
     //
     let tiny_cloud_list = []
     let by_key = {}
-    if ( table_type === '(~!)' ) {
+    if ( table_type === OBJ_LIST_TYPE_MARKER ) {
         tiny_cloud_list = object_list_to_object(ts)
         let header = Object.keys(tiny_cloud_list[0])
         by_key = create_map_object(header,tiny_cloud_list)
@@ -171,13 +260,17 @@ function process_host_table(table_str) {
 
 function process_ssh_map(ssh_def_str) {
     //
-    let [table_type,ts] = get_type_marker(ssh_def_str,'(~!)')
+    let [table_type,ts] = get_type_marker(ssh_def_str,OBJ_LIST_TYPE_MARKER)
+    //
+    if ( import_rule(ts) ) {
+        ts = figure_def_import_rule(ts,table_type)
+    }
     //
     ssh_def_str = ts
     ssh_def_str = ssh_def_str.replace('<!','')
     //
     let final_map
-    if ( table_type === '(~!)' ) {
+    if ( table_type === OBJ_LIST_TYPE_MARKER ) {
         final_map = object_list_to_object(ssh_def_str)
     } else {
         let [tiny_cloud_list,by_key,header] = table_to_objects(ts)
@@ -379,6 +472,18 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                     }
                     //
                     act_map[act].outputs = output_map   
+                } else if ( typeof code === 'string' ) {
+                    if ( code.substring(code.lastIndexOf('.')) === '.conf' ) {
+                        try {
+                            let file = code
+                            let subcode = fs.readFileSync(file).toString() // the string read must be an act
+                            act_map[act] = process_act_entry(subcode,preamble_obj,defs_obj)
+                            acts_generator(act_map,acts_def,preamble_obj,defs_obj)
+                        } catch (e) {
+                            console.log(e)
+                            console.log('could not read file ... skipping ... ')
+                        }
+                    }
                 }
                 //
                 break;
@@ -612,7 +717,7 @@ for ( let ky of preamble_obj.prog.acts ) {
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
             output = sequence_output(output)
-            fs.writeFileSync(`./scripts/${ky}-${addr}.sh`,output)
+            fos.output_string(`./scripts/${ky}-${addr}.sh`,output)
             //console.log(output)
             //console.log('--------------------------------------------------------------')
         }        
