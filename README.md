@@ -46,44 +46,51 @@ Here is a list of command line tools that are available in the current release (
 * **cluster-names**
 * **bash-file-gen** (along with abbreviation bfg)
 
-<a href='#cluster-info' /> </a>
+<a name='cluster-info' /> </a>
 ### [get-cluster-info](#cluster-info-detail)
 
-This command line program provides the first step in defining the use of nodes picked to be part of a cluster. Prior to the use of this command line, it is expected that a cluster node will have no special directories nor files that can be queried in order for an application to understand the service role of the node.
+This command line program provides the first step in defining the use of nodes picked to be part of a cluster. `get-cluster-info` makes use of `nmap` to find the nodes connected to a master node. It queries the user to see which nodes found will be part of the operations. For each node included, it requests a user name and password for use by ssh running on the selected master node.
 
-After the use of this command, local files and directories should be ready for the use of `put-cluster-names`.
+Prior to the use of this command line, it is expected that a cluster node will have no special directories nor files that can be queried in order for an application to understand the service role of the node.
 
+After the use of this command, local files and directories should be ready for the use of `put-cluster-names`. Also, the nodes will have directories ready to receive files from the cluster master.
 
-### put-cluster-names
+<a name='put-cluster-names' /> </a>
+### [put-cluster-names](#put-cluster-names-detail)
 
+The files created by `get-cluster-info` may have been edited by hand, or an option may be used with the command to provide the same edits. The edits add naming information and other information for use in identifying the role of a node in the cluster processes.
 
+Once the files are ready, this command will send the files to their respective nodes of the cluster via the master node. The files will reside in a diretory `/home/naming`.
 
-
-
-
-### cluster-names
-
-This command line program queries a LAN for IP addresses. It then attempts to fetch a file using scp to see if there is a file indicating a name and other information for use in building a table of hosts that will be part of the cluster. Once the table is built it may be imported into the file `all-machines.conf`.
-
-### bash-file-gen
-
-This is command line program reads a configuration file `all-machines.conf` which must be in the directory form which the bash command line is used. The command takes no parameters on the command line. The command file may import other command files. The structure and format of the file is explained in the section **command file format**
-
-The following is possible:
-```
-$pwd 
-~/my-dir/
-$ ls
-all-machines.conf
-$bash-file-gen
-$bfg
-```
-
-The last two lines are the same. After running the command, the directories and files specified in the `all-machines.conf` should be available for use.
+Later, processes needing to know the purpose of the nodes in the cluster may query the node for the files in `/home/naming`. If all conditions for the cluster remain the same, including DHCP assignmens, local copies of the files might provide enough information for operations to be set up and run. Otherwise, `cluster-names` may rebuild address table and query the master node for his neighbor addresses.
 
 
-<a href='#cluster-info-detail' /> </a>
+<a name='cluster-names' /> </a>
+### [cluster-names](#cluster-names-detail)
+
+This command line program queries a LAN for IP addresses. It then attempts to fetch a file using `scp` to see if there is a file indicating a name and other information for use in building a table of hosts that will be part of the cluster. Once the table is built it may be imported into the file `all-machines.conf` which is expected by `bash-file-gen`.
+
+
+<a name='bash-file-gen' /> </a>
+### [bash-file-gen](#bash-file-gen-detail)
+
+This is command line program reads a configuration file `all-machines.conf` which must be in the directory from which the bash command line is used. The command takes no parameters on the command line, as it uses only the configuration file. The structure and format of the file is explained in the section **command file format**
+
+The process described by the configuration file is one that generates a number of bash command files that may be run on LAN nodes and remotes via the master node and ssh. The files may be generated for all nodes in the LAN to perform installations, and setups. Also, each node may be given custom commands. (The configuration file format provides node by node sections for particular operations requiring more than one node.)
+
+## details
+
+In the sections below, further details are given for each of the commands. Some sections may link to other files with description, examples and tutorials for the commands.
+
+* [get-cluster-info](#cluster-info-detail)
+* [put-cluster-names](#put-cluster-names-detail)
+* [cluster-names](#cluster-names-detail)
+* [bash-file-gen](#bash-file-gen-detail)
+
+
+<a name='cluster-info-detail' /> </a>
 ## using `get-cluster-info `
+[&uArr; back to overview](#cluster-info)
 
 
 This command knows of, at least, one cluster master. The master is not set up as a continuous controller of nodes, but acts as the first point of address when using `ssh`. The controlled will then use ssh to carry operations forward to internal LAN nodes and to extra nodes
@@ -104,14 +111,15 @@ The administrator using the results of this tool can set the application name of
 
 
 
-
+<a name='put-cluster-names-detail' /> </a>
 ## using `put-cluster-names`
+[&uArr; back to overview](#put-cluster-names)
 
 
 
-
+<a name='cluster-names-detail' /> </a>
 ## using `cluster-names`
-
+[&uArr; back to overview](#cluster-names)
 
 
 
@@ -148,8 +156,24 @@ TBD
 
 `cluster-names` will sniff out the network using nmap. Once it has a list of IPs to examine, it will attempt to get the target file from home directories.
 
-
+<a name='bash-file-gen-detail' /> </a>
 ## using `bash-file-gen`
+[&uArr; back to overview](#bash-file-gen)
+
+
+
+The following is possible:
+```
+$pwd 
+~/my-dir/
+$ ls
+all-machines.conf
+$bash-file-gen
+$bfg
+```
+
+The last two lines are the same. After running the command, the directories and files specified in the `all-machines.conf` should be available for use.
+
 
 
 
