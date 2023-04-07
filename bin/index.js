@@ -46,6 +46,18 @@ let all_machines_script = './all-machines.conf'
 
 let confstr = fs.readFileSync(all_machines_script).toString() // will crash if the file is not in the CWD
 
+let g_cmd_gen_filter = {}
+let filter_json_name = 'save-data/select-machine-actions.json'
+try {
+    let filterstr = fs.readFileSync(filter_json_name).toString() // will do not filtering unless this file is present
+    g_cmd_gen_filter = JSON.parse(filterstr)
+    console.log(filter_json_name + " will be used to selection actions")
+} catch (e) {
+    console.log("All actions will be perormed: " filter_json_name + " has not been found")
+}
+
+
+
 /// the file is not JSON parseable
 /// special format
 
