@@ -1,6 +1,6 @@
 {
   "name": "release-lite",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Miminal release tool for a small website for tar-gzip'ing files and micro services, scp up to host, ssh remote script for install with a pm2 ecosystem. ",
   "main": "index.js",
   "directories": {

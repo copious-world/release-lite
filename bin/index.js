@@ -53,7 +53,7 @@ try {
     g_cmd_gen_filter = JSON.parse(filterstr)
     console.log(filter_json_name + " will be used to selection actions")
 } catch (e) {
-    console.log("All actions will be perormed: " filter_json_name + " has not been found")
+    console.log("All actions will be perormed: " + filter_json_name + " has not been found")
 }
 
 
@@ -264,7 +264,7 @@ function process_host_table(table_str) {
         "_list" : tiny_cloud_list,
         "by_key" : by_key
     }
-    
+    //    
     return tiny_cloud
 }
 
@@ -353,7 +353,6 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
             act_str = subst_all(act_str,`$\{${k}}`,v)
             act_str = subst_all(act_str,`$${k}`,v)
         }
-
         let path_subst = defs_obj.path_abbreviations
         for ( let pth in path_subst.local ) {
             let pstr = path_subst.local[pth]
@@ -393,18 +392,24 @@ function host_abbrev_to_addr(hname,hosts) {
 //console.log(hname)
 //console.log(hosts)
     let hmap = hosts.by_key['abbr']
-//console.log(hmap)
     return hmap[hname].addr
 }
 
 
-function get_dot_val(lk,access) {
+function get_dot_val(lk,access,index) {
     let i = 0;
     let v = access[lk[0]]
     let n = lk.length
     for ( let i = 1; i < n; i++ ) {
-        if ( v === undefined ) return ""
         v = v[lk[i]]
+        if ( Array.isArray(v) ) {
+            if ( index !== undefined ) {
+                v = v[index]
+            } else {
+                v = v.map(el => get_dot_val(lk.slice(i+1),v,index))
+            }
+        }
+        if ( v === undefined ) return ""
     }
     return v
 }
@@ -473,7 +478,18 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                         for ( let vf in var_forms ) {
                             let lk = [].concat(vf_lookup[vf])
                             lk.splice(1,0,h)
-                            let val = get_dot_val(lk,access)
+                            let val = get_dot_val(lk,access,0)
+/*
+if ( val === "" ) {
+    console.dir(access)
+    console.log(lk)
+    let ky = lk[1]
+    for( let f in access ) {
+        let check = access[f][ky]
+        console.dir(check)
+    }
+}
+*/
                             //
                             let starters = h_out.split(vf)
                             h_out = starters.join(val)
