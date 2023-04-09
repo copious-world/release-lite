@@ -45,16 +45,16 @@ const fos = new FileOperations()
 
 
 async function send_up(user,addr,resident_bash_script) {
-    execFileSync('bash',['./scp-helper.sh', user, addr, resident_bash_script])
+    execFileSync('bash',['./assets/scp-helper.sh', user, addr, resident_bash_script])
 }
 
 async function send_dir_up(user,addr,dirname) {
-    execFileSync('bash',['./scp-dir-helper.sh', user, addr, dirname])
+    execFileSync('bash',['./assets/scp-dir-helper.sh', user, addr, dirname])
 }
 
 async function send_dir_down(user,addr,dirname) {
     if ( await fos.ensure_directories(`./${dirname}`) ) {
-        execFileSync('bash',['./scp-dir-fetcher.sh', user, addr, dirname])
+        execFileSync('bash',['./assets/scp-dir-fetcher.sh', user, addr, dirname])
     } else {
         console.log("send_dir_down -- cannot make local directory")
     }
@@ -259,9 +259,9 @@ async function prepare_controller_get_ssh(addr_table,cluster_op_file,user,addr) 
     //
     console.log("prepare_controller_get_ssh")
 
-    await send_up(user,addr,"expectpw-get_name.sh")
-    let bash_op = "dir_maker.sh"        // before collecting all the files from all the hosts, make a diretory for them
-    await execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])   // /home/naming/cluster
+    await send_up(user,addr,"assets/expectpw-get_name.sh")
+    let bash_op = "assets/dir_maker.sh"        // before collecting all the files from all the hosts, make a diretory for them
+    await execFileSync('bash',['./assets/run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])   // /home/naming/cluster
 
     let expect_list = ""
     //
@@ -321,7 +321,7 @@ async function run() {
             let bash_op = "controller_get_ssh.sh"  // update this file to get the program to run over a list of addresses
             await prepare_controller_get_ssh(addr_table, bash_op, cluster_master_user, cluster_master_addr) // write the file 
             //
-            execFileSync('bash',['./run-downloader.sh', cluster_master_user, cluster_master_addr, bash_op])
+            execFileSync('bash',['./assets/run-downloader.sh', cluster_master_user, cluster_master_addr, bash_op])
             //
             await send_dir_down(cluster_master_user,cluster_master_addr,`cluster`)    
         }

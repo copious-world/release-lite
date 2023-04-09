@@ -45,7 +45,7 @@ const fos = new FileOperations()
 
 
 async function send_up(user,addr,resident_bash_script) {
-    execFileSync('bash',['./scp-helper.sh', user, addr, resident_bash_script])
+    execFileSync('bash',['./assets/scp-helper.sh', user, addr, resident_bash_script])
 }
 
 
@@ -96,10 +96,11 @@ async function ask_user_name_and_pass(addr_table) {
 
 
 async function prepare_controller_exec_ssh(addr_table,cluster_op_file,user,addr) {
-    await send_up(user,addr,"pars-act.sh")
+    await send_up(user,addr,"assets/pars-act.sh")
     console.log("prepare_controller_exec_ssh")
     //
-    await send_up(user,addr,"expectpw-exec.sh")
+    await send_up(user,addr,"assets/getpars.sh")
+    await send_up(user,addr,"assets/expectpw-exec.sh")
     //
     let expect_list = ""
 
@@ -108,7 +109,7 @@ async function prepare_controller_exec_ssh(addr_table,cluster_op_file,user,addr)
         console.dir(info)
         //
         let expect_tmpl = `
-        expect ./expectpw-exec.sh '${info.pass}' ${info.user} ${info.addr} pars-act.sh >> name_run.out
+        expect ./expectpw-exec.sh '${info.pass}' ${info.user} ${info.addr} params-act.sh >> name_run.out
         echo ">>>>>>${info.addr}<<<<<<" >> name_run.out
         `
         expect_list += expect_tmpl
@@ -264,7 +265,7 @@ const { execFileSync } = require('node:child_process');
 
 async function run() {
     //
-    let bash_op = "nmapper.sh"
+    let bash_op = "assets/nmapper.sh"
     let do_fetch = true
     if ( await fos.exists('./save-data/addr_table.json') ) {
         let YN = await prompt("The table of hosts already exists. Do you want to use it? ")
@@ -273,7 +274,7 @@ async function run() {
     //
     let addr_table = false
     if ( do_fetch ) {
-        execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])
+        execFileSync('bash',['./assets/run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])
         let net_data = fs.readFileSync('name_run.out','ascii').toString()
         //
         console.log(net_data)
@@ -316,7 +317,7 @@ async function run() {
         bash_op = "controller_exec_ssh.sh"  // update this file to get the program to run over a list of addresses
         await prepare_controller_exec_ssh(addr_table, bash_op, cluster_master_user, cluster_master_addr) // write the file 
         //
-        execFileSync('bash',['./run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])    
+        execFileSync('bash',['./assets/run-executer.sh', cluster_master_user, cluster_master_addr, bash_op])    
     }
 
     let node_data = fs.readFileSync('name_run.out','ascii').toString()

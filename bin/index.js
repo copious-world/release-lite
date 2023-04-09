@@ -40,7 +40,7 @@ const IMP_RULE_MARKER = '&|.'
 const OBJ_LIST_TYPE_MARKER = '(~!)'
 const TABLE_ROW_COL_TYPE_MARKER = '(=)'
 
-
+const g_out_dir_prefix = './scripts'
 
 let all_machines_script = './all-machines.conf'
 
@@ -379,7 +379,7 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
             act_section = expand_section(act_section,rest_sect)    
         } else {
             act_section.converted = act_str
-        }       
+        }
         //
         return act_section
     }
@@ -529,9 +529,9 @@ function process_acts(acts_def,preamble_obj,defs_obj) {
     for ( let [k,v] of Object.entries(acts_def) ) {
         act_map[k] = process_act_entry(v,preamble_obj,defs_obj)
     }
-
-    acts_generator(act_map,acts_def,preamble_obj,defs_obj)
-
+    //
+    acts_generator(act_map,acts_def,preamble_obj,defs_obj)  // the entries of acts map has a string for each IP and vars subst done
+    //
     return act_map
 }
 
@@ -651,12 +651,20 @@ function subsequence_output(o_vals,content,depth) {
     }
 
     let key_map = {}
+    let special_file_deposit = {}
     for ( let sect of section_list ) {
         sect = sect.trim()
         let key = popout(sect,'>')
         key = key.substring(depth+1,sect.indexOf('>'))
-        key_map[key] = sect.substring(sect.indexOf('>') + 1).trim()
+        let sctstr = sect.substring(sect.indexOf('>') + 1).trim()
+        if ( sctstr.substring(0,2) === '|<' ) {
+            special_file_deposit[key] = first_line(sctstr)
+            sctstr = after_first_line(sctstr)
+        }
+        key_map[key] = sctstr
     }
+
+    let seconded = Object.keys(special_file_deposit).length > 0
 
     let final_output = ""
 
@@ -666,7 +674,6 @@ function subsequence_output(o_vals,content,depth) {
 
         if ( sect === undefined ) {
             console.log("undefined section name in ordering: ",ky," depth: ",depth)
-            //console.dir(key_map)
             continue
         }
 
@@ -674,6 +681,40 @@ function subsequence_output(o_vals,content,depth) {
             sect = sect.substring(1)
         } else {
             sect = sequence_output(sect,depth+1,order_finder)
+        }
+
+        if ( seconded ) {
+            let output_directive = special_file_deposit[ky]
+            if ( output_directive && output_directive.length > 0 ) {
+                let od_parts = output_directive.split('|')
+                od_parts.shift()
+                //
+                let inserts = od_parts[0].trim()
+                let params = od_parts[1].trim()
+                let ins_parts = inserts.split('<')
+                ins_parts.shift()
+                ins_parts = trimmer(ins_parts)
+                //
+                if ( ins_parts[0] === 'expect' ) {
+                    if ( ins_parts[1] === 'ssh' ) {
+                        let filespec = ins_parts[2]
+                        if ( filespec.substring(0,"file".length) === "file" ) {
+                            let fname = filespec.substring(4).trim()
+                            if ( fname[0] === '=' ) {
+                                fname = fname.replace('=','').trim()
+                            }
+                            //
+                            let cmd_line = `expect ./expectpw-exec.sh ${params} ${fname} >> name_run.out`
+                            //
+                            fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,sect)
+                            sect = cmd_line
+                        }
+                    }
+                }
+                //
+                // `expect ./expectpw-exec.sh dietpi root 192.168.1.71 pars-act.sh >> name_run.out`
+                //
+            }
         }
 
         final_output += sect
@@ -745,9 +786,11 @@ for ( let ky of preamble_obj.prog.acts ) {
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
             output = sequence_output(output)
-            fos.output_string(`./scripts/${ky}-${addr}.sh`,output)
+            fos.output_string(`${g_out_dir_prefix}/${ky}-${addr}.sh`,output)
             //console.log(output)
             //console.log('--------------------------------------------------------------')
         }        
     }
 }
+
+

@@ -45,11 +45,11 @@ const fos = new FileOperations()
 
 
 async function send_up(user,addr,resident_bash_script) {
-    execFileSync('bash',['./scp-helper.sh', user, addr, resident_bash_script])
+    execFileSync('bash',['./assets/scp-helper.sh', user, addr, resident_bash_script])
 }
 
 async function send_dir_up(user,addr,dirname) {
-    execFileSync('bash',['./scp-dir-helper.sh', user, addr, dirname])
+    execFileSync('bash',['./assets/scp-dir-helper.sh', user, addr, dirname])
 }
 
 function feasable_addr_list(net_data) {
@@ -233,7 +233,7 @@ async function prepare_controller_put_ssh(name_map,addr_table,cluster_op_file,us
     //
     console.log("prepare_controller_put_ssh")
 
-    await send_up(user,addr,"expectpw-put_name.sh")
+    await send_up(user,addr,"assets/expectpw-put_name.sh")
 
     let expect_list = ""
     //
@@ -309,7 +309,7 @@ async function run() {
                 let bash_op = "controller_put_ssh.sh"  // update this file to get the program to run over a list of addresses
                 await prepare_controller_put_ssh(name_map, addr_table, bash_op, cluster_master_user, cluster_master_addr) // write the file 
                 //
-                execFileSync('bash',['./run-uploader.sh', cluster_master_user, cluster_master_addr, bash_op])        
+                execFileSync('bash',['./assets/run-uploader.sh', cluster_master_user, cluster_master_addr, bash_op])        
             }
         }
 
