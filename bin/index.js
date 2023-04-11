@@ -262,9 +262,17 @@ function process_host_table(table_str) {
 
     let tiny_cloud = {
         "_list" : tiny_cloud_list,
-        "by_key" : by_key
+        "by_key" : by_key,
+        "master" : false
     }
-    //    
+    //
+    let hosts = tiny_cloud.by_key.host 
+    for ( let [key,rec] of Object.entries(hosts) ) {
+        if ( key.toLowerCase().substring(0,"@master".length) === "@master" ) {
+            tiny_cloud.master = rec
+        }
+    }
+    //
     return tiny_cloud
 }
 
@@ -389,8 +397,8 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
 
 
 function host_abbrev_to_addr(hname,hosts) {
-//console.log(hname)
-//console.log(hosts)
+console.log(hname)
+console.log(hosts)
     let hmap = hosts.by_key['abbr']
     return hmap[hname].addr
 }
@@ -439,24 +447,31 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                         //
                         for ( let sect of host_sections ) {
                             let hname = first_line(sect).trim()
-                            let txt = after_first_line(sect)
-                            let addr = host_abbrev_to_addr(hname,defs_obj.host)
-                            string_parts[addr] = txt
-                            host_list.push(addr)
+                            if ( hname === "all" ) {
+                                let txt = after_first_line(sect)
+                                string_parts["all"] = txt
+                                host_list.push(['all',defs_obj.host._list.map(h => h.addr)])
+                            } else {
+                                let txt = after_first_line(sect)
+                                let addr = host_abbrev_to_addr(hname,defs_obj.host)
+                                string_parts[addr] = txt
+                                host_list.push(addr)    
+                            }
                         }
                         //
                     } else {
                         host_list = defs_obj.host._list.map(h => h.addr)
                     }
 
-
                     //
                     let output_map = {}
                     let sshvals = defs_obj.ssh
                     let hosts = defs_obj.host.by_key.addr
+                    let master = defs_obj.host.master
                     let access = {
                         "host" : hosts,
-                        "ssh" : sshvals
+                        "ssh" : sshvals,
+                        "master" : master
                     }
                     let var_forms = all_var_forms(c_str)
     //console.dir(var_forms)
@@ -474,29 +489,38 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                     }
                     //
                     for ( let h of host_list ) {
-                        let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
-                        for ( let vf in var_forms ) {
-                            let lk = [].concat(vf_lookup[vf])
-                            lk.splice(1,0,h)
-                            let val = get_dot_val(lk,access,0)
-/*
-if ( val === "" ) {
-    console.dir(access)
-    console.log(lk)
-    let ky = lk[1]
-    for( let f in access ) {
-        let check = access[f][ky]
-        console.dir(check)
-    }
-}
-*/
-                            //
-                            let starters = h_out.split(vf)
-                            h_out = starters.join(val)
-                            // 
+                        if ( Array.isArray(h) ) {
+                            if ( h[0] === 'all' ) {
+                                let hlist = h[1]
+                                let h_out = string_parts['all']
+                                for ( hh of hlist ) {
+                                    for ( let vf in var_forms ) {
+                                        let lk = [].concat(vf_lookup[vf])
+                                        if ( lk[0] !== 'master' ) {
+                                            lk.splice(1,0,hh)
+                                        } else {  // use the address of the master
+                                            lk.splice(1,0,access.master.addr)
+                                        }
+                                        let val = get_dot_val(lk,access,0)
+                                        //
+                                        let starters = h_out.split(vf)
+                                        h_out = starters.join(val)
+                                    }
+                                }
+                                output_map['all'] = h_out
+                            }
+                        } else {
+                            let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
+                            for ( let vf in var_forms ) {
+                                let lk = [].concat(vf_lookup[vf])
+                                lk.splice(1,0,h)
+                                let val = get_dot_val(lk,access,0)
+                                //
+                                let starters = h_out.split(vf)
+                                h_out = starters.join(val)
+                            }
+                            output_map[h] = h_out
                         }
-                        //
-                        output_map[h] = h_out
                     }
                     //
                     act_map[act].outputs = output_map   
@@ -544,6 +568,7 @@ function process_defs(def_list) {
             switch (k) {
                 case "host" : {
                     def_map[k] = process_host_table(v)
+                    console.log(k,def_map[k])
                     break;
                 }
                 case "ssh" : {
