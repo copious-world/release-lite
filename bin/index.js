@@ -410,7 +410,7 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
                 }
             }
             //
-            act_section = expand_section(act_section,rest_sect)    
+            act_section = expand_section(act_section,rest_sect)
         } else {
             act_section.converted = act_str
         }
@@ -493,13 +493,15 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                     let sshvals = defs_obj.ssh
                     let hosts = defs_obj.host.by_key.addr
                     let master = defs_obj.host.master
+                    master = Object.assign(master,sshvals[master.addr])
+                    master[master.addr] = master        /// cicrular but, the indexer uses it
                     let access = {
                         "host" : hosts,
                         "ssh" : sshvals,
                         "master" : master
                     }
                     let var_forms = all_var_forms(c_str)
-    //console.dir(var_forms)
+
                     let unwrapped_vars = Object.keys(var_forms).map(vf => { 
                         let stopper = '}'
                         if ( vf[1] === '[') stopper = ']'
@@ -540,7 +542,13 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                             let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
                             for ( let vf in var_forms ) {
                                 let lk = [].concat(vf_lookup[vf])
-                                lk.splice(1,0,h)
+                                //
+                                if ( lk[0] !== 'master' ) {
+                                    lk.splice(1,0,hh)
+                                } else {  // use the address of the master
+                                    lk.splice(1,0,access.master.addr)
+                                }
+                                //
                                 let val = get_dot_val(lk,access,0)
                                 //
                                 let starters = h_out.split(vf)
@@ -598,6 +606,7 @@ function process_acts(acts_def,preamble_obj,defs_obj) {
     }
     //
     acts_generator(act_map,acts_def,preamble_obj,defs_obj)  // the entries of acts map has a string for each IP and vars subst done
+console.log(JSON.stringify(act_map,null,2))
     //
     return act_map
 }
@@ -1065,7 +1074,7 @@ let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
 //console.dir(preamble_obj)
 //console.dir(defs_obj)
 //console.log(JSON.stringify(defs_obj,null,2))
-// console.dir(acts_obj)
+//console.dir(acts_obj)
 //console.log(JSON.stringify(acts_obj,null,2))
 //
 
@@ -1085,7 +1094,7 @@ for ( let ky of preamble_obj.prog.acts ) {
             let top = chase_depth(output,1,addr)
             if ( top ) {
                 let conententless = r_remove_field(top,'content')
-                console.log(JSON.stringify(conententless,null,2))
+                //console.log(JSON.stringify(conententless,null,2))
             }
 /*
             output = sequence_output(output)
