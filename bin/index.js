@@ -6,6 +6,7 @@ const {
     iswhite,
     strip_front,
     popout,
+    popafter,
     popout_match,
     popout_rest_match,
     extract_popout,
@@ -22,6 +23,7 @@ const {
     extract_object_field,
     subst_all,
     eliminate_line_start_comments,
+    eliminate_line_end_comments,
     eliminate_empty_lines,
     table_to_objects,
     create_map_object,
@@ -92,6 +94,59 @@ function get_type_specifier(str) {
     let type = str.substring(str.indexOf('('),str.indexOf(')')+1)
     return type
 }
+
+
+function from_subst(out_str,var_forms,vf_lookup,access,maybe_addr) {
+    for ( let vf in var_forms ) {
+        let lk = [].concat(vf_lookup[vf])
+        //
+        if ( lk[0] !== 'master' ) {
+            lk.splice(1,0,maybe_addr)
+        } else {  // use the address of the master
+            lk.splice(1,0,access.master.addr)
+        }
+        //
+        let val = get_dot_val(lk,access,0)
+        //
+        let starters = out_str.split(vf)
+        out_str = starters.join(val)
+    }
+    return out_str
+}
+
+
+function unpack_values_transform(tmpl_str,maybe_addr) {
+    // --- generalize this
+    let var_forms = all_var_forms(tmpl_str)
+    let sshvals = defs_obj.ssh
+    let hosts = defs_obj.host.by_key.addr
+    let master = defs_obj.host.master
+    master = Object.assign(master,sshvals[master.addr])
+    master[master.addr] = master        /// cicrular but, the indexer uses it
+    let access = {
+        "host" : hosts,
+        "ssh" : sshvals,
+        "master" : master
+    }
+    if ( Object.keys(var_forms).length ) {
+        let unwrapped_vars = Object.keys(var_forms).map(vf => { 
+            let stopper = '}'
+            if ( vf[1] === '[') stopper = ']'
+            let vk = vf.substring(2).replace(stopper,'')
+            let fields = vk.split('.')
+            return [vf,fields]
+        })
+        //
+        let vf_lookup = {}
+        for ( let vfpair of unwrapped_vars ) {
+            vf_lookup[[vfpair[0]]] = vfpair[1]
+        }
+        //
+        tmpl_str = from_subst(tmpl_str,var_forms,vf_lookup,access,maybe_addr)
+    }
+    return tmpl_str
+}
+
 
 
 function process_preamble_acts(prog_form) {
@@ -523,37 +578,13 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                                 output_map['all'] = addr_o_map
                                 for ( hh of hlist ) {
                                     let ha = string_parts['all']
-                                    for ( let vf in var_forms ) {
-                                        let lk = [].concat(vf_lookup[vf])
-                                        if ( lk[0] !== 'master' ) {
-                                            lk.splice(1,0,hh)
-                                        } else {  // use the address of the master
-                                            lk.splice(1,0,access.master.addr)
-                                        }
-                                        let val = get_dot_val(lk,access,0)
-                                        //
-                                        let starters = ha.split(vf)
-                                        ha = starters.join(val)
-                                    }
+                                    ha = from_subst(ha,var_forms,vf_lookup,access,hh)
                                     addr_o_map[hh] = ha
                                 }
                             }
                         } else {
                             let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
-                            for ( let vf in var_forms ) {
-                                let lk = [].concat(vf_lookup[vf])
-                                //
-                                if ( lk[0] !== 'master' ) {
-                                    lk.splice(1,0,hh)
-                                } else {  // use the address of the master
-                                    lk.splice(1,0,access.master.addr)
-                                }
-                                //
-                                let val = get_dot_val(lk,access,0)
-                                //
-                                let starters = h_out.split(vf)
-                                h_out = starters.join(val)
-                            }
+                            h_out = from_subst(h_out,var_forms,vf_lookup,access,hh)
                             output_map[h] = h_out
                         }
                     }
@@ -697,6 +728,280 @@ function gen_repstr(depth,c) {
 
 
 
+function depth_line_classifier(output,addr,sect_name) {
+    // --
+    let tree = {
+        "addr" : addr,
+        "classified" : [
+            { "type" : 'global', "depth" : 0, "sect" : sect_name, "line" : "" }  // this is the top of the structure figured by the call
+        ]
+    }
+    // --
+    let olines = output.split('\n')
+    for ( let line of olines ) {
+        if ( line[0] === '!' ) {        // handle something actionable
+            let depth = 0
+            for ( let j = 1; j < line.length; j++ ) {
+                if ( line[j] !== '-' ) break;
+                depth = j
+            }
+            line = line.substring(depth+1).trim()
+            if ( line[0] === '|' || line[0] === '=' || line[0] === '@' ) {  // means just white space before ops -- no optional order
+                let N = tree.classified.length
+                let add_to = tree.classified[N-1]
+                if ( add_to ) {
+                    add_to.line += " | " + line.trim()
+                }    
+            } else {
+                let sub_name = popout(line,'>')
+                let rest = popafter(line,'>').trim()
+                let typer = rest.substring(0,2)
+                let ltype = 'sect'
+                switch ( typer[0] ) {
+                    case '@' : { ltype = 'placer'; break; }
+                    case '|' : { 
+                        ltype = 'param'; 
+                        switch ( typer[1] ) {
+                            case '>' : { ltype = 'move'; break; }
+                            case '<' : { ltype = 'exec'; break; }
+                        }
+                        break; 
+                    }
+                    case '=' : { ltype = 'sub'; break;}
+                }
+                let classifier = {
+                    "type" : ltype,
+                    "depth" : depth, 
+                    "sect" : sub_name, 
+                    "line" : rest
+                }
+                tree.classified.push(classifier)
+            }
+        } else if ( line[0] == '=' ) {  // handle end of sub section and ordering
+            let depth = 0
+            for ( let j = 1; j < line.length; j++ ) {
+                if ( line[j] !== '-' ) break;
+                depth = j
+            }
+
+            line = line.substring(depth+2).trim()  // should be a '>' after --
+            let ltype = popout(line,'(')
+            let sub_name = ""
+            let rest = ""
+            if ( ltype.length === 0 ) {
+                if ( line.indexOf(':') > 0 ) {
+                    ltype = line.split(':')
+                    rest = ltype[1].trim()
+                    ltype = ltype[0].trim()
+                    sub_name = sect_name
+                } else {
+                    ltype = line.trim()
+                    sub_name = sect_name
+                }
+            } else {
+                sub_name = popout(line,')')
+                sub_name = popafter(sub_name,'(')
+                rest = popafter(line,')').trim()
+            }
+
+            if ( rest[0] === ':' ) {
+                rest = rest.substring(1).trim()
+            }
+
+            let classifier = {
+                "type" : ltype,
+                "depth" : depth, 
+                "sect" : sub_name, 
+                "line" : rest
+            }
+
+            tree.classified.push(classifier)
+        } else {    // this should be a continuatino of the previous line
+            let N = tree.classified.length
+            let add_to = tree.classified[N-1]
+            if ( add_to ) {
+                add_to.line +=  " | " + line.trim()
+            }
+        }
+    }
+
+    return tree
+}
+
+
+function build_tree(sect_list,index,depth) {
+    let top = sect_list[index]
+    if ( top.siblings === undefined ) {
+        top.siblings = []           // top ... maybe
+    }
+    if ( top.subs === undefined ) {
+        top.subs = []
+    }
+    let re_top = top
+    let n = sect_list.length
+    for ( let i = (index+1); i < n; i++ ) {
+        index = i
+        let sub = sect_list[i]
+        if ( sub.depth === depth ) {
+            top.siblings.push(sub)
+            if ( re_top.subs && re_top.subs.length === 0 ) delete re_top.subs
+            re_top = sub
+            if ( re_top.subs === undefined )re_top.subs = []
+        } else if ( sub.depth > depth ) {
+            re_top.subs.push(sub)
+            i = build_tree(sect_list,index,sub.depth)
+        } else if ( sub.depth < depth ) {
+            index--
+            break
+        }
+        sect_list[index] = sub.sect
+    }
+    //
+    if ( re_top !== top ) {
+        if ( re_top.siblings && re_top.siblings.length === 0 ) delete re_top.siblings
+        if ( re_top.subs && (re_top.subs.length === 0) ) delete re_top.subs    
+    }
+    if ( top.siblings && top.siblings.length === 0 ) delete top.siblings
+    if ( top.subs && (top.subs.length === 0) ) delete top.subs
+    return index
+}
+
+
+function r_lift_ordering(tree) {
+    //
+    if ( tree.depth === undefined ) return
+    //
+    tree.ordering = false
+    if ( tree.siblings ) {
+//
+        let n = tree.siblings.length
+        let removals = []
+        for ( let i = 0; i < n; i++ ) {
+            let sib = tree.siblings[i]
+            console.log(sib.sect)
+            if ( sib.type === 'order' ) {
+                removals.push(i)
+                if ( tree.ordering ) {
+                    if ( Array.isArray(tree.ordering) ) {
+                        tree.ordering.push(sib)
+                    } else {
+                        tree.ordering = [tree.ordering,sib]
+                    }
+                } else tree.ordering = sib
+            }
+        }
+        removals.reverse()
+        for ( let r of removals ) {
+            tree.siblings.splice(r,1)
+        }
+        //
+    }
+    if ( tree.siblings && tree.siblings.length ) {
+        for ( let sib of tree.siblings )
+        r_lift_ordering(sib)
+    }
+    if ( tree.subs && tree.subs.length ) {
+        for ( let sub of tree.subs )
+        r_lift_ordering(sub)
+    }
+    if ( tree.siblings && (tree.siblings.length === 0) ) delete tree.siblings
+}
+
+
+function r_lift_siblings(top) {
+    if ( Array.isArray(top.subs) && (top.subs.length > 0) ) {
+        let subs_rewrite = []
+        for ( let sub of top.subs ) {
+            subs_rewrite.push(sub)
+            if ( Array.isArray(sub.siblings) && (sub.siblings.length > 0) ) {
+                subs_rewrite = subs_rewrite.concat(sub.siblings)
+                delete sub.siblings
+            }
+        }
+        top.subs = subs_rewrite
+        for ( let sub of top.subs ) {
+            r_lift_siblings(sub)
+        }
+    } else if ( top.subs !== undefined ) {
+        delete top.subs
+    }
+}
+
+function check_sub_prop(top) {
+    //
+    let check = top.siblings ? top.siblings.map(s => s.type) : []
+    console.log(top.depth,check)
+    if ( check.indexOf('order') >= 0 ) {
+        console.log(top.sect,"ORDER IN THE WRONG PLACE - siblings check_sub_prop")
+        process.exit(0)
+    }
+    if ( top.subs ) check = top.subs.map(s => s.type)
+    if ( top.subs ) console.log(check)
+    if ( check.indexOf('order') >= 0 ) {
+        console.log(top.subs.map(s => s.sect))
+        console.log(top.sect,"ORDER IN THE WRONG PLACE - subs check_sub_prop")
+        process.exit(0)
+    }
+    if ( top.subs ) {
+        for ( let sub of top.subs ) {
+            check_sub_prop(sub)
+        }
+    }
+    //
+}
+
+
+function print_tree(tree,path,path_type) {
+    //
+    if ( tree.depth === undefined ) { console.log(tree); return }
+    //
+    console.log('---- ------ ------',path, " -- ", (path_type == 1) ? "sib" : "sub")
+    console.log("pt - sect:: ",tree.depth,tree.type,": ",tree.sect)
+    console.log(`pt - siblings(${tree.sect})`,tree.siblings ? tree.siblings.map(s => `${s.type}: ${s.sect}`) : [])
+    console.log(`pt - subs(${tree.sect})`,tree.subs ? tree.subs.map(s => `${s.type}: ${s.sect}`) : [])
+    if ( tree.siblings ) {
+        for ( let sib of tree.siblings) print_tree(sib,`${path}.${sib.sect}`,1)
+    }
+    if ( tree.subs ) {
+        for ( let sub of tree.subs) print_tree(sub,`${path}.${sub.sect}`,0)
+    }
+}
+
+function print_tree_w_order(tree,path,path_type) {
+    if ( tree.depth === undefined ) { console.log(tree); return }
+    //
+    console.log('---- ------ ------',path, " -- ", (path_type == 1) ? "sib" : "sub")
+    console.log("pt - sect:: ",tree.depth,tree.type,": ",tree.sect)
+    console.log(`pt - ordering(${tree.sect})`, Array.isArray(tree.ordering) ? tree.ordering.map(s => `${s.sect} :: ${s.line}`) : `${tree.ordering.sect} :: ${tree.ordering.line}` )
+
+    console.log(`pt - subs(${tree.sect})`,tree.subs ? tree.subs.map(s => `${s.type}: ${s.sect}`) : [])
+    if ( tree.siblings ) {
+        for ( let sib of tree.siblings) print_tree_w_order(sib,`${path}.${sib.sect}`,1)
+    }
+    if ( tree.subs ) {
+        for ( let sub of tree.subs) print_tree_w_order(sub,`${path}.${sub.sect}`,0)
+    }
+}
+
+function subordinates_tree_builder(tree,ky) {
+    let sect_list = tree.classified
+    let depth = 0
+    let index = 0
+    build_tree(sect_list,index,depth)
+    tree.top = tree.classified[0]
+    delete tree.classified
+    //
+    r_lift_ordering(tree.top)
+    r_lift_ordering(tree)
+    if ( tree.ordering === false ) delete tree.ordering
+    r_lift_siblings(tree.top)
+    //
+print_tree_w_order(tree.top,ky)
+    return tree
+}
+
+
+
 //
 // chase_depth(content,depth)
 //
@@ -753,12 +1058,9 @@ function chase_depth(content,depth,key) {
         section_list.push(section)
     }
 
-
     // ---- ---- ---- ---- ---- ---- ---- ----
     // ---- ---- ---- ---- ---- ---- ---- ----
 
-
-    //
     let o_vals = ordering.split(':')[1]
     //
     if ( o_vals !== undefined ) {
@@ -853,7 +1155,6 @@ function chase_depth(content,depth,key) {
         }
     }
 
-
     // ---- ---- ---- ---- ---- ---- ---- ----
     // ---- ---- ---- ---- ---- ---- ---- ----
 
@@ -870,20 +1171,48 @@ function chase_depth(content,depth,key) {
     }
 
     return(top_ctrl)
-
 }
+
+
+
+
+function process_exec_line(od_parts) {
+    //
+    let inserts = od_parts[0]
+    let params = od_parts[1]
+    let ins_parts = inserts.split('<')
+    ins_parts.shift()
+    ins_parts = trimmer(ins_parts)
+    //
+    let cmd_line = false
+    //
+    if ( ins_parts[0] === 'expect' ) {
+        if ( ins_parts[1] === 'ssh' ) {
+            let filespec = ins_parts[2]
+            if ( filespec.substring(0,"file".length) === "file" ) {
+                let fname = filespec.substring(4).trim()
+                if ( fname[0] === '=' ) {
+                    fname = fname.replace('=','').trim()
+                }
+                cmd_line = `expect ./expectpw-exec.sh ${params} ${fname} >> name_run.out`
+            }
+        }
+    }
+
+    return cmd_line
+}
+
 
 
 function command_processing(top,coalescer,key) {
     let cmd = top.cmd_line
-
     //
     let rest_lines = []
     if ( top._lines ) rest_lines = [].concat(top._lines)
     //
     let top_props = {}
     coalescer[key] = top_props
-
+    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
     if ( cmd.indexOf('%file') > 0 ) {
         top_props.goal_type = 'file'
         top_props.coalesce  = false
@@ -897,9 +1226,7 @@ function command_processing(top,coalescer,key) {
         top_props.goal_type = 'mover'
         top_props.exec = top._movers
     }
-
-    
-
+    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
     if ( cmd[0] === '@' ) {
         top_props.goal_spec = cmd
     }
@@ -914,65 +1241,59 @@ function command_processing(top,coalescer,key) {
         line.shift()
         line = trimmer(line)
         top_props.exec.push(line)
-
     }
-
-
+    //
     for ( let line of rest_lines ) {
-            switch ( top_props.goal_type ) {
-                case "file" : {
-                    if ( (line.indexOf(top_props.goal_type) > 0) ) {
-                        let sat_index = line.indexOf("file=") + "file=".length
-                        if ( sat_index > 0 ) {
-                            let sat_val = line.substring(sat_index)
-                            sat_val = popout(sat_val,'|').trim()
-                            top_props.goal_satisfier = sat_val
-                            //
-                            if ( line.indexOf(':coalesce') > 0 ) {
-                                top_props.coalesce = true
-                                line = line.replace(':coalesce','')
-                                if ( coalescer.share_files === undefined ) coalescer.share_files = {}
-                                if ( coalescer.share_files[sat_val] === undefined ) coalescer.share_files[sat_val] = 0
-                                coalescer.share_files[sat_val]++
-                            }    
-                        }
+        switch ( top_props.goal_type ) {
+            case "file" : {
+                if ( (line.indexOf(top_props.goal_type) > 0) ) {
+                    let sat_index = line.indexOf("file=") + "file=".length
+                    if ( sat_index > 0 ) {
+                        let sat_val = line.substring(sat_index)
+                        sat_val = popout(sat_val,'|').trim()
+                        top_props.goal_satisfier = sat_val
+                        //
+                        if ( line.indexOf(':coalesce') > 0 ) {
+                            top_props.coalesce = true
+                            line = line.replace(':coalesce','')
+                            if ( coalescer.share_files === undefined ) coalescer.share_files = {}
+                            if ( coalescer.share_files[sat_val] === undefined ) coalescer.share_files[sat_val] = 0
+                            coalescer.share_files[sat_val]++
+                        }    
+                    }
 
-                        if ( line.substring(0,2) === '|<' ) {
-                            if ( top_props.exec == undefined || test_mover ) {
-                                top_props.exec = []
-                            }
-                            line = line.split('|')
-                            line.shift()
-                            line = trimmer(line)
-                            top_props.exec.push(line)
+                    if ( line.substring(0,2) === '|<' ) {
+                        if ( top_props.exec == undefined || test_mover ) {
+                            top_props.exec = []
                         }
+                        line = line.split('|')
+                        line.shift()
+                        line = trimmer(line)
+                        top_props.exec.push(line)
+                        top.master_exec_line = process_exec_line(line)
                     }
-                    break
                 }
-                case "line" : {
-                    if ( top_props.exec == undefined ) {
-                        top_props.exec = []
-                    }
-                    top_props.exec.push(line)
-                    break
-                }
-                case "dir" : {
-    console.log(top_props.goal_type)
-    console.log(line)
-                    if ( top_props.exec == undefined ) {
-                        top_props.exec = []
-                    }
-                    top_props.exec.push(line)
-                    break
-                }
-                default : {
-                    break
-                }
+                break
             }
+            case "line" : {
+                if ( top_props.exec == undefined ) {
+                    top_props.exec = []
+                }
+                top_props.exec.push(line)
+                break
+            }
+            case "dir" : {
+                if ( top_props.exec == undefined ) {
+                    top_props.exec = []
+                }
+                top_props.exec.push(line)
+                break
+            }
+            default : {
+                break
+            }
+        }
     }
-
-
-
 }
 
 
@@ -982,74 +1303,88 @@ function raise_properties(top,coalescer,key) {
         return { "output" : top }
     }
     //
+    if ( coalescer.path_list == undefined ) coalescer.path_list = []
+    coalescer.path_list.push(key)
+    //
     if ( top.cmd_line !== false && top.cmd_line !== undefined ) {
         let path_start_ky = key
-        //if ( key.indexOf('::') > 0 ) {
-            //path_start_ky = path_start_ky.substring(key.indexOf('::') + 2)
-        //}
-        if ( coalescer.path_list == undefined ) coalescer.path_list = []
-        coalescer.path_list.push(key)
         //
         command_processing(top,coalescer,path_start_ky)
     }
+    // ---- ---- ---- ---- ---- ---- ---- ----
+    //
     top.output = ""
     if ( Array.isArray(top.ordering) ) {
         for ( let act of top.ordering ) {
             let sub = top[act]
             sub = raise_properties(sub,coalescer,`${key}.${act}`)
-            if ( typeof sub.output === "string" ) {
+            if ( typeof sub.master_exec_line === "string" ) {    // this order is important
+                top.output += sub.master_exec_line
+                if ( coalescer[`${key}.${act}`].coalesce ) {
+                    let shared_key = popafter(key,'::')
+                    if ( coalescer[shared_key] === undefined ) coalescer[shared_key] = { "did_coalesce" : true }
+                    if ( coalescer[shared_key].output === undefined ) coalescer[shared_key].output = ""
+                    coalescer[shared_key].output += sub.master_exec_line + "\n"
+                    if ( coalescer.path_list.indexOf(shared_key) < 0 ) {
+                        coalescer.path_list.push(shared_key)
+                    }
+                }
+            } else if ( typeof sub.output === "string" ) {
                 top.output += sub.output + '\n'
-            }
+            }  
         }
     }
     //
     return top
 }
 
-/*
-{
-  "cmd_line": false,
-  "ordering": [
-    "prepare"
-  ],
-  "prepare": {
-    "cmd_line": "@exec=master @source=here>%file>master_loc @method=scp",
-    "ordering": [
-      "git",
-      "node",
-      "n",
-      "npm",
-      "nodeup",
-      "gna",
-      "csubst"
-    ],
-    "_lines": [
-      "|< expect:coalesce < ssh < file=all-install.sh  | \"L2v=95$J,q[)4wF-\" root 45.32.219.78"
-    ],
-    "git": "apt-get install cmake",
-    "node": "apt-get install nodejs",
-    "n": "npm install -g n@latest",
-    "npm": "npm install -g npm@latest",
-    "nodeup": "n latest",
-    "gna": "npm install -g get-npm-assets",
-    "csubst": "npm install -g copious-subst"
-  }
+
+
+function shared_parent(key) {
+    let upkey = key
+    if ( key.indexOf('::') ) {
+        upkey = key.split('::')
+        upkey = upkey[1]    
+    }
+    upkey = upkey.split('.')
+    upkey.pop()
+    upkey = upkey.join('.')
+    return upkey
 }
-------
-*/
+
+
+function parse_operations(opspec) {
+    if ( opspec[0] === '@' ) {
+        let ops = opspec.split('@')
+        ops.shift()
+        ops = trimmer(ops)
+        let ops_descr = {}
+        for ( let op of ops ) {
+            let op_arg = op.split('=')
+            op_arg = trimmer(op_arg)
+            let ky = op_arg[0]
+            ops_descr[ky] = op_arg[1]
+        }
+        return ops_descr
+    }
+    return opspec
+}
+
 
 
 
 //
 confstr = eliminate_line_start_comments(confstr,'--')
 confstr = eliminate_empty_lines(confstr)
+confstr = eliminate_line_end_comments(confstr,'\\s+--')
+//
 let top_level = top_level_sections(confstr)
 
 ////
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
-//console.dir(preamble_obj)
+console.dir(preamble_obj)
 //console.dir(defs_obj)
 //console.log(JSON.stringify(defs_obj,null,2))
 //console.dir(acts_obj)
@@ -1060,231 +1395,178 @@ let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
 //console.log(preamble_obj.prog.acts)
 
 
-let coalescing = {}
+let coalescing = {
+    "shared_satisfied" : {}
+}
+let actionable_tree = {}
 
 for ( let ky of preamble_obj.prog.acts ) {
     let target = acts_obj[ky]
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
+            console.log(output)
             console.log("---------------------------")
+            let tree = depth_line_classifier(output,addr,ky)
+            tree = subordinates_tree_builder(tree,ky)
+            console.dir(tree,{ depth: null })
+            /*
             let top = chase_depth(output,1,addr)
             if ( top ) {
                 let conententless = r_remove_field(top,'content')
-                if ( ky !== undefined ) { // === 'host-setup' ) {
+                if ( ky  === 'web' ) {    // 
                     conententless = raise_properties(conententless,coalescing,`${addr}::${ky}`)
-                    //console.log(ky,addr)
+                    if ( actionable_tree[addr] == undefined ) {
+                        actionable_tree[addr] = {}
+                    }
+                    actionable_tree[addr][ky] = conententless
                     //console.log(JSON.stringify(conententless,null,2))
-                    //console.dir(conententless)
+                    //console.dir(conententless,{ depth: null })
                 }
             }
-        }
-
-        if ( typeof coalescing === "object" && coalescing.list  ) {
-             // this is the list of calls that will be run on the master
-            let oo = coalescing.list.join('\n')
-            fos.output_string(`${g_out_dir_prefix}/${ky}.sh`,oo)
+            */
         }
     }
 }
 
-console.dir(coalescing,{ depth: null })
-
-// mkdir -p foo/bar/zoo/andsoforth
 
 
 
 
-
-
-
-/*
-            output = sequence_output(output)
-
-            if ( Array.isArray(output) ) {
-                coalescing = coalescing.concat(output)
-            } else {
-                fos.output_string(`${g_out_dir_prefix}/${ky}-${addr}.sh`,output)
-            }
-            //console.log(output)
-            //console.log('--------------------------------------------------------------')
-*/
-
-
-/*
-function sequence_output(output,depth=1,order_finder,do_testing) {
-
-    let testing = false
-
-    if ( depth === 1 ) {
-        console.log(output)
-        console.log("---------------------------")
-        let top = chase_depth(output,1)
-        if ( top ) console.log("TOP")
-    }
-
-
-    let ordering_loc = order_finder ? output.indexOf(order_finder) : output.indexOf('=>')
-    let seq_output = ''
-    if ( ordering_loc >= 0 ) {
-
-        let ordering = output.substring(ordering_loc)
-        let content = output.substring(0,ordering_loc)
-        //
-        //console.log(ordering)
-        //
-        try {
-            let o_vals = ordering.split(':')[1]
-            //
-            o_vals = o_vals.trim()
-            if ( o_vals[0] === '[' ) {
-                o_vals = o_vals.substring(1)
-                o_vals = o_vals.replace(']','')
-                //
-                o_vals = o_vals.split(',')
-                o_vals = trimmer(o_vals)
-            } else if ( parseInt(o_vals) !== NaN ) {
-                console.log("FOUND AN INT ORDER")
-            } else {
-                console.log("DON'T GET IT !!",o_vals)
-            }
-            //
-            if ( testing ) console.log(o_vals)
-            //
-            seq_output = subsequence_output(o_vals,content,depth)
-        } catch (e) {
-            console.log(e)
-            console.log(depth)
-            console.log("ordering line badly formatted")
-        }
-    } else {
-        //console.log("DON'T GET IT AT ALL !!",output)
-    }
-
-    return seq_output
-}
-*/
-
-
-/*
-
-
-function subsequence_output(o_vals,content,depth) {
-    //
-    let depth_indicator = gen_repstr(depth,'-')
-    let order_finder = `=${depth_indicator}>`
-    let depth_sep = `!${depth_indicator}`
-    let dsl = depth_sep.length
-    //
-    let i = content.indexOf(depth_sep)
-    let level_indicators = []
-    while ( i >= 0 ) {
-        if ( content[i+dsl] !== '-' ) {
-            level_indicators.push(i)
-        }
-        i = content.indexOf(depth_sep,i+1)
-    }
-    //
-    let n = level_indicators.length
-    let section_list = []
-    for ( let j = 0; j < n; j++ ) {
-        let start = level_indicators[j]
-        let end = level_indicators[j+1]
-        let section = ''
-        if ( end === undefined ) {
-            section = content.substring(start)
+// ---- ---- ---- ---- ---- ---- ---- ---- ----
+//
+async function output_coalesced() {
+    for ( let ky of coalescing.path_list ) {
+        //console.log(ky)
+        let operations = coalescing[ky]
+        let kp = ky.split('::')
+        let addr = ""
+        let kp_parts = []
+        let top = false  
+        if ( kp.length > 1 ) {
+            addr = kp[0]
+            kp_parts = kp[1].split('.')
+            top = actionable_tree[addr][kp_parts.shift()]    
         } else {
-            section = content.substring(start,end)
+            addr = ""
+            kp_parts = []
+            if ( operations ) {
+                console.dir(operations,{ depth: null })
+                if ( operations.did_coalesce ) {
+                    let fname = `${kp[0]}.sh`
+                    fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,operations.output)
+                }
+            }
+    
         }
-        section_list.push(section)
-    }
-
-    let key_map = {}
-    let special_file_deposit = {}
-    for ( let sect of section_list ) {
-        sect = sect.trim()
-        let key = popout(sect,'>')
-        key = key.substring(depth+1,sect.indexOf('>'))
-        let sctstr = sect.substring(sect.indexOf('>') + 1).trim()
-        if ( sctstr.substring(0,2) === '|<' ) {
-            special_file_deposit[key] = first_line(sctstr)
-            sctstr = after_first_line(sctstr)
-        }
-        key_map[key] = sctstr
-    }
-
-    let seconded = Object.keys(special_file_deposit).length > 0
-
-    let final_output = ""
-    let do_coalesce = false
-
-    for ( let ky of o_vals ) {
-
-
-        let sect = key_map[ky]
-
-        if ( ky === 'nginx') {
-            console.log("NGINX")
-            console.log(sect)
-        }
-
-
-        if ( sect === undefined ) {
-            console.log("undefined section name in ordering: ",ky," depth: ",depth)
-            continue
-        }
-
-        if ( (sect[0] === '=') && (order_finder !== sect.substring(0,order_finder.length)) ) {
-            sect = sect.substring(1)
-        } else {
-            sect = sequence_output(sect,depth+1,order_finder,( ky === 'nginx'))
-        }
-
-        if ( seconded ) {
-            let output_directive = special_file_deposit[ky]
-            if ( output_directive && output_directive.length > 0 ) {
-                let od_parts = output_directive.split('|')
-                od_parts.shift()
-                //
-                let inserts = od_parts[0].trim()
-                let params = od_parts[1].trim()
-                let ins_parts = inserts.split('<')
-                ins_parts.shift()
-                ins_parts = trimmer(ins_parts)
-                //
-                if ( (ins_parts[0] === 'expect') || (ins_parts[0] === 'expect:coalesce') ) {
-                    do_coalesce = (ins_parts[0] === 'expect:coalesce')
-                    if ( ins_parts[1] === 'ssh' ) {
-                        let filespec = ins_parts[2]
-                        if ( filespec.substring(0,"file".length) === "file" ) {
-                            let fname = filespec.substring(4).trim()
-                            if ( fname[0] === '=' ) {
-                                fname = fname.replace('=','').trim()
+        console.log(top)
+        if ( operations ) {
+            for ( let sub of kp_parts ) {
+                top = top[sub]
+                if ( top.output ) {
+                                                        // console.log(top.output)
+                    if ( operations.goal_type === 'file' )  {
+                        if ( operations.coalesce ) {
+                            let fname = operations.goal_satisfier
+                            if ( coalescing.shared_satisfied[fname] === undefined ) {
+                                fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,top.output)
+                                coalescing.shared_satisfied[fname] = { 
+                                    "count" : 1,
+                                    "placement" : parse_operations(operations.goal_spec),
+                                    "files" : {
+                                        "master_exec" : `${shared_parent(ky)}.sh`,
+                                        "remote_exec" : fname
+                                    }
+                                }
+                            } else {
+                                coalescing.shared_satisfied[fname].count++
                             }
-                            //
-                            let cmd_line = `expect ./expectpw-exec.sh ${params} ${fname} >> name_run.out`
-                            //
-                            // check if written once... 
-                            fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,sect)
-                            sect = cmd_line
+                        } else {
+                            let fname = operations.goal_satisfier
+                            fs.writeFileSync(`${g_out_dir_prefix}/${addr}-${fname}`,top.output)
                         }
                     }
                 }
-                //
-                // `expect ./expectpw-exec.sh dietpi root 192.168.1.71 pars-act.sh >> name_run.out`
-                //
+                if ( operations ) {
+                    console.dir(operations,{ depth: null })
+                    if ( operations.did_coalesce ) {
+                        let fname = `${kp[1]}.sh`
+                        fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,operations.output)
+                    }
+                }
             }
         }
-
-        final_output += sect
-        final_output += '\n'    
     }
-
-    if ( do_coalesce ) {
-        return [final_output]
-   }
-
-    //
-    return final_output
+    
+    console.dir(coalescing,{ depth: null })
 }
+
+
+console.log("----------------------------------")
+
+
+
+async function run_file(bash_file) {
+    /// yeah
+}
+
+// ----
+
+async function finally_run() {
+    //
+    for ( let [ky,value] of Object.entries(coalescing.shared_satisfied) ) {
+        console.log(ky,value)
+        let placer = value.placement
+        let source = placer.source.split('>')
+    
+        console.log(source)
+        let start_dir = source[0]
+        if ( start_dir === 'here' ) {
+            start_dir  = g_out_dir_prefix
+        }
+        let dest_dir = source[2]
+        console.log(dest_dir)
+        console.log(preamble_obj.scope)
+        if ( dest_dir in preamble_obj.scope ) {
+            dest_dir = preamble_obj.scope[dest_dir]
+            dest_dir = unpack_values_transform(dest_dir,'ifkey')
+        }
+    
+        let act_list = []
+        for ( let [key,file] of Object.entries(value.files) ) {
+            if ( key !== 'master_exec' ) {
+                let cmd = `${placer.method} ${start_dir}/${file} ${dest_dir}`
+                act_list.push(cmd)    
+            }
+        }
+        //
+        if ( placer.exec ) {
+            let executor = placer.exec
+            let access_who = `${executor}_exec`
+            let nearest_exec = value.files[access_who]
+            let exec_loc = `${access_who}_loc`
+            exec_loc = preamble_obj.scope[exec_loc]
+            let cmd = `ssh \${${executor}.user}@\${${executor}.addr} < ${start_dir}/${nearest_exec}`
+            cmd = unpack_values_transform(cmd,'ifkey')
+            act_list.push(cmd)
+            //
+            let editable = fs.readFileSync(`${start_dir}/${nearest_exec}`).toString()
+            let updated = `pushd ${exec_loc}\n${editable}\npopd`
+            fs.writeFileSync(`${start_dir}/${nearest_exec}`,updated)
+        }
+        //
+        console.log(act_list.join('\n'))
+        //
+        fs.writeFileSync('./next-exec.sh',act_list.join('\n'))
+        await run_file('./next-exec.sh')
+    }    
+}
+
+
+//finally_run()
+
+
+
+// mkdir -p foo/bar/zoo/andsoforth
+/*
 
 */
