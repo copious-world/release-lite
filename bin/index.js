@@ -732,6 +732,7 @@ function depth_line_classifier(output,addr,sect_name) {
     // --
     let tree = {
         "addr" : addr,
+        "sect" : sect_name,
         "classified" : [
             { "type" : 'global', "depth" : 0, "sect" : sect_name, "line" : "" }  // this is the top of the structure figured by the call
         ]
@@ -767,7 +768,7 @@ function depth_line_classifier(output,addr,sect_name) {
                         }
                         break; 
                     }
-                    case '=' : { ltype = 'sub'; break;}
+                    case '=' : { ltype = 'cmd'; break;}
                 }
                 let classifier = {
                     "type" : ltype,
@@ -927,6 +928,174 @@ function r_lift_siblings(top) {
     }
 }
 
+
+function r_raise_ordering(tree,parent_id) {
+    if ( !(tree.sub) && tree.top ) {
+        tree.ordering = tree.top.ordering
+        if ( tree.sect === tree.top.sect ) {
+            tree.top.sect = tree.ordering.sect
+        }
+        tree.ordering.parent = parent_id
+        r_raise_ordering(tree.top,tree.top.sect)
+    } else if ( tree.subs && Array.isArray(tree.subs) ) {
+        //
+        tree.ordering = tree.subs.map( sub => sub.ordering ).filter( sub => (sub !== false) )
+        if ( tree.ordering.length === 1) {
+            tree.ordering = tree.ordering[0]
+            tree.ordering.parent = parent_id
+        } else if ( tree.ordering.length > 0 ) {
+            for ( let ord of tree.ordering ) {
+                ord.parent = parent_id
+            }
+        } else delete tree.ordering
+        //
+        for ( let sub of tree.subs ) {
+            r_raise_ordering(sub,tree.sect)
+        }
+        //
+    } else {
+        if ( Array.isArray(tree.ordering) && tree.ordering.length === 0 ) delete tree.ordering
+        if ( tree.ordering === false ) delete tree.ordering
+    }
+}
+
+
+
+function r_found_ordering_and_mapify(tree) {
+
+    if ( tree.subs && Array.isArray(tree.subs) && tree.subs.length > 0 ) {
+        let sub_map = {}
+        let found_order = []
+        let sect_name_standin = tree.sect
+        let j = 0;
+        for ( let sub of tree.subs ) {
+            if ( sub ) {        // just in case
+                let sub_name = sub.sect
+                if ( !(sub_name) || (sub_name.length === 0) ) {
+                    sub_name = `${sect_name_standin}_${j}`
+                }
+                j++
+                found_order.push(sub_name)
+                sub_map[sub_name] = sub
+                //
+                r_found_ordering_and_mapify(sub)    
+            }
+        }
+        tree.found_order = found_order
+        tree.sub_map = sub_map
+        delete tree.subs
+    }
+
+}
+
+
+
+function r_mapify_ordering_using_found(top) {
+    let fo = top.found_order
+    if ( fo == undefined ) return
+    let reorder = []
+    if ( !Array.isArray(top.ordering) && typeof top.ordering === 'object' ) {
+        reorder = [top.ordering]
+    } else if ( Array.isArray(top.ordering) ) {
+        reorder = top.ordering
+    }
+    //
+    let omap = {}
+    let j = 0
+    for ( let ob of reorder ) {
+        if ( ob.sect ) {
+            omap[ob.sect] = ob
+        } else {
+            let oname = `${top.sect}_${j++}`
+            omap[oname] = ob
+        }
+        ob.order = casual_array_to_array(ob.line)
+        delete ob.line
+    }
+    //
+    for ( let ofield of fo ) {
+        if ( !(omap[ofield]) ) {
+            omap[ofield] = 'unspecified'
+        }
+    }
+    let map_keys = Object.keys(omap)
+    top.order_keys = map_keys
+    top.order_map = omap
+    delete top.ordering
+
+    if ( top.sub_map ) {
+        for ( let [ky,sub] of Object.entries(top.sub_map) ) {
+            r_mapify_ordering_using_found(sub)
+        }
+    }
+
+    let mm = top.sub_map
+    delete top.sub_map
+    top.subs = mm
+}
+
+function compile_cmd_line(line) {  // could be much more
+    if ( line[0] === '=' ) {
+        line = line.substring(1).trim()
+    }
+    return line + '\n'
+}
+
+function r_compile_pass_1(tree,joiners) {
+    //
+    if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
+        let order_pref = tree.order_keys
+        let sub_joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
+        for ( let subky of order_pref ) {
+            let sub = tree.subs[subky]
+            console.log(subky,sub !== undefined)
+            if ( sub ) {
+                r_compile_pass_1(sub,sub_joiners)
+            }
+        }
+        tree.joiners = sub_joiners
+    } else {
+        let ctype = tree.type
+        let join = true
+        if ( joiners.last_type !== ctype ) {
+            join = false
+            joiners.last_type = ctype
+        }
+        switch( ctype ) {
+            case "cmd" : {
+                if ( !(join) ) {
+                    joiners.current_join = { 
+                        "type" : "script",
+                        "content" : ""
+                    }
+                    joiners.joins.push(joiners.current_join)
+                }
+                jj = joiners.current_join
+                if ( jj ) {
+                    jj.content += compile_cmd_line(tree.line)
+                }
+                break;
+            }
+            default : {         // not very clear really
+                if ( !(join) ) {
+                    joiners.current_join = { 
+                        "type" : "exec",
+                        "source_type" : ctype,
+                        "content" : []
+                    }
+                    joiners.joins.push(joiners.current_join)
+                }
+                jj = joiners.current_join
+                if ( jj ) {
+                    jj.content.push[tree.sect]
+                }
+            }
+        }
+    }
+
+}
+
+
 function check_sub_prop(top) {
     //
     let check = top.siblings ? top.siblings.map(s => s.type) : []
@@ -990,15 +1159,26 @@ function subordinates_tree_builder(tree,ky) {
     build_tree(sect_list,index,depth)
     tree.top = tree.classified[0]
     delete tree.classified
-    //
+    //                      r_ for recursive (just for this)
     r_lift_ordering(tree.top)
     r_lift_ordering(tree)
     if ( tree.ordering === false ) delete tree.ordering
     r_lift_siblings(tree.top)
+    r_raise_ordering(tree,ky)
+    r_found_ordering_and_mapify(tree.top)
+    r_mapify_ordering_using_found(tree.top)
     //
-print_tree_w_order(tree.top,ky)
+//print_tree_w_order(tree.top,ky)
     return tree
 }
+
+
+function compile_pass_1(tree) {
+    let joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
+    r_compile_pass_1(tree.top,joiners)
+    return tree
+}
+
 
 
 
@@ -1404,11 +1584,14 @@ for ( let ky of preamble_obj.prog.acts ) {
     let target = acts_obj[ky]
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
-            console.log(output)
+            //console.log(output)
             console.log("---------------------------")
             let tree = depth_line_classifier(output,addr,ky)
             tree = subordinates_tree_builder(tree,ky)
+            //console.dir(tree,{ depth: null })
+            tree = compile_pass_1(tree)
             console.dir(tree,{ depth: null })
+            console.log("---------------------------")
             /*
             let top = chase_depth(output,1,addr)
             if ( top ) {
