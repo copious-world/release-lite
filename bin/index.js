@@ -1070,14 +1070,15 @@ function r_compile_pass_1(tree,joiners) {
                     }
                     joiners.joins.push(joiners.current_join)
                 }
-                jj = joiners.current_join
+                let jj = joiners.current_join
                 if ( jj ) {
                     jj.content += compile_cmd_line(tree.line)
                 }
                 break;
             }
             default : {         // not very clear really
-                if ( !(join) ) {
+    console.log(tree.sect,join,joiners.current_join)
+                if ( !(join) || !(joiners.current_join) ) {
                     joiners.current_join = { 
                         "type" : "exec",
                         "source_type" : ctype,
@@ -1085,10 +1086,10 @@ function r_compile_pass_1(tree,joiners) {
                     }
                     joiners.joins.push(joiners.current_join)
                 }
-                jj = joiners.current_join
-                if ( jj ) {
-                    jj.content.push[tree.sect]
-                }
+                let jj = joiners.current_join
+                jj.content.push(tree.sect)
+console.log(tree.sect,join,jj)
+
             }
         }
     }
