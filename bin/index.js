@@ -763,7 +763,7 @@ function depth_line_classifier(output,addr,sect_name) {
                     case '|' : { 
                         ltype = 'param'; 
                         switch ( typer[1] ) {
-                            case '>' : { ltype = 'move'; break; }
+                            case '>' : { ltype = 'mover'; break; }
                             case '<' : { ltype = 'exec'; break; }
                         }
                         break; 
@@ -879,7 +879,7 @@ function r_lift_ordering(tree) {
         let removals = []
         for ( let i = 0; i < n; i++ ) {
             let sib = tree.siblings[i]
-            console.log(sib.sect)
+            //console.log(sib.sect)
             if ( sib.type === 'order' ) {
                 removals.push(i)
                 if ( tree.ordering ) {
@@ -1041,61 +1041,387 @@ function compile_cmd_line(line) {  // could be much more
     return line + '\n'
 }
 
+
+function compile_placer_line(line) {
+    //
+    let line_parts = line.split('|')
+    line_parts = trimmer(line_parts)
+    let mover_part = line_parts[0] ? line_parts[0] : false
+    let param_part = line_parts[1] ? line_parts[1] : false
+    let exec_part = line_parts[2] ? line_parts[2] : false
+    let exec_param_part = line_parts[3] ? line_parts[3] : false
+    let script_lines = line_parts[4] ? line_parts[4] : false
+    //
+    if ( param_part[0] === '<' ) {
+        script_lines = exec_param_part
+        exec_param_part = exec_part
+        exec_part = param_part
+        param_part = ""
+    }
+    //
+    if ( script_lines[0] === '=' ) {
+        script_lines = script_lines.substring(1)
+    }
+    //
+    let placer = {
+        "mover" : mover_part,
+        "params_m" : param_part,
+        "exec" : exec_part,
+        "params_e" : exec_param_part,
+        "script" : script_lines
+    }
+    //
+    return placer
+}
+
+
+function compile_overt_mover_line(line) {
+    if ( typeof line !== "string" ) {
+        console.log(line)
+        return line
+    }
+    line = line.substring(2).trim()
+    let mover = line
+    if ( line.indexOf('->') > 0 ) {
+        let [from,to] = line.split('->')
+        mover = {
+            "from" : from.trim(),
+            "to" : to.trim()
+        }
+    }
+    return mover
+}
+
+
+
 function r_compile_pass_1(tree,joiners) {
+    let ctype = tree.type
+    let join = true
+    if ( joiners.last_type !== ctype ) {
+        join = false
+        joiners.last_type = ctype
+    }
+    switch( ctype ) {
+        case "sect" : {
+            break
+        }
+        case "cmd" : {
+            if ( !(join) ) {
+                joiners.current_join = { 
+                    "type" : "script",
+                    "content" : ""
+                }
+                joiners.joins.push(joiners.current_join)
+            }
+            let jj = joiners.current_join
+            if ( jj ) {
+                jj.content += compile_cmd_line(tree.line)
+            }
+            break;
+        }
+        case "mover" : {
+            tree.mover = compile_overt_mover_line(tree.line)
+            delete tree.line
+            if ( !(join) || !(joiners.current_join) ) {
+                joiners.current_join = { 
+                    "type" : "exec",
+                    "source_type" : ctype,
+                    "content" : []
+                }
+                joiners.joins.push(joiners.current_join)
+            }
+            let jj = joiners.current_join
+            jj.content.push(tree.sect)
+            break
+        }
+        case "placer" : {
+            tree.operations = compile_placer_line(tree.line)
+            delete tree.line
+        }
+        default : {         // not very clear really
+            if ( !(join) || !(joiners.current_join) ) {
+                joiners.current_join = { 
+                    "type" : "exec",
+                    "source_type" : ctype,
+                    "content" : []
+                }
+                joiners.joins.push(joiners.current_join)
+            }
+            let jj = joiners.current_join
+            jj.content.push(tree.sect)
+
+        }
+    }
     //
     if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
         let order_pref = tree.order_keys
         let sub_joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
         for ( let subky of order_pref ) {
             let sub = tree.subs[subky]
-            console.log(subky,sub !== undefined)
+            //console.log(subky,sub !== undefined)
             if ( sub ) {
                 r_compile_pass_1(sub,sub_joiners)
             }
         }
         tree.joiners = sub_joiners
-    } else {
-        let ctype = tree.type
-        let join = true
-        if ( joiners.last_type !== ctype ) {
-            join = false
-            joiners.last_type = ctype
-        }
-        switch( ctype ) {
-            case "cmd" : {
-                if ( !(join) ) {
-                    joiners.current_join = { 
-                        "type" : "script",
-                        "content" : ""
-                    }
-                    joiners.joins.push(joiners.current_join)
-                }
-                let jj = joiners.current_join
-                if ( jj ) {
-                    jj.content += compile_cmd_line(tree.line)
-                }
-                break;
-            }
-            default : {         // not very clear really
-    console.log(tree.sect,join,joiners.current_join)
-                if ( !(join) || !(joiners.current_join) ) {
-                    joiners.current_join = { 
-                        "type" : "exec",
-                        "source_type" : ctype,
-                        "content" : []
-                    }
-                    joiners.joins.push(joiners.current_join)
-                }
-                let jj = joiners.current_join
-                jj.content.push(tree.sect)
-console.log(tree.sect,join,jj)
+    }
+    //
+}
 
+
+
+function compile_exec(exec_line) {
+    let exln_descr = {}
+    if ( exec_line[0] === '<' ) {  // regular cmd
+        exec_line = exec_line.substring(1).trim()
+        let incl_path = exec_line.split('<')
+        incl_path = trimmer(incl_path)
+        exln_descr.runner = incl_path[0]
+        exln_descr.controller = incl_path[1]
+        exln_descr.script = incl_path[2]
+        //
+        if ( exln_descr.script ) {
+            let script = exln_descr.script
+            if ( script.indexOf('file=') === 0 ) {
+                exln_descr.goal = 'file'
+                exln_descr.goal_sat = script.replace('file=','').trim()
+            } else if ( script.indexOf('%') === 0 ) {
+                exln_descr.goal = script.substring(1).trim()
+            }
+        }
+        //
+    } else if ( exec_line[0] === '>' ) {  // mover
+        //
+        exec_line = exec_line.substring(1).trim()
+        let expath = exec_line.split('->')
+        expath = trimmer(expath)
+        //
+        exln_descr.goal = 'mover'        // also a match type
+        exln_descr.path = expath        // should translate keywords, etc.
+        //
+    } else {
+        exln_descr.line = exec_line  // might have something else
+    }
+    return exln_descr
+}
+
+
+function r_operations_execs_and_movers(tree) {
+    //
+    if ( tree.operations && tree.operations.exec ) {
+        tree.operations.exec = compile_exec(tree.operations.exec)
+        // console.dir(tree.operations.exec)
+    }
+    if ( tree.joiners ) {
+        delete tree.joiners.current_join
+        // console.dir(tree.joiners)
+    }
+    //
+    if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
+        for ( let sub of Object.values(tree.subs) ) {
+            r_operations_execs_and_movers(sub)
+        }
+    }
+    //
+}
+
+/*
+'@exec=master<here @source=here>%file>master_loc @method=scp'
+'@exec=remote'
+'@exec=master @source=here>%mover>master_loc>remote @method=scp'
+'@exec=remote'
+'@exec=remote'
+*/
+
+const g_g_types = [ '%line', '%file', '%dir', '%mover' ]
+function is_goal_type(sp) {
+    return (g_g_types.indexOf(sp) >= 0)
+}
+
+function complile_mover_source(src_str) {
+    //
+    let src_parts = src_str.split('>')
+    src_parts = trimmer(src_parts)
+    let mover_descr = {}
+    mover_descr.path = src_parts
+    for ( let sp of src_parts ) {
+        if ( sp[0] === '%' ) {
+            if ( is_goal_type(sp) ) {
+                mover_descr.goal = sp.substring(1)
             }
         }
     }
-
+    //
+    return mover_descr
 }
 
+
+function complile_mover_exec(src_str) {   // ultimately, the location of scripts and data come from this noodle
+    //
+    let src_parts = src_str.split('<')
+    src_parts = trimmer(src_parts)
+    let exec_descr = {
+        "terminus" : "remote",
+        "auth_expect" : "master",
+        "controller" : "here"
+    }
+    //
+    //
+    if ( src_parts[0] === "master" ) {
+        exec_descr.terminus = "master"
+        if ( src_parts[1] === "here" ) {
+            exec_descr.dir = g_out_dir_prefix
+        } else {
+            exec_descr.dir = "${asset_stager}"
+        }
+    }
+
+    if ( src_parts[0] === "here" ) {
+        exec_descr.terminus = "here"
+        exec_descr.auth_expect = "here"
+    }
+    let epath = Object.values(exec_descr)
+    exec_descr.exec_path = epath.reverse()
+    //
+    return exec_descr
+}
+
+
+function compile_mover(mover) {
+    let components = mover.split('@')
+    components.shift()
+    components = trimmer(components)
+    //
+    let move_descr = {}
+    for ( let comp of components ) {
+        let [ctype,value] = comp.split('=')
+        ctype = ctype.trim()
+        value = value.trim()
+        move_descr[ctype] = value
+        if ( ctype === 'source' ) {
+            move_descr[ctype] = complile_mover_source(value)
+            if ( move_descr[ctype].goal ) {
+                move_descr.goal = move_descr[ctype].goal
+                delete move_descr[ctype].goal
+            }
+        } else if ( ctype === 'exec' ) {
+            move_descr[ctype] = complile_mover_exec(value)
+            if ( move_descr[ctype].exec_path ) {
+                move_descr.exec_path = move_descr[ctype].exec_path
+                delete move_descr[ctype].exec_path
+            }
+        }
+    }
+    //
+    return move_descr
+}
+
+
+
+function r_operation_movers(tree) {
+    //
+    if ( tree.operations && tree.operations.mover ) {
+        tree.operations.mover = compile_mover(tree.operations.mover)
+        //console.dir(tree.operations.mover)
+        if ( tree.operations.mover && tree.operations.mover.goal ) {
+            tree.operations.goal = tree.operations.mover.goal
+            delete tree.operations.mover.goal
+        }
+        if ( tree.operations.exec && tree.operations.exec.goal ) {
+            if ( tree.operations.goal ) {
+                let g = tree.operations.exec.goal
+                if ( tree.operations.goal !== g ) {
+                    tree.operations.goal += `,${g}`
+                    tree.operations.goal_conflict = true
+                }
+                delete tree.operations.exec.goal
+            } else {
+                tree.operations.goal = tree.operations.exec.goal
+                delete tree.operations.exec.goal
+            }
+
+            if ( tree.operations.exec.runner ) {
+                let ter = tree.operations.exec.runner
+                if ( (typeof ter === 'string') && (ter.indexOf(':') > 0) ) {
+                    let rparts = ter.split(':')
+                    tree.operations.exec.runner = rparts[0]
+                    let directive = rparts[1]
+                    tree.operations[directive] = true
+                }
+            }
+        }
+    }
+    //
+    if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
+        for ( let sub of Object.values(tree.subs) ) {
+            r_operation_movers(sub)
+        }
+    }
+}
+
+
+
+function prepare_remote_file(tree,actionable_tree) {
+    //
+    let operations = tree.operations
+    let out_dir = operations.mover.exec.dir
+    let file_name = operations.exec.goal_sat
+
+    if ( out_dir === undefined ) {
+        out_dir = g_out_dir_prefix
+    }
+    //
+    if ( tree.joiners && tree.joiners.joins ) {
+        for ( let join of tree.joiners.joins ) {
+            let file_diff = operations.params_e
+            file_diff = file_diff.split(' ')
+            file_diff = file_diff[file_diff.length-1]       // assume last par an addr.... 
+            if ( join.type === 'script' ) {
+                let at_file = actionable_tree.files[file_name]
+                if ( at_file === undefined ) {
+                    at_file = {}
+                    actionable_tree.files[file_name] = at_file
+                }
+                if ( !(operations.coalesce) ) {
+                    at_file[file_diff] = {}
+                    at_file = at_file[file_diff]
+                    file_name = `${file_diff}_${file_name}`
+                }
+                at_file.out_path = `${out_dir}/${file_name}`
+                at_file.script = join.content
+            }
+        }
+    }
+    
+
+
+    //
+}
+
+
+function capture_actionable_type_and_goal(tree,actionable_tree,sect_type,goal_type) {
+    //
+    if ( tree.type === sect_type ) {
+        if ( tree.operations && (tree.operations.goal === goal_type) ) {
+            if ( sect_type == 'placer' && goal_type === 'file' ) {
+                if ( actionable_tree.files === undefined ) {
+                    actionable_tree.files = {}
+                }
+                prepare_remote_file(tree,actionable_tree)
+            }
+        }
+    }
+    //
+    if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
+        for ( let sub of Object.values(tree.subs) ) {
+            capture_actionable_type_and_goal(sub,actionable_tree,sect_type,goal_type)
+        }
+    }
+    //
+}
+
+// --------------------------- --------------------------- ---------------------------
+// --------------------------- --------------------------- ---------------------------
 
 function check_sub_prop(top) {
     //
@@ -1153,6 +1479,10 @@ function print_tree_w_order(tree,path,path_type) {
     }
 }
 
+// --------------------------- --------------------------- ---------------------------
+// --------------------------- --------------------------- ---------------------------
+
+
 function subordinates_tree_builder(tree,ky) {
     let sect_list = tree.classified
     let depth = 0
@@ -1177,10 +1507,45 @@ function subordinates_tree_builder(tree,ky) {
 function compile_pass_1(tree) {
     let joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
     r_compile_pass_1(tree.top,joiners)
+    tree.joiners = joiners
     return tree
 }
 
 
+function operations_execs_and_movers(tree) {
+    r_operations_execs_and_movers(tree.top)
+    return tree
+}
+
+
+
+
+function operation_movers(tree) {
+    r_operation_movers(tree.top)
+    return tree    
+}
+
+
+function capture_actionable(tree,actionable_tree) {
+    capture_actionable_type_and_goal(tree.top,actionable_tree,'placer','file')
+    return tree
+}
+
+
+async function output_actionable_tree(actionable_tree) {
+    let file_map = actionable_tree.files
+    if ( file_map ) {
+        for ( let descr of Object.values(file_map) ) {
+            if ( typeof descr.out_path === "string" ) {
+                await fos.write_out_string(descr.out_path,descr.script)
+            } else {
+                for ( let descr_addr of Object.values(descr) ) {
+                    await fos.write_out_string(descr_addr.out_path,descr_addr.script)
+                }
+            }
+        }
+    }
+}
 
 
 //
@@ -1591,7 +1956,10 @@ for ( let ky of preamble_obj.prog.acts ) {
             tree = subordinates_tree_builder(tree,ky)
             //console.dir(tree,{ depth: null })
             tree = compile_pass_1(tree)
-            console.dir(tree,{ depth: null })
+            tree = operations_execs_and_movers(tree)
+            tree = operation_movers(tree)
+            tree = capture_actionable(tree,actionable_tree)
+            console.dir(actionable_tree,{ depth: null })
             console.log("---------------------------")
             /*
             let top = chase_depth(output,1,addr)
@@ -1613,7 +1981,7 @@ for ( let ky of preamble_obj.prog.acts ) {
 }
 
 
-
+output_actionable_tree(actionable_tree)
 
 
 // ---- ---- ---- ---- ---- ---- ---- ---- ----
