@@ -1041,6 +1041,22 @@ function compile_cmd_line(line) {  // could be much more
     return line + '\n'
 }
 
+// -- 
+function parse_exec_parameters(params_e,exec) {
+    //
+    if ( exec.controller === 'ssh' ) {
+        let p_parts = params_e.split(' ')
+        p_parts = trimmer(p_parts)
+        params_e = {
+            "pass" : p_parts[0],
+            "user" : p_parts[1],
+            "addr" : p_parts[2]
+        }
+    }
+    //
+    return params_e
+}
+
 
 function compile_placer_line(line) {
     //
@@ -1069,6 +1085,11 @@ function compile_placer_line(line) {
         "exec" : exec_part,
         "params_e" : exec_param_part,
         "script" : script_lines
+    }
+    //
+    if ( placer.params_e ) {
+        placer.exec = compile_exec(placer.exec)
+        placer.params_e = parse_exec_parameters(placer.params_e,placer.exec)
     }
     //
     return placer
@@ -1200,6 +1221,7 @@ function compile_exec(exec_line) {
         exln_descr.path = expath        // should translate keywords, etc.
         //
     } else {
+        console.log("COMPILE EXEC -- keep line",exec_line)
         exln_descr.line = exec_line  // might have something else
     }
     return exln_descr
@@ -1208,8 +1230,8 @@ function compile_exec(exec_line) {
 
 function r_operations_execs_and_movers(tree) {
     //
-    if ( tree.operations && tree.operations.exec ) {
-        tree.operations.exec = compile_exec(tree.operations.exec)
+    if ( tree.operations && tree.operations.exec && (typeof tree.operations.exec === 'string') ) {
+        tree.operations.exec = compile_exec(tree.operations.exec)   // if not string, this has been parsed already
         // console.dir(tree.operations.exec)
     }
     if ( tree.joiners ) {
@@ -1366,6 +1388,8 @@ function prepare_remote_file(tree,actionable_tree) {
     let operations = tree.operations
     let out_dir = operations.mover.exec.dir
     let file_name = operations.exec.goal_sat
+//
+console.log("prepare_remote_file",operations.exec)
 
     if ( out_dir === undefined ) {
         out_dir = g_out_dir_prefix
@@ -1374,8 +1398,13 @@ function prepare_remote_file(tree,actionable_tree) {
     if ( tree.joiners && tree.joiners.joins ) {
         for ( let join of tree.joiners.joins ) {
             let file_diff = operations.params_e
-            file_diff = file_diff.split(' ')
-            file_diff = file_diff[file_diff.length-1]       // assume last par an addr.... 
+            //
+            if ( typeof file_diff === 'string' ) {
+                file_diff = file_diff.split(' ')
+                file_diff = file_diff[file_diff.length-1]       // assume last par an addr....     
+            } else {
+                file_diff = file_diff.addr
+            }
             if ( join.type === 'script' ) {
                 let at_file = actionable_tree.files[file_name]
                 if ( at_file === undefined ) {
@@ -1387,19 +1416,81 @@ function prepare_remote_file(tree,actionable_tree) {
                     at_file = at_file[file_diff]
                     file_name = `${file_diff}_${file_name}`
                 }
-                at_file.out_path = `${out_dir}/${file_name}`
+                at_file.out_path = `${out_dir}/remote/${file_name}`
                 at_file.script = join.content
             }
         }
     }
-    
-
-
     //
 }
 
 
-function capture_actionable_type_and_goal(tree,actionable_tree,sect_type,goal_type) {
+/*
+startup: {
+    type: 'placer',
+    depth: 1,
+    sect: 'startup',
+    operations: {
+        mover: {
+            exec: {
+                terminus: 'remote',
+                auth_expect: 'master',
+                controller: 'here'
+            },
+            exec_path: [ 'here', 'master', 'remote' ]
+        },
+        params_m: '',
+        exec: { runner: 'expect', controller: 'ssh', script: '%line' },
+        params_e: '"L2v=95$J,q[)4wF-" root 45.32.219.78',
+        script: 'pushd /home/deposit;bash runner.sh &;disown;popd',
+        goal: 'line'
+    }
+}
+*/
+function prepare_line(tree,actionable_tree) {
+    let sectl = actionable_tree.lines[tree.sect]
+    if ( sectl === undefined ) {
+        sectl = {}
+        actionable_tree.lines[tree.sect] = sectl
+    }
+    let ops = tree.operations
+    console.log(ops.params_e)
+    let addr = ops.params_e.addr
+    if ( addr ) {
+        let comp_line = `${ops.exec.controller} ${ops.params_e.user}@${addr}  \'${ops.script}\'`
+        sectl[addr] = {
+            "content" : comp_line,
+            "pass" : ops.params_e.pass
+        }
+    }
+}
+
+
+
+function prepare_mover(tree) {
+    return tree.mover
+}
+
+
+function parse_move_params(epars) {
+    if ( typeof epars !== 'string' ) return epars
+    //
+    epars = epars.split(' ')
+    epars = trimmer(epars)
+    let separe = {
+        "pass" : epars[0],
+        "user" : epars[1],
+        "addr" : epars[2],
+    }
+    return separe
+}
+
+
+
+let machine_stops = ['here','master','remote']
+
+
+function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goal_type) {
     //
     if ( tree.type === sect_type ) {
         if ( tree.operations && (tree.operations.goal === goal_type) ) {
@@ -1408,17 +1499,74 @@ function capture_actionable_type_and_goal(tree,actionable_tree,sect_type,goal_ty
                     actionable_tree.files = {}
                 }
                 prepare_remote_file(tree,actionable_tree)
+            } else if ( sect_type == 'placer' && goal_type === 'line' ) {
+                if ( actionable_tree.lines === undefined ) {
+                    actionable_tree.lines = {}
+                }
+                prepare_line(tree,actionable_tree)
+            }
+        } else if ( (tree.operations === undefined) && (sect_type === 'mover') ) {
+            if ( actionable_tree.seek === undefined ) actionable_tree.seek = {}
+            if ( typeof tree.mover === 'object' ) {
+                tree.goal = "move"
+                actionable_tree.seek[tree.sect] = {
+                    "satisfied" : false,
+                    "mover" : prepare_mover(tree)
+                }    
             }
         }
     }
     //
     if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
         for ( let sub of Object.values(tree.subs) ) {
-            capture_actionable_type_and_goal(sub,actionable_tree,sect_type,goal_type)
+            capture_actionable_type_and_goal(sub,top,actionable_tree,sect_type,goal_type)
+        }
+        if ( ( actionable_tree.seek !== undefined ) && ( tree.type === 'placer' )  ) {
+            if ( actionable_tree.all_movement === undefined ) actionable_tree.all_movement = {}
+            let ops = tree.operations
+            //
+            for ( let [ky_sect,mover] of Object.entries(actionable_tree.seek) ) {
+                //
+                let mpath = [].concat(ops.mover.source ? ops.mover.source.path : ops.mover.exec_path)
+                let m_stops = [].concat(machine_stops)
+                //
+                let stop = m_stops.shift()
+                while ( (mpath.indexOf(stop) < 0) && (m_stops.length)) {
+                    stop = m_stops.shift()
+                }
+                if ( stop === undefined ) stop = "master"
+                //
+                mover.line = ""
+                let addr = top.addr
+                if ( tree.operations && tree.operations.mover ) {
+                    if (  actionable_tree.all_movement[ky_sect] === undefined ) actionable_tree.all_movement[ky_sect] = {}
+                    let a_moves = actionable_tree.all_movement[ky_sect]
+                    let epars = ops.params_m
+                    if ( epars !== false ) {
+                        epars = parse_move_params(epars)
+                        ops.params_m = epars
+                        addr = epars.addr ?  epars.addr : addr
+                    } else {
+                        epars = ops.mover.exec_path
+                    }
+                    if (  a_moves[addr] == undefined ) {
+                        a_moves[addr] = []
+                    }
+                    //
+                    a_moves[addr].push(mover)
+                    //
+                    mover.path = [].concat(mpath)
+                    mover.line += `${ops.mover.method} ${mover.mover.from} ${mover.mover.to}`
+                    mover.locus = stop
+                }
+            }
+            //
+            delete actionable_tree.seek
         }
     }
     //
 }
+
 
 // --------------------------- --------------------------- ---------------------------
 // --------------------------- --------------------------- ---------------------------
@@ -1527,24 +1675,114 @@ function operation_movers(tree) {
 
 
 function capture_actionable(tree,actionable_tree) {
-    capture_actionable_type_and_goal(tree.top,actionable_tree,'placer','file')
+    capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','file')
+    capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','line')
+    capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'mover',undefined)
     return tree
 }
 
-
+/*
+ lines: {
+    npm: {
+      '45.32.219.78': {
+        content: "ssh root@45.32.219.78  'pushd /home/deposit;npm install -g of-this-world; get-npm-assets human-page-queue;popd'",
+        pass: '"L2v=95$J,q[)4wF-"'
+      }
+    },
+    'store-key': {
+      '45.32.219.78': {
+        content: "ssh root@45.32.219.78  'pushd /home/deposit;cops-subst ./page-queue.conf secret='9wriw08wrw40su';popd'",
+        pass: '"L2v=95$J,q[)4wF-"'
+      }
+    },
+    startup: {
+      '45.32.219.78': {
+        content: "ssh root@45.32.219.78  'pushd /home/deposit;bash runner.sh &;disown;popd'",
+        pass: '"L2v=95$J,q[)4wF-"'
+      }
+    },
+    nginx: {
+      '192.168.1.71': {
+        content: "ssh root@192.168.1.71  'nginx -s reload'",
+        pass: '"dietpi"'
+      },
+      '192.168.1.75': {
+        content: "ssh root@192.168.1.75  'nginx -s reload'",
+        pass: '"dietpi"'
+      },
+      '192.168.1.77': {
+        content: "ssh root@192.168.1.77  'nginx -s reload'",
+        pass: '"dietpi"'
+      },
+      '192.168.1.81': {
+        content: "ssh root@192.168.1.81  'nginx -s reload'",
+        pass: '"dietpi"'
+      },
+      '76.229.181.242': {
+        content: "ssh richard@76.229.181.242  'nginx -s reload'",
+        pass: '"test4test"'
+      },
+      '155.138.235.197': {
+        content: "ssh root@155.138.235.197  'nginx -s reload'",
+        pass: '"hH8?ocrM%gebn8MN"'
+      },
+      '45.32.219.78': {
+        content: "ssh root@45.32.219.78  'nginx -s reload'",
+        pass: '"L2v=95$J,q[)4wF-"'
+      }
+    }
+  }
+*/
 async function output_actionable_tree(actionable_tree) {
     let file_map = actionable_tree.files
     if ( file_map ) {
         for ( let descr of Object.values(file_map) ) {
             if ( typeof descr.out_path === "string" ) {
-                await fos.write_out_string(descr.out_path,descr.script)
+                await fos.output_string(descr.out_path,descr.script)
             } else {
                 for ( let descr_addr of Object.values(descr) ) {
-                    await fos.write_out_string(descr_addr.out_path,descr_addr.script)
+                    await fos.output_string(descr_addr.out_path,descr_addr.script)
                 }
             }
         }
     }
+    let lines = actionable_tree.lines
+    let master_lines = ""
+    for ( let [name,descr] of Object.entries(lines) ) {
+//console.log(descr)
+        for ( let [addr,info] of Object.entries(descr) ) {
+//console.log(addr,info)
+            let fname = `${name}-${addr}.sh`
+            await fos.output_string(`${g_out_dir_prefix}/master/${fname}`,info.content)
+            cmd_line = `expect ./expect-just-pw-exec.sh ${info.pass} ${fname} >> name_run.out`
+            master_lines += '\n' + cmd_line
+        }
+        await fos.output_string(`${g_out_dir_prefix}/master/expect-${name}.sh`,master_lines)
+    }
+
+    // all movement
+
+    for ( let [node_name,move_map] of Object.entries(actionable_tree.all_movement) ) {
+        let files ={
+            "here" : "",
+            "master" : "",
+            "remote" : ""
+        }
+        //
+        for ( let move_list of Object.values(move_map) ) {
+            for ( let move of move_list ) {
+                let line = move.line
+                let locus = move.locus
+                //
+                files[locus] += '\n' + line
+            }
+        }
+        //
+        for ( let [loc,str] of Object.entries(files) ) {
+            await fos.output_string(`${g_out_dir_prefix}/${loc}/moves-${node_name}.sh`,str)
+        }
+    }
+
 }
 
 
@@ -1959,8 +2197,9 @@ for ( let ky of preamble_obj.prog.acts ) {
             tree = operations_execs_and_movers(tree)
             tree = operation_movers(tree)
             tree = capture_actionable(tree,actionable_tree)
-            console.dir(actionable_tree,{ depth: null })
+            //console.dir(tree,{ depth: null })
             console.log("---------------------------")
+            //
             /*
             let top = chase_depth(output,1,addr)
             if ( top ) {
@@ -1981,77 +2220,13 @@ for ( let ky of preamble_obj.prog.acts ) {
 }
 
 
+console.log("--------------actionable_tree--------------------")
+
+
+
 output_actionable_tree(actionable_tree)
 
-
-// ---- ---- ---- ---- ---- ---- ---- ---- ----
-//
-async function output_coalesced() {
-    for ( let ky of coalescing.path_list ) {
-        //console.log(ky)
-        let operations = coalescing[ky]
-        let kp = ky.split('::')
-        let addr = ""
-        let kp_parts = []
-        let top = false  
-        if ( kp.length > 1 ) {
-            addr = kp[0]
-            kp_parts = kp[1].split('.')
-            top = actionable_tree[addr][kp_parts.shift()]    
-        } else {
-            addr = ""
-            kp_parts = []
-            if ( operations ) {
-                console.dir(operations,{ depth: null })
-                if ( operations.did_coalesce ) {
-                    let fname = `${kp[0]}.sh`
-                    fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,operations.output)
-                }
-            }
-    
-        }
-        console.log(top)
-        if ( operations ) {
-            for ( let sub of kp_parts ) {
-                top = top[sub]
-                if ( top.output ) {
-                                                        // console.log(top.output)
-                    if ( operations.goal_type === 'file' )  {
-                        if ( operations.coalesce ) {
-                            let fname = operations.goal_satisfier
-                            if ( coalescing.shared_satisfied[fname] === undefined ) {
-                                fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,top.output)
-                                coalescing.shared_satisfied[fname] = { 
-                                    "count" : 1,
-                                    "placement" : parse_operations(operations.goal_spec),
-                                    "files" : {
-                                        "master_exec" : `${shared_parent(ky)}.sh`,
-                                        "remote_exec" : fname
-                                    }
-                                }
-                            } else {
-                                coalescing.shared_satisfied[fname].count++
-                            }
-                        } else {
-                            let fname = operations.goal_satisfier
-                            fs.writeFileSync(`${g_out_dir_prefix}/${addr}-${fname}`,top.output)
-                        }
-                    }
-                }
-                if ( operations ) {
-                    console.dir(operations,{ depth: null })
-                    if ( operations.did_coalesce ) {
-                        let fname = `${kp[1]}.sh`
-                        fs.writeFileSync(`${g_out_dir_prefix}/${fname}`,operations.output)
-                    }
-                }
-            }
-        }
-    }
-    
-    console.dir(coalescing,{ depth: null })
-}
-
+console.dir(actionable_tree,{ depth: null })
 
 console.log("----------------------------------")
 
@@ -2110,7 +2285,7 @@ async function finally_run() {
         //
         fs.writeFileSync('./next-exec.sh',act_list.join('\n'))
         await run_file('./next-exec.sh')
-    }    
+    }
 }
 
 
