@@ -1494,16 +1494,27 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
     //
     if ( tree.type === sect_type ) {
         if ( tree.operations && (tree.operations.goal === goal_type) ) {
-            if ( sect_type == 'placer' && goal_type === 'file' ) {
-                if ( actionable_tree.files === undefined ) {
-                    actionable_tree.files = {}
+            if ( sect_type == 'placer' ) {
+                switch ( goal_type ) {
+                    case 'file' : {
+                        if ( actionable_tree.files === undefined ) {
+                            actionable_tree.files = {}
+                        }
+                        prepare_remote_file(tree,actionable_tree)
+                        break;
+                    }
+                    case 'line' : {
+                        if ( actionable_tree.lines === undefined ) {
+                            actionable_tree.lines = {}
+                        }
+                        prepare_line(tree,actionable_tree)
+                        break;
+                    }
+                    case 'mover' : {
+console.dir(tree,{ depth: null })
+                        break;
+                    }
                 }
-                prepare_remote_file(tree,actionable_tree)
-            } else if ( sect_type == 'placer' && goal_type === 'line' ) {
-                if ( actionable_tree.lines === undefined ) {
-                    actionable_tree.lines = {}
-                }
-                prepare_line(tree,actionable_tree)
             }
         } else if ( (tree.operations === undefined) && (sect_type === 'mover') ) {
             if ( actionable_tree.seek === undefined ) actionable_tree.seek = {}
@@ -1677,6 +1688,7 @@ function operation_movers(tree) {
 function capture_actionable(tree,actionable_tree) {
     capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','file')
     capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','line')
+    capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','mover')
     capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'mover',undefined)
     return tree
 }
@@ -1763,7 +1775,7 @@ async function output_actionable_tree(actionable_tree) {
     // all movement
 
     for ( let [node_name,move_map] of Object.entries(actionable_tree.all_movement) ) {
-        let files ={
+        let files = {
             "here" : "",
             "master" : "",
             "remote" : ""
@@ -2226,7 +2238,7 @@ console.log("--------------actionable_tree--------------------")
 
 output_actionable_tree(actionable_tree)
 
-console.dir(actionable_tree,{ depth: null })
+//console.dir(actionable_tree,{ depth: null })
 
 console.log("----------------------------------")
 
@@ -2295,5 +2307,53 @@ async function finally_run() {
 
 // mkdir -p foo/bar/zoo/andsoforth
 /*
-
+starter: {
+    type: 'placer',
+    depth: 4,
+    sect: 'starter',
+    operations: {
+        mover: {
+            exec: {
+                terminus: 'master',
+                auth_expect: 'master',
+                controller: 'here',
+                dir: '${asset_stager}'
+            },
+            exec_path: [
+                '${asset_stager}',
+                'here',
+                'master',
+                'master'
+            ],
+            source: {
+                path: [ 'here', '%mover', 'master_loc', 'remote' ]
+            },
+            method: 'scp'
+        },
+        params_m: false,
+        exec: {
+                path: [
+                        '~/Documents/GitHub/configs/server-scripts/runner.sh',
+                        'master_loc',
+                        'root@45.32.219.78:/home/deposit/'
+                    ]
+                },
+                params_e: false,
+                script: false,
+                goal: 'mover'
+            }
+        }
+    },
+    joiners: {
+        last_type: 'placer',
+        joins: [
+            {
+                type: 'exec',
+                source_type: 'placer',
+                content: [ 'npm', 'starter' ]
+            }
+        ],
+        discard: {}
+    }
+}
 */
