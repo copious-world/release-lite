@@ -181,7 +181,8 @@ function process_preamble_acts(prog_form) {
     return master
 }
 
-function process_var_stack(vars) {
+function process_var_stack(vars) {   // EDITING
+    //
     let vmap = {}
     vars = strip_front(vars,'!')
     for ( let v of vars ) {
@@ -191,7 +192,25 @@ function process_var_stack(vars) {
         vname = vname.substring(0,vname.indexOf('>')).trim()
         vmap[vname] = parts[1]
     }
-
+    //
+    let fvs = {}
+    for ( let [k,v] of Object.entries(vmap) ) {
+        let frms =  all_var_forms(v)
+        if ( Object.keys(frms).length > 0 ) {
+            fvs[k] = frms
+        }
+    }
+    //
+    for ( let [k,vars] of Object.entries(fvs) ) {
+        for ( let vr of Object.keys(vars) ) {
+            let vrk = vr.replace('${','').replace('}','').trim()
+            console.log(vr,vmap[vrk],vmap[k])
+            if ( vmap[vrk] !== undefined ) {
+                vmap[k] = subst_all(vmap[k],vr,vmap[vrk])
+            }
+        }
+    }
+    //
     return vmap
 }
 
@@ -219,8 +238,9 @@ function process_preamble(preamble) {   // definite def and act section for firs
         master_order = process_preamble_acts(p2[1])
     }
     //
-    let var_stack = { 
-    }
+    let var_stack = {}
+
+
     if ( popout(p1[0],'>') === 'def' ) {
         p1.shift()
         var_stack = process_var_stack(p1)
@@ -1096,11 +1116,23 @@ function compile_placer_line(line) {
 }
 
 
-function compile_overt_mover_line(line) {
+function compile_overt_mover_line(line,joiner) {
+    // ----
     if ( typeof line !== "string" ) {
         console.log(line)
         return line
     }
+    //
+    let host_hops = joiner.sender.path.path
+    host_hops = host_hops.filter(h => (h[0] !== '%'))
+    let dest = host_hops[host_hops.length-1]
+    let src = host_hops[0]
+    let hop_over = false
+    //
+    if ( (src === 'here' && dest === 'remote') || (src === 'remote' && dest === 'here') ) {
+        hop_over = 'master'
+    }
+
     line = line.substring(2).trim()
     let sender = line
     if ( line.indexOf('->>') > 0 ) {
@@ -1108,18 +1140,46 @@ function compile_overt_mover_line(line) {
         sender = {
             "from" : from.trim(),
             "to" : to.trim(),
-            "source" : "master",
-            "dest" : "remote"
+            "source" : src,
+            "hop_over" : hop_over,
+            "dest" : dest,
+            "direction" : "up"
         }
     } else if ( line.indexOf('->') > 0 ) {
         let [from,to] = line.split('->')
         sender = {
             "from" : from.trim(),
             "to" : to.trim(),
-            "source" : "here",
-            "dest" : "master"
+            "source" : src,
+            "hop_over" : hop_over,
+            "dest" : dest,
+            "direction" : "up"
+        }
+    } else if ( line.indexOf('<<-') > 0 ) {
+        let [to,from] = line.split('<<-')
+        sender = {
+            "from" : from.trim(),
+            "to" : to.trim(),
+            "source" : src,
+            "hop_over" : hop_over,
+            "dest" : dest,
+            "direction" : "down"
+        }
+    } else if ( line.indexOf('<-') > 0 ) {
+        let [to,from] = line.split('<-')
+        sender = {
+            "from" : from.trim(),
+            "to" : to.trim(),
+            "source" : src,
+            "hop_over" : hop_over,
+            "dest" : dest,
+            "direction" : "down"
         }
     }
+    //
+    sender.from = sender.from.replace('://',':/')
+    sender.to = sender.to.replace('://',':/')
+    //
     return sender
 }
 
@@ -1136,7 +1196,7 @@ function r_compile_pass_1(tree,joiners) {
         case "sect" : {
             break
         }
-        case "cmd" : {
+        case "cmd" : {          // e.g a bash command
             if ( !(join) ) {
                 joiners.current_join = { 
                     "type" : "script",
@@ -1147,11 +1207,13 @@ function r_compile_pass_1(tree,joiners) {
             let jj = joiners.current_join
             if ( jj ) {
                 jj.content += compile_cmd_line(tree.line)
+                //
+                joiners.discard[tree.sect] = '0'
             }
             break;
         }
         case "sender" : {
-            tree.sender = compile_overt_mover_line(tree.line)
+            tree.sender = compile_overt_mover_line(tree.line,joiners)
             delete tree.line
             if ( !(join) || !(joiners.current_join) ) {
                 joiners.current_join = { 
@@ -1167,6 +1229,7 @@ function r_compile_pass_1(tree,joiners) {
         }
         case "placer" : {
             tree.operations = compile_placer_line(tree.line)
+            tree.operations.sender = compile_mover(tree.operations.sender)
             delete tree.line
         }
         default : {         // not very clear really
@@ -1187,17 +1250,58 @@ function r_compile_pass_1(tree,joiners) {
     if ( tree.subs && ( typeof tree.subs === 'object' ) ) {
         let order_pref = tree.order_keys
         let sub_joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
+        if ( tree.operations && (typeof tree.operations.sender === 'object') ) {
+            sub_joiners.sender = tree.operations.sender
+        }
         for ( let subky of order_pref ) {
             let sub = tree.subs[subky]
             //console.log(subky,sub !== undefined)
             if ( sub ) {
+                if ( sub.addr === undefined ) sub.addr = tree.addr
                 r_compile_pass_1(sub,sub_joiners)
             }
         }
         tree.joiners = sub_joiners
+        //
+        if ( Object.keys(sub_joiners.discard).length > 0  ) {
+            for ( let subky of Object.keys(sub_joiners.discard) ) {
+                tree.subs[subky].deleted = true
+            }
+        }
     }
     //
 }
+
+
+// ----
+
+
+function r_handle_discards(tree) {
+    if ( tree.subs ) {
+        for ( let sub of Object.values(tree.subs) ) {
+            if ( sub ) {
+                r_handle_discards(sub)
+                if ( sub.joiners && (typeof sub.joiners.discard === 'object') ) {
+                    //
+                    for ( let subky of Object.keys(sub.joiners.discard) ) {
+                        delete sub.subs[subky]
+                    }
+                    //
+                    if ( Object.keys(sub.subs).length === 0 ) {
+                        delete sub.subs
+                    }
+                }   
+            }
+        }    
+    }
+}
+
+
+
+// ----
+
+
+
 
 
 
@@ -1238,8 +1342,13 @@ function compile_exec(exec_line) {
         exln_descr.goal = 'sender'        // also a match type
         exln_descr.path = expath        // should translate keywords, etc.
         //
+        if ( expath[1][0] === '>' ) {
+            expath[1] = expath[1].substring(1).trim()
+            exln_descr.augment = 'insert-master'
+        }
+        //
     } else {
-        console.log("COMPILE EXEC -- keep line",exec_line)
+        //console.log("COMPILE EXEC -- keep line",exec_line)
         exln_descr.line = exec_line  // might have something else
     }
     return exln_descr
@@ -1278,7 +1387,7 @@ function is_goal_type(sp) {
     return (g_g_types.indexOf(sp) >= 0)
 }
 
-function complile_mover_source(src_str) {
+function compile_mover_source(src_str) {
     //
     let src_parts = src_str.split('>')
     src_parts = trimmer(src_parts)
@@ -1287,6 +1396,7 @@ function complile_mover_source(src_str) {
     for ( let sp of src_parts ) {
         if ( sp[0] === '%' ) {
             if ( is_goal_type(sp) ) {
+//console.log("compile_mover_source ---------------",sp)
                 mover_descr.goal = sp.substring(1)
             }
         }
@@ -1295,7 +1405,9 @@ function complile_mover_source(src_str) {
     return mover_descr
 }
 
-
+// complile_mover_exec  -- handles @exec
+//
+//
 function complile_mover_exec(src_str) {   // ultimately, the location of scripts and data come from this noodle
     //
     let src_parts = src_str.split('<')
@@ -1328,6 +1440,8 @@ function complile_mover_exec(src_str) {   // ultimately, the location of scripts
 
 
 function compile_mover(sender) {
+    if ( typeof sender !== 'string' ) return sender
+    //
     let components = sender.split('@')
     components.shift()
     components = trimmer(components)
@@ -1340,9 +1454,9 @@ function compile_mover(sender) {
         value = value.trim()
         move_descr[ctype] = value
         if ( ctype === 'script' || ctype === 'subject'  || ctype === 'move' ) {
-            move_descr.goal = value
+            move_descr.goal = (value[0] === '%') ? value.substring(1) : value
         } else if ( ctype === 'path' ) {
-            move_descr[ctype] = complile_mover_source(value)
+            move_descr[ctype] = compile_mover_source(value)
             if ( move_descr[ctype].goal ) {
                 move_descr.goal = move_descr[ctype].goal
                 delete move_descr[ctype].goal
@@ -1361,9 +1475,26 @@ function compile_mover(sender) {
 
 
 
+function r_breadcrumbs_and_addresses(tree,addr,breadcrumb,bc_map) {
+    tree.breadcrumb = `${breadcrumb}|${tree.sect}`
+    if ( !( bc_map[tree.breadcrumb] ) ) {
+        bc_map[tree.breadcrumb] = [addr]
+    } else {
+        bc_map[tree.breadcrumb].push(addr)
+    }
+    //
+    if ( tree.subs ) {
+        for ( let sub of Object.values(tree.subs) ) {
+            r_breadcrumbs_and_addresses(sub,addr,tree.breadcrumb,bc_map)
+        }
+    }
+}
+
+
 function r_operation_movers(tree) {
     //
     if ( tree.operations && tree.operations.sender ) {
+        tree.operations.addr = tree.addr
         tree.operations.sender = compile_mover(tree.operations.sender)
         //console.dir(tree.operations.sender)
         if ( tree.operations.sender && tree.operations.sender.goal ) {
@@ -1443,34 +1574,16 @@ function prepare_remote_file(tree,actionable_tree) {
 }
 
 
-/*
-startup: {
-    type: 'placer',
-    depth: 1,
-    sect: 'startup',
-    operations: {
-        sender: {
-            exec: {
-                terminus: 'remote',
-                auth_expect: 'master',
-                controller: 'here'
-            },
-            exec_path: [ 'here', 'master', 'remote' ]
-        },
-        params_m: '',
-        exec: { runner: 'expect', controller: 'ssh', script: '%line' },
-        params_e: '"L2v=95$J,q[)4wF-" root 45.32.219.78',
-        script: 'pushd /home/deposit;bash runner.sh &;disown;popd',
-        goal: 'line'
-    }
-}
-*/
 function prepare_line(tree,actionable_tree) {
-    let sectl = actionable_tree.lines[tree.sect]
+
+    let line_key = tree.breadcrumb
+    line_key = subst_all(line_key,'|','_')
+
+    let sectl = actionable_tree.lines[line_key]
     //
     if ( sectl === undefined ) {
         sectl = {}
-        actionable_tree.lines[tree.sect] = sectl
+        actionable_tree.lines[line_key] = sectl
         sectl.addrs = {}
     }
     //
@@ -1481,7 +1594,6 @@ function prepare_line(tree,actionable_tree) {
     }
 
     let ops = tree.operations
-    console.log(ops.params_e)
     let addr = ops.params_e.addr
     if ( addr ) {
         let comp_line = `${ops.exec.controller} ${ops.params_e.user}@${addr}  \'${ops.script}\'`
@@ -1533,6 +1645,7 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
             if ( sect_type == 'placer' ) {
                 switch ( goal_type ) {
                     case 'file' : {
+//console.log("MAKING FILES: ")
                         if ( actionable_tree.files === undefined ) {
                             actionable_tree.files = {}
                         }
@@ -1570,6 +1683,7 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
             capture_actionable_type_and_goal(sub,top,actionable_tree,sect_type,goal_type)
         }
         if ( ( actionable_tree.seek !== undefined ) && ( tree.type === 'placer' )  ) {
+
             if ( actionable_tree.all_movement === undefined ) actionable_tree.all_movement = {}
             let ops = tree.operations
             //
@@ -1585,7 +1699,12 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
                 if ( stop === undefined ) stop = "master"
                 //
                 sender.line = ""
+                if ( sender.sender.hop_over !== false ) {
+                    sender.master_line = ""
+                }
                 let addr = top.addr
+console.log("capture_actionable_type_and_goal: ",addr)
+console.log(sender)
                 if ( tree.operations && tree.operations.sender ) {
                     if (  actionable_tree.all_movement[ky_sect] === undefined ) actionable_tree.all_movement[ky_sect] = {}
                     let a_moves = actionable_tree.all_movement[ky_sect]
@@ -1604,7 +1723,18 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
                     a_moves[addr].push(sender)
                     //
                     sender.path = [].concat(mpath)
-                    sender.line += `${ops.sender.method} ${sender.sender.from} ${sender.sender.to}`
+                    let method = ops.sender.method
+                    if ( method.indexOf('-r') === (method.length - 2) ) {
+                        method = method.substring(0,method.indexOf('-r')) + ' -r'
+                    }
+                    if ( sender.sender.hop_over === false ) {
+                        sender.line += `${method} ${sender.sender.from} ${sender.sender.to}`
+                    } else {
+                        let master_hop = preamble_obj.scope.master_stager
+                        let asset_stager = preamble_obj.scope.asset_stager
+                        sender.line += `${method} ${asset_stager} ${sender.sender.to}`
+                        sender.master_line += `${method} ${sender.sender.from} ${master_hop}`
+                    }
                     sender.locus = stop
                 }
             }
@@ -1700,12 +1830,23 @@ function subordinates_tree_builder(tree,ky) {
 }
 
 
-function compile_pass_1(tree) {
+function compile_pass_1(tree,addr) {
     let joiners = { "last_type" : false, "joins" : [], "current_join" : null, "discard" : {} }
+    if ( tree.top.addr === undefined ) tree.top.addr = addr
     r_compile_pass_1(tree.top,joiners)
     tree.joiners = joiners
     return tree
 }
+
+ 
+
+function handle_discards(tree) {
+    r_handle_discards(tree.top)
+    return tree
+}
+
+
+
 
 
 function operations_execs_and_movers(tree) {
@@ -1722,6 +1863,13 @@ function operation_movers(tree) {
 }
 
 
+
+function breadcrumbs_and_addresses(tree,addr,bc_map) {
+    r_breadcrumbs_and_addresses(tree.top,addr,tree.sect,bc_map)
+    return tree    
+}
+
+
 function capture_actionable(tree,actionable_tree) {
     capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','file')
     capture_actionable_type_and_goal(tree.top,tree,actionable_tree,'placer','line')
@@ -1730,8 +1878,10 @@ function capture_actionable(tree,actionable_tree) {
     return tree
 }
 
-
+// output all files that will be used before execution sequencing...
+//
 async function output_actionable_tree(actionable_tree) {
+    //
     let file_map = actionable_tree.files
     if ( file_map ) {
         for ( let descr of Object.values(file_map) ) {
@@ -1744,52 +1894,74 @@ async function output_actionable_tree(actionable_tree) {
             }
         }
     }
+    //          remotes-to-master.sh        ----------   fix this
+    //
     let lines = actionable_tree.lines
-    let master_lines = ""
-    for ( let [name,descr] of Object.entries(lines) ) {
-        if ( descr.coalesce ) {
-            let fname = `${name}.sh`
-            await fos.output_string(`${g_out_dir_prefix}/master/expect-input-${fname}`,descr.content)
-            master_lines += `send ssh expect-input-${fname} \n`
-            for ( let [addr,info] of Object.entries(descr.addrs) ) {
-                cmd_line = `expect ./expect-just-pw-exec.sh ${info.pass} ${addr} >> name_run.out`
-                master_lines += '\n' + cmd_line
+    if ( lines ) {
+        let master_lines = ""
+        for ( let [name,descr] of Object.entries(lines) ) {
+    //console.log(name)
+            if ( descr.coalesce ) {
+                let fname = `${name}.sh`
+                await fos.output_string(`${g_out_dir_prefix}/master/upload/expect-input-${fname}`,descr.content)
+                master_lines += ` \nsend ssh expect-input-${fname} \n`
+                for ( let [addr,info] of Object.entries(descr.addrs) ) {
+                    cmd_line = `expect ./expect-just-pw-exec.sh ${info.pass} ${addr} ${fname} >> name_run.out`
+                    master_lines += '\n' + cmd_line
+                }
+                descr.tree.operations.calling_line = `ssh \${master.user}@\${master.addr} 'bash -s' < ${g_out_dir_prefix}/master/here-arrow/expect-${name}.sh`
+                await fos.output_string(`${g_out_dir_prefix}/master/here-arrow/expect-${name}.sh`,master_lines)
+            } else {
+                for ( let [addr,info] of Object.entries(descr.addrs) ) {
+                    let fname = `${name}-${addr}.sh`
+                    await fos.output_string(`${g_out_dir_prefix}/master/upload/${fname}`,info.content)
+                    cmd_line = `expect ./expect-just-pw-exec.sh ${info.pass} ${fname} >> name_run.out`
+                    master_lines += '\n' + cmd_line
+                }
+                descr.marked = "MARKED"
+                descr.tree.operations.calling_line = `ssh \${master.user}@\${master.addr} 'bash -s' < ${g_out_dir_prefix}/master/here-arrow/expect-${name}.sh`
+    //console.log("CALLING LINE ",name,descr.tree.operations.calling_line)
+                await fos.output_string(`${g_out_dir_prefix}/master/here-arrow/expect-${name}.sh`,master_lines)    
             }
-            await fos.output_string(`${g_out_dir_prefix}/master/expect-${name}.sh`,master_lines)    
-            //
-        } else {
-
-            for ( let [addr,info] of Object.entries(descr.addrs) ) {
-                let fname = `${name}-${addr}.sh`
-                await fos.output_string(`${g_out_dir_prefix}/master/${fname}`,info.content)
-                cmd_line = `expect ./expect-just-pw-exec.sh ${info.pass} ${fname} >> name_run.out`
-                master_lines += '\n' + cmd_line
-            }
-            await fos.output_string(`${g_out_dir_prefix}/master/expect-${name}.sh`,master_lines)    
         }
     }
 
-    // all movement
 
-    for ( let [node_name,move_map] of Object.entries(actionable_tree.all_movement) ) {
-        let files = {
-            "here" : "",
-            "master" : "",
-            "remote" : ""
-        }
+    // all movement
+    //
+    if ( actionable_tree.all_movement ) {
         //
-        for ( let move_list of Object.values(move_map) ) {
-            for ( let move of move_list ) {
-                let line = move.line
-                let locus = move.locus
-                //
-                files[locus] += '\n' + line
+        for ( let [node_name,move_map] of Object.entries(actionable_tree.all_movement) ) {
+            //
+            let files = {
+                "upload" : {
+                    "here" : "",
+                    "master" : "",
+                    "remote" : ""
+                },
+                "download" : {
+                    "here" : "",
+                    "master" : "",
+                    "remote" : ""
+                }
             }
-        }
-        //
-        for ( let [loc,str] of Object.entries(files) ) {
-            await fos.output_string(`${g_out_dir_prefix}/${loc}/moves-${node_name}.sh`,str)
-        }
+            //
+            for ( let move_list of Object.values(move_map) ) {
+                for ( let move of move_list ) {
+                    let line = move.line
+                    let locus = move.locus
+                    //
+                    let direction = `${move.sender.direction}load`
+                    files[direction][locus] += '\n' + line
+                }
+            }
+            //
+            for ( let direction of ["download","upload"] ) {
+                for ( let [loc,str] of Object.entries(files[direction]) ) {
+                    await fos.output_string(`${g_out_dir_prefix}/${loc}/${direction}/moves-${node_name}.sh`,str)
+                }    
+            }
+        }    
     }
 
 }
@@ -1799,12 +1971,32 @@ async function output_actionable_tree(actionable_tree) {
 function r_sub_order_organize(tree,top_order,ky_path) {
     if ( tree.subs ) {
         for ( let o of tree.found_order ) {
-            top_order.total.push(`${ky_path}|>${o}`)
             let sub = tree.subs[o]
+            if ( !sub || sub.deleted ) continue
+            if ( sub.operations && (typeof sub.operations.exec === 'object') ) {
+                top_order.total.push(`${ky_path}|>${o}`)
+                top_order.total_map[`${ky_path}|>${o}`] = sub.operations
+                top_order.topper_map[`${ky_path}|>${o}`] = sub                    
+            } else if ( sub.operations && (sub.operations.exec === false) && (sub.operations.goal === 'dir') ) {
+                top_order.total.push(`${ky_path}|>${o}`)
+                top_order.total_map[`${ky_path}|>${o}`] = sub.operations
+                top_order.topper_map[`${ky_path}|>${o}`] = sub
+                let msubs = sub.subs
+                if ( msubs ) {
+                    let filtered_subs = {}
+                    for ( let [ky,musb] of Object.entries(msubs) ) {
+                        if ( musb.goal === 'move' ) {
+                            filtered_subs[ky] = musb.sender
+                        }
+                    }
+                    sub.operations.movers = filtered_subs
+                }
+            }
             r_sub_order_organize(sub,top_order,`${ky_path}|>${o}`)
         }
     }
 }
+
 
 function sub_order_organize(exec_obj,top_order,ky_path) {
     let addr_tree_map = exec_obj
@@ -1815,11 +2007,29 @@ function sub_order_organize(exec_obj,top_order,ky_path) {
         addr_list.push(addr)
         if ( sub_exec && !once ) {
             once = true
-            console.log(sub_exec.tree.sect,top_order.total)
-            console.dir(sub_exec.tree,{ depth: null })
+            ky_path = `${ky_path}|>${sub_exec.tree.top.sect}`
             for ( let o of sub_exec.tree.top.found_order ) {
-                top_order.total.push(`${ky_path}|>${o}`)
                 let sub = sub_exec.tree.top.subs[o]
+                if ( sub.operations && (typeof sub.operations.exec === 'object') ) {
+                    top_order.total.push(`${ky_path}|>${o}`)
+                    top_order.total_map[`${ky_path}|>${o}`] = sub.operations
+                    top_order.topper_map[`${ky_path}|>${o}`] = sub                    
+                } else if ( sub.operations && (sub.operations.exec === false) && (sub.operations.goal === 'dir') ) {
+                    top_order.total.push(`${ky_path}|>${o}`)
+                    top_order.total_map[`${ky_path}|>${o}`] = sub.operations
+                    top_order.topper_map[`${ky_path}|>${o}`] = sub
+                    let msubs = sub.subs
+                    if ( msubs ) {
+                        let filtered_subs = {}
+                        for ( let [ky,musb] of Object.entries(msubs) ) {
+                            if ( musb.goal === 'move' ) {
+                                filtered_subs[ky] = musb.sender
+                            }
+                        }
+                        sub.operations.movers = filtered_subs
+                    }
+                }
+                if ( sub.deleted ) continue
                 r_sub_order_organize(sub,top_order,`${ky_path}|>${o}`)
             }
         }
@@ -1841,7 +2051,7 @@ let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
 console.dir(preamble_obj)
-//console.dir(defs_obj)
+console.dir(defs_obj,{ depth: null })
 //console.log(JSON.stringify(defs_obj,null,2))
 //console.dir(acts_obj)
 //console.log(JSON.stringify(acts_obj,null,2))
@@ -1854,11 +2064,16 @@ console.dir(preamble_obj)
 let actionable_tree = {}
 let top_order = {
     "partial" : {},
-    "total" : []
+    "total" : [],
+    "total_map" : {},
+    "topper_map" : {}
 }
+
+let breadcrumb_map = {}
 
 for ( let ky of preamble_obj.prog.acts ) {
     let target = acts_obj[ky]
+    if ( target === undefined ) continue
     top_order.partial[ky] = {}
     if ( target.outputs !== undefined ) {
         for ( let [addr,output] of Object.entries(target.outputs) ) {
@@ -1867,9 +2082,11 @@ for ( let ky of preamble_obj.prog.acts ) {
             let tree = depth_line_classifier(output,addr,ky)
             tree = subordinates_tree_builder(tree,ky)
             //console.dir(tree,{ depth: null })
-            tree = compile_pass_1(tree)
+            tree = compile_pass_1(tree,addr)
             tree = operations_execs_and_movers(tree)
             tree = operation_movers(tree)
+            //tree = handle_discards(tree)
+            tree = breadcrumbs_and_addresses(tree,addr,breadcrumb_map)
             tree = capture_actionable(tree,actionable_tree)
             //console.dir(tree,{ depth: null })
             console.log("---------------------------")
@@ -1888,36 +2105,192 @@ let exec_list = [].concat(preamble_obj.prog.acts)
 
 for ( let ky of exec_list ) {
     let exec_obj = top_order.partial[ky]
-    top_order.total.push(ky)
+    if ( exec_obj === undefined ) continue
+    // top_order.total.push(ky)
     //
     sub_order_organize(exec_obj,top_order,ky)
 }
 
 
 // ----
-console.log(top_order.total)
-console.log(top_order)
+//console.log(top_order.total)
+//console.dir(top_order,{ depth: null })
+//console.dir(breadcrumb_map,{ depth: null })
 
 
 
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-console.log("--------------actionable_tree--------------------")
-//
-//output_actionable_tree(actionable_tree)
-//
-//console.dir(actionable_tree,{ depth: null })
-//
-console.log("----------------------------------")
+
+function upload_remotes_lines() {
+    let master_loc = preamble_obj.scope.master_loc
+    let master_user = preamble_obj.scope.master_user
+    let master_exec_loc = preamble_obj.scope.master_exec_loc
+    //
+    let ensure_directories = `ssh ${master_user} 'mkdir -p ${master_exec_loc}'`
+    let remote_absolute = `scp -r ${g_out_dir_prefix}/remote/* ${master_loc}`
+    let master_resident = `scp -r ${g_out_dir_prefix}/master/upload/* ${master_loc}`
+    //
+    return ensure_directories + '\n' + remote_absolute + '\n' + master_resident
+}
 
 
+async function generate_target_file(target_file,remote_exec_file,ky) {
+    let master_exec_loc = preamble_obj.scope.master_exec_loc
+    let output =`pushd ${master_exec_loc}`
+    //
+    ky = ky.split('|>')
 
-async function run_file(bash_file) {
-    /// yeah
+    let bc_key = ky.join('|')
+    if ( !(breadcrumb_map[bc_key]) ) {
+        ky.unshift(ky[0])
+        bc_key = ky.join('|')
+        if ( !(breadcrumb_map[bc_key]) ) return
+    }
+
+    if ( Array.isArray(breadcrumb_map[bc_key]) ) {
+        let addrs = breadcrumb_map[bc_key]
+        //
+        for ( let addr of addrs ) {
+            output += '\n'
+            let pass = defs_obj.ssh[addr].pass
+            let user = defs_obj.ssh[addr].user
+            output += `expect expectpw-exec.sh '${pass}' ${user} ${addr} ${remote_exec_file}`
+        }
+        //
+    }
+
+    output += '\npopd'
+    await fos.output_string(target_file,output)
+}
+
+
+async function finally_run() {
+    let local_runner = upload_remotes_lines()
+    //
+    let master_user = preamble_obj.scope.master_user
+    let master = defs_obj.host.master
+    let master_assets = preamble_obj.scope.asset_stager
+    //
+    let vars = all_var_forms(master_user)
+    for ( let vr of Object.keys(vars) ) {
+        let mparts = vr.split('.')
+        mparts = trimmer(mparts)
+        let ky = mparts[1].replace('}','')
+        let val = master[ky]
+        master_user = subst_all(master_user,vr,val)
+        local_runner = subst_all(local_runner,vr,val)
+        master_assets = subst_all(master_assets,vr,val)
+    }
+    //
+    //
+    for ( let [ky,operations] of Object.entries(top_order.total_map) ) {
+        local_runner += '\n'
+        local_runner += '$%$%prepend'
+        let prepend = `#${ky}   goal: ${operations.goal}`
+        if ( operations.goal === 'file' ) {
+            let goal_sat = operations.exec.goal_sat
+            local_runner += '\n'
+            let target_file = ''
+            if ( operations.exec.coalesce ) {
+                target_file = `${g_out_dir_prefix}/master/here-arrow/expect-${goal_sat}`
+            } else {
+                let kparts = ky.split('|>')
+                target_file = `${g_out_dir_prefix}/master/here-arrow/expect-${kparts[0]}-${goal_sat}`
+            }
+            local_runner += `ssh ${master_user} 'bash -s'  < ${target_file}`
+            // ----
+            await generate_target_file(target_file,goal_sat,ky)
+            prepend = prepend.replace('goal:','OK:')
+        } else if ( operations.goal === 'sender' ) {
+            let start = ""
+            let next = ""
+            let final = false
+            //
+            if ( operations.exec.augment === 'insert-master' ) {
+                start = operations.exec.path[0]
+                next = master_assets
+                final = operations.exec.path[1]
+            }
+            //
+            local_runner += '\n'
+            local_runner += `scp -r ${start} ${next}`
+            if ( final ) {
+                let kparts = ky.split('|>')
+                target_file = `${g_out_dir_prefix}/master/here-arrow/expect-${kparts[0]}-uploader.sh`
+                local_runner += '\n'
+                local_runner += `ssh ${master_user} 'bash -s'  < ${target_file}       # generate this file`
+            }
+            prepend = prepend.replace('goal:','OK:')
+        } else if ( operations.goal === 'dir')  {
+            let start = ""
+            let next = ""
+            //
+            if ( operations.movers ) {
+                //
+                for ( let [mky,mover] of Object.entries(operations.movers) ) {
+                    local_runner += '\n'
+                    if ( mover.dest === 'master' ) {
+                        start = mover.from
+                        next = mover.to
+                        local_runner += `scp -r ${start} ${next}`
+                    } else if ( mover.dest === 'remote' ) {
+                        start = mover.from
+                        next = mover.to
+
+                        let pass = defs_obj.ssh[operations.addr].pass
+                        let mover_line = `expect-scp ${start} ${next} "${pass}"`   // pass is either ssh or key pass
+                        local_runner += `ssh ${master_user} '${mover_line}'  # pass is either ssh or key pass`
+                    }
+                }
+                //
+            }
+            //
+            prepend = prepend.replace('goal:','OK:')
+        } else if ( operations.goal === 'line')  {
+            //
+            let op_line = operations.calling_line
+            if ( op_line ) {
+                for ( let vr of Object.keys(vars) ) {
+                    let mparts = vr.split('.')
+                    mparts = trimmer(mparts)
+                    let ky = mparts[1].replace('}','')
+                    let val = master[ky]
+                    op_line = subst_all(op_line,vr,val)
+                }
+                //
+                local_runner += '\n'
+                local_runner += op_line 
+                prepend = prepend.replace('goal:','OK:')
+            } else {
+                local_runner += '\n'
+                local_runner += `# ${operations.script} `
+//console.log(ky,operations.script,operations)
+            }
+        }
+        //
+        local_runner = local_runner.replace('$%$%prepend',prepend)
+
+    }
+    //
+
+    //
+    await fos.output_string(`${g_out_dir_prefix}/run_all.sh`,local_runner)
+    //
 }
 
 // ----
+(async () => {
+    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+    console.log("--------------actionable_tree--------------------")
+    //
+    await output_actionable_tree(actionable_tree)
+    //
+    console.dir(actionable_tree,{ depth: null })
+    //
+    console.log("----------------------------------")
+    //
+    await finally_run()
+})()
 
-//finally_run()
 
 
 
