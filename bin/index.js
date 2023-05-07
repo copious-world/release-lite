@@ -42,6 +42,15 @@ let fos = new FileOperations()
 const IMP_RULE_MARKER = '&|.'
 const OBJ_LIST_TYPE_MARKER = '(~!)'
 const TABLE_ROW_COL_TYPE_MARKER = '(=)'
+const START_OF_SECTION = '!>'
+const END_OF_SECTION = '<!'
+const IN_SECT_LINE_START = '!-'
+
+
+/// sections are of these types: act, def, goals
+
+
+
 
 const g_out_dir_prefix = './scripts'
 
@@ -75,6 +84,19 @@ function casual_array_to_array(o_vals) {
         o_vals = trimmer(o_vals)
     }
     return o_vals 
+}
+
+function casual_array_lines_to_array(arr_lines) {
+    arr_lines = arr_lines.trim()
+    if ( arr_lines[0] === '[' ) {
+        arr_lines = arr_lines.substring(1)
+        arr_lines = arr_lines.substring(0,arr_lines.lastIndexOf(']'))
+    }
+    arr_lines = arr_lines.trim()
+    arr_lines = arr_lines.split('\n')
+    arr_lines = trimmer(arr_lines)
+    arr_lines = arr_lines.filter( line => (line.length > 0) )
+    return arr_lines
 }
 
 function r_remove_field(top,fname) {
@@ -204,7 +226,6 @@ function process_var_stack(vars) {   // EDITING
     for ( let [k,vars] of Object.entries(fvs) ) {
         for ( let vr of Object.keys(vars) ) {
             let vrk = vr.replace('${','').replace('}','').trim()
-            console.log(vr,vmap[vrk],vmap[k])
             if ( vmap[vrk] !== undefined ) {
                 vmap[k] = subst_all(vmap[k],vr,vmap[vrk])
             }
@@ -216,43 +237,139 @@ function process_var_stack(vars) {   // EDITING
 
 
 
+
+function build_basic_graph(defs,graph_use) {
+    //
+    let bgraph = {
+    }
+    let max_depth = 0
+    //
+    defs = strip_front(defs,'!')
+    defs = trimmer(defs)
+    //
+    for ( let ldef of defs ) {
+        let node_to_sibs = ldef.split('->')
+        node_to_sibs = trimmer(node_to_sibs)
+        let node_name = node_to_sibs[0]
+        let sibs = casual_array_to_array(node_to_sibs[1])
+        let info = {}
+        let depth = 1
+        if ( bgraph[node_name] === undefined ) {
+            bgraph[node_name] = { depth, info, sibs }
+        } else {
+            bgraph[node_name].sibs = sibs
+            depth = bgraph[node_name].depth
+        }
+        //
+        depth++
+        if ( max_depth < depth ) max_depth = depth
+        for ( let sib of sibs ) {
+            if ( bgraph[sib] === undefined ) {
+                let backrefs = [ node_name ]
+                info = { depth, backrefs }
+                bgraph[sib] = info 
+            } else {
+                bgraph[sib].backrefs.push(node_name)
+            }
+        }
+    }
+    //
+    let its = max_depth
+    let levels = []
+    for ( let i = 0; i < its; i++ ) levels.push([])
+    //
+    for ( let [ky,node] of Object.entries(bgraph) ) {
+        let i = node.depth
+        levels[i-1].push(ky)
+    }
+
+    while ( levels.length > 1 ) {
+        let level = levels.pop()
+        let prev = levels[levels.length-1]
+        if ( prev ) {
+            for ( let nname of level ) {
+                let ky = nname
+                if ( ky.indexOf('.') > 0 ) {
+                    ky = popout(ky,'.')
+                }
+                let def = bgraph[ky]
+                if ( def === undefined ) continue
+                for ( let brf of def.backrefs ) {
+                    if ( prev.indexOf(brf) >= 0 ) {
+                        prev.push(`${brf}.${nname}`)
+                    }
+                }
+            }
+        }
+    }
+    //
+    let path_ref = {}
+    let path_keys = levels[0]
+    for ( let pky of path_keys ) {
+        let path = pky.split('.')
+        let depth = path.length
+        let ref = path.pop()
+        path_ref[pky] = `${ref}@${depth}`
+    }
+    //
+    return [bgraph,path_ref,max_depth]
+}
+
+//bgraph[`${node_name}.${sib}`] = `@${depth}`
+
+
 function process_preamble(preamble) {   // definite def and act section for first run subst and highest level sequence
-    let parts = preamble.split('\n')
-    let p1 = []
-    let p2 = []
-    while ( parts.length ) {
-        p = parts.shift()
-        if ( p === '!' ) break
-        p1.push(p)
-    }
-    p1 = strip_front(p1,'!')
-    p2 = strip_front(parts,'!')
+    //
+    let preamble_sections = preamble.split('!\n')
 
-    let master_order = { 
-        "acts" : []
+    let sections = {
+        "scope" : "",
+        "prog"  : "",
+        "graph" : ""
     }
     //
-    if ( popout(p1[0],'>') === 'act' ) {
-        master_order = process_preamble_acts(p1[1])
-    } else if ( popout(p2[0],'>') === 'act' ) {
-        master_order = process_preamble_acts(p2[1])
-    }
-    //
-    let var_stack = {}
+    preamble_sections = strip_front(preamble_sections,'!')
 
 
-    if ( popout(p1[0],'>') === 'def' ) {
-        p1.shift()
-        var_stack = process_var_stack(p1)
-    } else if ( popout(p2[0],'>') === 'def' ) {
-        p2.shift()
-        var_stack = process_var_stack(p2)
+    for ( let sect of preamble_sections ) {
+        //
+        let sectype = popout(sect,'>')
+        //
+        sect = sect.split('\n')
+        sect = trimmer(sect)
+
+        sect = strip_front(sect,'!')
+
+        sect = sect.filter(line => (line.length > 0))
+        //
+        let type_line = sect.shift()
+        //
+        //
+        switch ( sectype ) {
+            case 'act' : {
+                sections.prog = process_preamble_acts(sect[0])
+                break
+            }
+            case 'def' : {
+                 sections.scope = process_var_stack(sect)
+                break
+            }
+            case 'graph' : {
+                graph_use = popafter(type_line,':').trim()
+                let [graph,path_ref,max_depth] = build_basic_graph(sect,graph_use)
+                sections.graph = {
+                    "use" : graph_use,
+                    "max_depth" : max_depth,
+                    "g" : graph,
+                    "paths" :path_ref
+                }
+                break
+            }
+        }
+        //
     }
 
-    return {
-        "scope" : var_stack,
-        "prog"  : master_order
-    }
+    return sections
 }
 
 function get_type_marker(table_str,deflt) {
@@ -388,7 +505,7 @@ function process_ssh_map(ssh_def_str) {
     }
     //
     ssh_def_str = ts
-    ssh_def_str = ssh_def_str.replace('<!','')
+    ssh_def_str = ssh_def_str.replace(END_OF_SECTION,'')
     //
     let final_map
     if ( table_type === OBJ_LIST_TYPE_MARKER ) {
@@ -502,6 +619,26 @@ function host_abbrev_to_addr(hname,hosts) {
     let hmap = hosts.by_key['abbr']
     return hmap[hname].addr
 }
+
+
+
+
+// hosts.by_key.abbr
+function attach_defs_to_graph(preamble,defs) {
+    //
+    let graph = preamble.graph.g
+    for ( let [ky,obj] of Object.entries(defs.host.by_key.abbr) ) {
+        if ( ky in graph ) {
+            graph[ky].host = obj
+            let addr = obj.addr
+            let auth = defs.ssh[addr]
+            graph[ky].auth = auth
+        }
+    }
+    //
+}
+
+
 
 
 function get_dot_val(lk,access,index) {
@@ -694,29 +831,70 @@ function process_defs(def_list) {
 }
 
 
+// -------------------------------------
+// -------------------------------------
+
+
+
+
+function process_goals(goals_descr) {
+    let host_goals = {}
+    for ( let [host,mgoals] of Object.entries(goals_descr) ) {
+        //
+        let hgoals = {}
+        host_goals[host] = hgoals
+        let each_host_goals = mgoals.split(IN_SECT_LINE_START)
+        each_host_goals.shift()
+        //
+        for ( let gsect of each_host_goals ) {
+            let abbr = popout(gsect,'>')
+            let gdescr = popafter(gsect,'>').trim()
+            hgoals[abbr] = {}
+            if ( gdescr[0] === '[' ) {
+                let goal_facts = casual_array_lines_to_array(gdescr)
+                hgoals[abbr].goal_facts = goal_facts
+            }
+        }    
+    }
+
+    return host_goals
+}
 
 
 
 // -------------------------------------
+// -------------------------------------
 
-
+//
+// top_level_sections -- pull apart the sections that are used to setup tables, actions, and goals
+// 
+//
 function top_level_sections(file_str) {
+    //
     let preamble = false
     let defs = {}
     let acts = {}
+    let goals = {}
 
-    let parts = file_str.split('!>')
-    parts = trimmer(parts) 
-    for ( let p of parts ) {
-        p = p.replace('<!','')
+    let parts = file_str.split(START_OF_SECTION)
+    parts = trimmer(parts)   // clean it up
+
+    for ( let p of parts ) {        // process the text enough to classify it as a type of section
+        //
+        p = p.replace(END_OF_SECTION,'')  // end of section not needed
+        //
+        // process the first line 
         let l1 = first_line(p)
         let rest_p = after_first_line(p)
-        let lparts = l1.split(':')
-        lparts = trimmer(lparts)
-        if ( lparts.length == 2 ) {
+        let lparts = l1.split(':')          // ':' 
+        lparts = trimmer(lparts)    // first part is name, second part is type (articulations for subtype)
+
+        if ( lparts.length == 2 ) {   // formed right
+            let key = lparts[0]
             let maybe_def = lparts[1].substring(0,3)
-            if ( maybe_def == 'act' || maybe_def == 'def' ) {
-                let key = lparts[0]
+            maybe_def = (maybe_def === 'goa') ? lparts[1].substring(0,lparts[1].indexOf('=')).trim() : maybe_def
+
+            if ( (maybe_def == 'act') || (maybe_def == 'def') || (maybe_def == 'goals') ) {
                 let type = ""
                 if ( has_symbol(lparts[1],'(') ) {
                     type = get_type_specifier(lparts[1])
@@ -727,15 +905,36 @@ function top_level_sections(file_str) {
                 }
                 if ( maybe_def == 'act' ) acts[key] = rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
                 if ( maybe_def == 'def' ) defs[key] = type + rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
+                if ( maybe_def == 'goals' ) goals[key] = rest_p.trim()
             }
-        } else {
+        } else {        // something else ... not being classified (special app?)
             preamble = p
         }
     }
 
    
-    return { preamble, defs, acts }
+    return { preamble, defs, acts, goals }
 }
+
+
+
+
+
+
+
+function associate_final_state_goal_with_machines(running,graph) {
+    //
+    for ( let [ky,g] of Object.entries(running) ) {
+        let machine = graph[ky]
+        if ( machine ) {
+            graph[ky].final_state = g
+        }
+    }
+    //
+}
+
+
+
 
 
 function gen_repstr(depth,c) {
@@ -1559,6 +1758,7 @@ function prepare_remote_file(tree,actionable_tree) {
                 if ( at_file === undefined ) {
                     at_file = {}
                     actionable_tree.files[file_name] = at_file
+                    at_file.breadcrumb = tree.breadcrumb
                 }
                 if ( !(operations.coalesce) ) {
                     at_file[file_diff] = {}
@@ -1585,6 +1785,7 @@ function prepare_line(tree,actionable_tree) {
         sectl = {}
         actionable_tree.lines[line_key] = sectl
         sectl.addrs = {}
+        sectl.breadcrumb = tree.breadcrumb
     }
     //
     if ( sectl.tree === undefined ) {
@@ -1638,6 +1839,14 @@ function parse_move_params(epars) {
 let machine_stops = ['here','master','remote']
 
 
+
+
+
+
+// capture_actionable_type_and_goal
+//      build the actionable_tree ... use GOAL TYPE to identify the snippets of code and where they should go
+//      -- breadcrumbs will have already been created.
+
 function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goal_type) {
     //
     if ( tree.type === sect_type ) {
@@ -1653,7 +1862,6 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
                         break;
                     }
                     case 'line' : {
-
                         if ( actionable_tree.lines === undefined ) {
                             actionable_tree.lines = {}
                         }
@@ -1682,6 +1890,7 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
         for ( let sub of Object.values(tree.subs) ) {
             capture_actionable_type_and_goal(sub,top,actionable_tree,sect_type,goal_type)
         }
+        // SEEK has been defined for a PLACER type of element
         if ( ( actionable_tree.seek !== undefined ) && ( tree.type === 'placer' )  ) {
 
             if ( actionable_tree.all_movement === undefined ) actionable_tree.all_movement = {}
@@ -1703,10 +1912,13 @@ function capture_actionable_type_and_goal(tree,top,actionable_tree,sect_type,goa
                     sender.master_line = ""
                 }
                 let addr = top.addr
-console.log("capture_actionable_type_and_goal: ",addr)
-console.log(sender)
+//console.log("capture_actionable_type_and_goal: ",addr)
+//console.log(sender)
                 if ( tree.operations && tree.operations.sender ) {
                     if (  actionable_tree.all_movement[ky_sect] === undefined ) actionable_tree.all_movement[ky_sect] = {}
+                    let bc = tree.breadcrumb + `|${ky_sect}`
+                    actionable_tree.all_movement[bc] = actionable_tree.all_movement[ky_sect]
+                    //
                     let a_moves = actionable_tree.all_movement[ky_sect]
                     let epars = ops.params_m
                     if ( epars !== false ) {
@@ -1878,7 +2090,122 @@ function capture_actionable(tree,actionable_tree) {
     return tree
 }
 
-// output all files that will be used before execution sequencing...
+
+
+
+//
+//  output_actionable_movement
+//  
+//      construct files that will handle the movement of assets from a creation place to a landing place
+//
+
+
+function interpret_mover_path(simplified_path,mover,direction) {
+
+    /*
+    console.log("interpret_mover_path - ")
+    console.log(simplified_path)
+    console.log("LOCUS: ", mover.locus)
+    console.log("LINE: ", mover.line)
+    console.log("MASTR LINE: ", mover.master_line,"\n")
+    */
+
+    let line_defs = []
+
+    if ( mover.locus === 'here' ) {
+        line_defs.push(['exec_loc',mover.locus,mover.line])
+        if (  mover.master_line ) {
+            line_defs.push(['arrow',mover.locus,mover.master_line])
+        }
+    } else if (  mover.locus === 'master' ) {
+        line_defs.push(['exec_loc',mover.locus,mover.line])
+        line_defs.push(['arrow',mover.locus,"password"])
+    }
+
+    if ( line_defs.length ) return line_defs
+
+    return false
+}
+
+
+
+
+
+// output_actionable_movement
+///
+/// movement is part of the actionable tree
+
+async function output_actionable_movement(all_movement) {
+    //
+    let node_files = {}
+    for ( let [node_name,move_map] of Object.entries(all_movement) ) {
+/*
+console.log("output_actionable_movement -------------")
+console.log(node_name)
+console.dir(move_map,{ depth: null })
+console.log("<------------- output_actionable_movement -------------")
+*/
+        //
+        let files = {
+            "addrs" : [],
+            "file_map" : [],
+            "paths" : {},
+            "exec_loc" : {
+                "here" : "",
+                "master" : "",
+                "remote" : ""
+            },
+            "arrow" : {
+                "here" : "",
+                "master" : ""
+            }
+        }
+
+        node_files[node_name] = files
+
+        //
+        for ( let [addr,move_list] of Object.entries(move_map) ) {
+            //
+            files.addrs.push(addr)
+            files.paths[addr] = {}
+            //
+            for ( let move of move_list ) {
+                //
+                let path = move.path
+                files.paths[addr][move.sender.from] = path
+                let simplified_path = path.filter( step => (step[0] !== '%') )
+                //
+                let dir_map = interpret_mover_path(simplified_path,move,move.sender.direction)
+                //
+                //
+                if ( dir_map ) {
+                    for ( let [direction,locus,line] of dir_map ) {
+                        console.log(direction,locus,line)
+                        files[direction][locus] += '\n' + line
+                        let fname = `${g_out_dir_prefix}/${locus}/${direction}/moves-${node_name}.sh`
+                        files.file_map[fname] = {
+                            "path" : path
+                        }
+                    }
+                }
+            }
+        }
+        //
+        for ( let direction of ["exec_loc","arrow"] ) {
+            for ( let [loc,str] of Object.entries(files[direction]) ) {
+                let fname = `${g_out_dir_prefix}/${loc}/${direction}/moves-${node_name}.sh`
+                await fos.output_string(fname,str)
+            }    
+        }
+    }  
+
+    console.dir(node_files,{ depth : null })
+}
+
+
+// output_actionable_tree
+// 
+// output all files that will be used by execution sequencing... before sequencing execution
 //
 async function output_actionable_tree(actionable_tree) {
     //
@@ -1926,42 +2253,9 @@ async function output_actionable_tree(actionable_tree) {
         }
     }
 
-
     // all movement
-    //
     if ( actionable_tree.all_movement ) {
-        //
-        for ( let [node_name,move_map] of Object.entries(actionable_tree.all_movement) ) {
-            //
-            let files = {
-                "upload" : {
-                    "here" : "",
-                    "master" : "",
-                    "remote" : ""
-                },
-                "download" : {
-                    "here" : "",
-                    "master" : "",
-                    "remote" : ""
-                }
-            }
-            //
-            for ( let move_list of Object.values(move_map) ) {
-                for ( let move of move_list ) {
-                    let line = move.line
-                    let locus = move.locus
-                    //
-                    let direction = `${move.sender.direction}load`
-                    files[direction][locus] += '\n' + line
-                }
-            }
-            //
-            for ( let direction of ["download","upload"] ) {
-                for ( let [loc,str] of Object.entries(files[direction]) ) {
-                    await fos.output_string(`${g_out_dir_prefix}/${loc}/${direction}/moves-${node_name}.sh`,str)
-                }    
-            }
-        }    
+        await output_actionable_movement(actionable_tree.all_movement)
     }
 
 }
@@ -2037,86 +2331,6 @@ function sub_order_organize(exec_obj,top_order,ky_path) {
     exec_obj.addrs = addr_list
     //
 }
-
-
-//
-confstr = eliminate_line_start_comments(confstr,'--')
-confstr = eliminate_empty_lines(confstr)
-confstr = eliminate_line_end_comments(confstr,'\\s+--')
-//
-let top_level = top_level_sections(confstr)
-
-////
-let preamble_obj = process_preamble(top_level.preamble)
-let defs_obj = process_defs(top_level.defs)
-let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
-console.dir(preamble_obj)
-console.dir(defs_obj,{ depth: null })
-//console.log(JSON.stringify(defs_obj,null,2))
-//console.dir(acts_obj)
-//console.log(JSON.stringify(acts_obj,null,2))
-//
-
-
-//console.log(preamble_obj.prog.acts)
-
-
-let actionable_tree = {}
-let top_order = {
-    "partial" : {},
-    "total" : [],
-    "total_map" : {},
-    "topper_map" : {}
-}
-
-let breadcrumb_map = {}
-
-for ( let ky of preamble_obj.prog.acts ) {
-    let target = acts_obj[ky]
-    if ( target === undefined ) continue
-    top_order.partial[ky] = {}
-    if ( target.outputs !== undefined ) {
-        for ( let [addr,output] of Object.entries(target.outputs) ) {
-            //console.log(output)
-            console.log("---------------------------")
-            let tree = depth_line_classifier(output,addr,ky)
-            tree = subordinates_tree_builder(tree,ky)
-            //console.dir(tree,{ depth: null })
-            tree = compile_pass_1(tree,addr)
-            tree = operations_execs_and_movers(tree)
-            tree = operation_movers(tree)
-            //tree = handle_discards(tree)
-            tree = breadcrumbs_and_addresses(tree,addr,breadcrumb_map)
-            tree = capture_actionable(tree,actionable_tree)
-            //console.dir(tree,{ depth: null })
-            console.log("---------------------------")
-            top_order.partial[ky][addr] = {
-                "tree" : tree,
-                "partial" : {}
-            }
-            //
-        }
-    }
-}
-
-
-let exec_list = [].concat(preamble_obj.prog.acts)
-
-
-for ( let ky of exec_list ) {
-    let exec_obj = top_order.partial[ky]
-    if ( exec_obj === undefined ) continue
-    // top_order.total.push(ky)
-    //
-    sub_order_organize(exec_obj,top_order,ky)
-}
-
-
-// ----
-//console.log(top_order.total)
-//console.dir(top_order,{ depth: null })
-//console.dir(breadcrumb_map,{ depth: null })
-
 
 
 
@@ -2270,25 +2484,178 @@ async function finally_run() {
         local_runner = local_runner.replace('$%$%prepend',prepend)
 
     }
-    //
-
+    
     //
     await fos.output_string(`${g_out_dir_prefix}/run_all.sh`,local_runner)
     //
 }
 
+//console.log(preamble_obj.prog.acts)
+
+
+
+async function r_traverse_graph(graph,depth,max_depth) {
+    if ( depth > max_depth ) return
+    //
+    let top_list = []
+    let paths = graph.paths
+
+    for ( let [path,node_depth] of Object.entries(paths) ) {
+        let [ky,ndpth] = node_depth.split('@')
+        ndpth = parseInt(ndpth)
+        if ( ndpth == depth ) {
+            top_list.push(path)
+        }
+    }
+    //
+    for ( let nky of top_list ) {
+        let node_ky = graph.paths[nky]
+        let nname = node_ky.split('@')[0]
+        let node = graph.g[nname]
+        //
+        console.dir(node,{ "depth" : null })
+        if ( node.sibs ) console.log(node.sibs)
+        else console.log("terminus")
+    }
+
+    await r_traverse_graph(graph,depth+1,max_depth)
+}
+
+async function traverse_graph(graph) {
+    console.dir(graph,{ depth : null })
+    let max_depth = graph.max_depth
+    let depth = 1
+    //
+    await r_traverse_graph(graph,depth,max_depth)
+}
+
+
+
+
+
+//  MAIN PROGRAM STARTS HERE
+
+//
+confstr = eliminate_line_start_comments(confstr,'--')
+confstr = eliminate_empty_lines(confstr)
+confstr = eliminate_line_end_comments(confstr,'\\s+--')
+//
+let top_level = top_level_sections(confstr)
+
+////
+let preamble_obj = process_preamble(top_level.preamble)
+let defs_obj = process_defs(top_level.defs)
+let goals_obj = process_goals(top_level.goals)
+
+associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
+
+
+//
+let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
+//
+
+
+
+
+
+
+// 
+attach_defs_to_graph(preamble_obj,defs_obj)
+
+let actionable_tree = {}
+let top_order = {
+    "partial" : {},
+    "total" : [],
+    "total_map" : {},
+    "topper_map" : {}
+}
+
+let breadcrumb_map = {}
+
+
+let exec_list = [].concat(preamble_obj.prog.acts)
+
+
+// ----
+
+for ( let ky of exec_list ) {
+    let exec_obj = top_order.partial[ky]
+    if ( exec_obj === undefined ) continue
+    // top_order.total.push(ky)
+    //
+    sub_order_organize(exec_obj,top_order,ky)
+}
+
+
+///
+
+
+
+/*
+//console.dir(preamble_obj,{ depth: null })
+//console.dir(goals_obj,{ depth: null })
+//console.dir(defs_obj,{ depth: null })
+//console.log(JSON.stringify(defs_obj,null,2))
+//console.dir(acts_obj)
+//console.log(JSON.stringify(acts_obj,null,2))
+
+// ----
+//console.log(top_order.total)
+//console.dir(top_order,{ depth: null })
+//console.dir(breadcrumb_map,{ depth: null })
+
+
+
+
+for ( let ky of preamble_obj.prog.acts ) {
+    let target = acts_obj[ky]
+    if ( target === undefined ) continue
+    top_order.partial[ky] = {}
+    if ( target.outputs !== undefined ) {
+        for ( let [addr,output] of Object.entries(target.outputs) ) {
+            //console.log(output)
+            console.log("---------------------------")
+            let tree = depth_line_classifier(output,addr,ky)
+            tree = subordinates_tree_builder(tree,ky)
+            //console.dir(tree,{ depth: null })
+            tree = compile_pass_1(tree,addr)
+            tree = operations_execs_and_movers(tree)
+            tree = operation_movers(tree)
+            //tree = handle_discards(tree)
+            tree = breadcrumbs_and_addresses(tree,addr,breadcrumb_map)
+            tree = capture_actionable(tree,actionable_tree)
+            //console.dir(tree,{ depth: null })
+            console.log("---------------------------")
+            top_order.partial[ky][addr] = {
+                "tree" : tree,
+                "partial" : {}
+            }
+            //
+        }
+    }
+}
+*/
+
+
+
 // ----
 (async () => {
+
+//console.dir(goals_obj.running,{ depth: null })
+
     // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-    console.log("--------------actionable_tree--------------------")
+    // console.log("--------------actionable_tree--------------------")
     //
-    await output_actionable_tree(actionable_tree)
+    // await output_actionable_tree(actionable_tree)
     //
-    console.dir(actionable_tree,{ depth: null })
+    // console.dir(actionable_tree,{ depth: null })
     //
     console.log("----------------------------------")
+    await traverse_graph(preamble_obj.graph)
+    console.log("----------------------------------")
     //
-    await finally_run()
+    // await finally_run()  // generate the final run script and submit it to our version of expect...
+    //
 })()
 
 
