@@ -33,6 +33,7 @@
     "extra-file-class": "^0.9.16",
     "html-minifier": "^4.0.0",
     "node-scp": "0.0.3",
-    "tar": "^6.0.1"
+    "tar": "^6.0.1",
+    "tau-prolog": "^0.3.4"
   }
 }

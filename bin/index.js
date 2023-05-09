@@ -32,6 +32,8 @@ const {
 
 const {path_table} = require('../lib/figure_paths')
 
+const xops = require('../lib/exec_ops')
+
 
 const fs = require('fs')
 const {FileOperations} = require('extra-file-class')
@@ -2494,7 +2496,16 @@ async function finally_run() {
 
 
 
-async function r_traverse_graph(graph,depth,max_depth) {
+async function node_operations(node) {
+    /*
+    console.log("HOST:")
+    console.dir(node,{ "depth" : null })
+    if ( node.sibs ) console.log(node.sibs)
+    else console.log("terminus")
+    */
+}
+
+async function r_traverse_graph(graph,depth,max_depth,node_op) {
     if ( depth > max_depth ) return
     //
     let top_list = []
@@ -2513,22 +2524,84 @@ async function r_traverse_graph(graph,depth,max_depth) {
         let nname = node_ky.split('@')[0]
         let node = graph.g[nname]
         //
-        console.dir(node,{ "depth" : null })
-        if ( node.sibs ) console.log(node.sibs)
-        else console.log("terminus")
+        console.log("deleting",nname,nky)
+        delete graph.g[nname]
+        delete graph.paths[nky]
+        //
+        await node_op(node)
     }
 
-    await r_traverse_graph(graph,depth+1,max_depth)
 }
 
 async function traverse_graph(graph) {
-    console.dir(graph,{ depth : null })
+    let base_graph = Object.assign({},graph)
+    //
+    base_graph.paths = Object.assign({}, base_graph.paths)
+    base_graph.g = Object.assign({}, base_graph.g)
+    //
     let max_depth = graph.max_depth
     let depth = 1
     //
-    await r_traverse_graph(graph,depth,max_depth)
+    while ( depth <= max_depth ) {
+        await r_traverse_graph(base_graph,depth,max_depth,node_operations)
+        depth++
+        console.log("GARPH")
+        console.dir(base_graph,{ "depth" : null })
+    }
+    //
+    //    console.dir(graph,{ "depth" : null })
+    //
 }
 
+
+
+/*
+'endpoint-users': {
+    depth: 3,
+    backrefs: [ 'home' ],
+    final_state: { goal_facts: [] },
+    host: {
+        addr: '192.168.1.77',
+        abbr: 'endpoint-users',
+        host: '@home=LAN -- DietPi'
+    },
+    auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
+},
+*/
+async function ensure_json_manipulator(node,graph) {
+    // ./assets/expectpw-ssh.sh sjoseij richard 76.229.181.242 test.sh nnn simple
+    let addr = node.host.addr   // node 'home' reached from 'here' ... host will be 'home' pass for 'richard' user = 'richard'
+    let user = node.auth.user
+    let pass = node.auth.pass
+    let abbr = node.abbr
+    let bash_op = `./assets/apt-installer.sh`
+    await xops.perform_expect_op(pass, user, addr, bash_op, ['jq'])
+    await xops.expect_ensure_dir(pass,user,addr,preamble_obj.scope.master_exec_loc)
+    await xops.expect_send_up(pass,user,addr,'./assets/apt-installer.sh',preamble_obj.scope.master_exec_loc)
+    await xops.expect_send_up(pass,user,addr,'./assets/expectpw-ssh-cmd.sh',preamble_obj.scope.master_exec_loc)
+    await xops.expect_send_up(pass,user,addr,'./assets/expectpw-ssh.sh',preamble_obj.scope.master_exec_loc)
+    await xops.expect_send_up(pass,user,addr,'./assets/upload_scripts.sh',preamble_obj.scope.master_exec_loc)
+    await xops.expect_send_up(pass,user,addr,'./assets/arc-traveler.sh',preamble_obj.scope.master_exec_loc)
+    // at this point here->home has installed desired assets on 'home'
+    //
+    let uploader = 'upload_scripts'
+    let propagate_op = './assets/arc-traveler.sh'
+    let g_hat = graph_rooted_at(node,graph)
+    if ( g_hat ) {
+        //  make a graph string and encode it 
+        let g_hat_str = JSON.stringify(g_hat)
+        let g_hat_str64 = Buffer.from(g_hat_str).toString('base64')
+        //  make an ops array string and encode it 
+        let ops = [ 'apt-get install jq', `mkdir -p ${preamble_obj.scope.master_exec_loc}` ]
+        ops = JSON.stringify(ops)
+        let ops64 = Buffer.from(ops).toString('base64')
+        //
+        // here->home  (hence home.pass, home.user, home.abbd) which is node.user, etc.
+        //
+        await xops.perform_expect_op(pass, user, addr, propagate_op, [`${abbr} ${preamble_obj.scope.master_exec_loc} ${g_hat_str64} ${ops64} ${uploader}`])           
+    }
+    //
+}
 
 
 
