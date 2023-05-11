@@ -7,26 +7,20 @@ NODE_NAME=$1        # everthing is the next hop... This file is arrowed in. The 
 OP_DIR=$2
 GRAPH_STR=$3
 OPS_STR=$4
-POST_OPS_STR=$5
+UPLOADER=$5
 #
 OPS=$(bas64 --decode $OPS_STR)
 GRAPH=$(bas64 --decode $GRAPH_STR)
-POST_OPS=$(bas64 --decode $POST_OPS_STR)
 #
 # LOCAL -- controlled by previous hop
 # run the local ops (this script arrowed in from previous hop -- run here with local permission)
 
 pushd $OP_DIR
-
-#
-# LOCAL OPERATIONS --  BEFORE propagating files, etc.
-if [ -n $OPS ]; then
-    echo $OPS | jq -c '.[]' |
-    while IFS=$"\n" read -r c; do
-        echo "$c"
-        bash ${c}
-    done
-fi
+echo $OPS | jq -c '.[]' |
+while IFS=$"\n" read -r c; do
+    echo "$c"
+    bash ${c}
+done
 
 # REMOTE -- next hop
 # Remove the current ply from the graph  (cut out the current node and anything same or lower depth)
@@ -46,33 +40,13 @@ while IFS=$"\n" read -r c; do
     nxt_pass=$(echo "$c" | jq -r '.auth.pass')
     nxt_user=$(echo "$c" | jq -r '.auth.user')
     #
-    echo "$c" | jq -c '.upload_scripts' |
-    while IFS=$"\n" read -r script; do
-        bash './expectpw-scp-helper.sh', '${nxt_pass}' ${nxt_user} ${nxt_ip}, '${script}', $OP_DIR
-    done
-    #
-    echo "$c" | jq -c '.download_files' |
-    while IFS=$"\n" read -r script; do
-        bash './expectpw-scp-fetch-helper.sh', '${nxt_pass}' ${nxt_user} ${nxt_ip}, '${script}', $OP_DIR
-    done
+    bash ./expectpw-ssh-cmd '${nxt_pass}' ${nxt_user} ${nxt_ip} 'mkdir -p $OP_DIR'
+    bash ./${UPLOADER}.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} $OP_DIR        # operational file ahead of the next action
     #
     SIBG=$(base64 $SIBGRAPH)   # GRAPH ENCODED
-    OPS=$(echo "$c" | jq -r '.required_on_node_operations')
-    OPS_STR=$(base64 $OPS)   # operation list ENCODED
     #
-    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR' &
+    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler-setup.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR ${UPLOADER}' &
     echo $host
 done
-
-#
-# LOCAL OPERATIONS --  AFTER propagating files, etc.
-if [ -n $POST_OPS ]; then
-    echo $POST_OPS | jq -c '.[]' |
-    while IFS=$"\n" read -r c; do
-        echo "$c"
-        bash ${c}
-    done
-fi
-
 
 popd $OP_DIR
