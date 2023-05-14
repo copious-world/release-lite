@@ -472,6 +472,41 @@ The format of the template command file is custom. Yet, it is fairly simplistic.
 
 TBD
 
+### Arc Traveler
+
+
+### Athorization Graph
+
+A collection of nodes (hosts) may be accessible purely by addressing. And, in the case of IPv6, there may be no topology describing pathways through DAGs of subnets, but all nodes may be accessible by one hop from a controlling machine, one with a user interface, say. But, it may be the case that nodes will be organized into security realms and a graph for authorization may evinced from the arrangement of hops between machines and clusters of machines. So, a DAG may map to the nodes where knowledge of access via passwords and keys becomes more and more narrow as the path is followed.
+
+Release-lite provides scripts that move from node to node with each arc traversal taking along a smaller and smaller **operation-graph**. The **operation-graph** that is carried along the arcs has a node for each host-node in the computer cluster. Each **operation-graph** contains authorization information on its nodes. It also contains a set of operations to be done as it traverses the nodes.
+
+### Nodes
+
+For each host that will be accessed via ssh, there will be a small set of fields for specifying the actions to be taken on the nodes and the files to be uploaded and downloaded from the node. 
+
+Here are some fields that will be found in each node in the **operation-graph**. 
+
+* `upload_scripts`
+* `download_files`
+* `required_on_node_operations`
+* `required_on_node_post_operations`
+
+Typically, a graph that that is uploading to a host-node several authorization hops away from a controller will list a bulk of files. Many of the file will disappear from downstream nodes, but remain in node on pathways to their final destination. A file that is in motion to the end of a path will be listed in each `upload_scripts` array along the path from its first use; that is, the graph will be filled out prior to starting arc traversal. The listing files is similar for downloading, but the files will be mentioned in the `download_files` array.
+
+The `required_on_node_operations` that appears at each node, will be mentioned only on the nodes it will run. A final action of each arc traversal will be the actions listed in `required_on_node_post_operations`. These actions are run after uploading from and downloading to the host-node were the operations occur. (That is, some action may take palce after files are obtained from down stream node, as in the case of data collection.)
+
+
+* **running**
+* **apt_op**
+* **nginx_op**
+* **uploaded** -- (directory of deposit, source descriptor/locator
+* **npm_target**
+* **directories**
+* **installed**
+
+* **bash_op** -- (directory of operation, operation)
+
 ## Previous doc 
 
 `This doc is going to be replaced. (deprecated?)`

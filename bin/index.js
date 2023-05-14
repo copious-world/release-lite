@@ -27,12 +27,16 @@ const {
     eliminate_empty_lines,
     table_to_objects,
     create_map_object,
-    object_list_to_object
+    object_list_to_object,
+    remove_spaces
 } = require('../lib/utilities')
 
 const {path_table} = require('../lib/figure_paths')
 
 const xops = require('../lib/exec_ops')
+
+
+const Goal = require('../lib/goal')
 
 
 const fs = require('fs')
@@ -47,11 +51,45 @@ const TABLE_ROW_COL_TYPE_MARKER = '(=)'
 const START_OF_SECTION = '!>'
 const END_OF_SECTION = '<!'
 const IN_SECT_LINE_START = '!-'
+const LOCAL_SUBST_START ='|-'
+const LOCAL_SUBST_END ='-|'
+const EOF_KEY = '>'
 
 
 /// sections are of these types: act, def, goals
 
 
+let starters = "([{"
+let enders = "}])"
+
+function toplevel_split(str,delim) {
+    
+    let cdepth = 0
+    let splits = []
+    let n = str.length
+    let cur_split = ""
+    for ( let i = 0; i < n; i++ ) {
+        let c = str[i]
+        if (( c === delim) && (cdepth === 0) ) {
+            splits.push(cur_split)
+            cur_split = ""
+        } else {
+            if ( starters.indexOf(c) >= 0 ) {
+                cdepth++
+            } else if ( enders.indexOf(c) >= 0 ) {
+                cdepth--
+            }
+            cur_split += c
+        }
+    }
+    //
+    if ( cur_split.length > 0 ) {
+        splits.push(cur_split)
+    }
+    splits = trimmer(splits)
+    //
+    return splits
+}
 
 
 const g_out_dir_prefix = './scripts'
@@ -213,7 +251,7 @@ function process_var_stack(vars) {   // EDITING
         let parts = v.split('=')
         parts = parts.map(v => { return v.trim() })
         let vname = parts[0]
-        vname = vname.substring(0,vname.indexOf('>')).trim()
+        vname = vname.substring(0,vname.indexOf(EOF_KEY)).trim()
         vmap[vname] = parts[1]
     }
     //
@@ -335,7 +373,7 @@ function process_preamble(preamble) {   // definite def and act section for firs
 
     for ( let sect of preamble_sections ) {
         //
-        let sectype = popout(sect,'>')
+        let sectype = popout(sect,EOF_KEY)
         //
         sect = sect.split('\n')
         sect = trimmer(sect)
@@ -552,8 +590,8 @@ function process_path_abbreviations(path_defs_str) {
 
 
 
-// ---- expand_section
-function expand_section(section_def,rest_sect_str) {
+// ---- all_directory_substitutions
+function all_directory_substitutions(section_def,rest_sect_str) {
     let spec_vars = section_def.top_dir_location
     let section = rest_sect_str.trim()
     if ( spec_vars ) {
@@ -565,6 +603,29 @@ function expand_section(section_def,rest_sect_str) {
     return section_def
 }
 
+
+function local_text_substitutions_and_var_table(target_str) {
+    let act_section = {}
+    //
+    let [sect_str,rest_sect] = gulp_section(target_str,LOCAL_SUBST_START,LOCAL_SUBST_END)
+    //
+    if ( sect_str ) {
+        let fieldobj_list = sect_str.split(OBJ_LIST_TYPE_MARKER)   // use the field separations
+        fieldobj_list = trimmer(fieldobj_list)
+        for ( let fo of fieldobj_list ) {    // some number of substitution rules by field
+            if ( fo.length ) {
+                let [sect_key,sect_object] = extract_object_field(fo)
+                act_section[sect_key] = sect_object   // this is now a replacement rule for the sections.
+            }
+        }
+        //
+        act_section = all_directory_substitutions(act_section,rest_sect)    // now do substitutions from the local subst rules
+    } else {
+        act_section.converted = target_str
+    }
+
+    return act_section
+}
 
 
 
@@ -590,24 +651,8 @@ function process_act_entry(act_str,preamble_obj,defs_obj) {
             let pstr = path_subst.remotes[pth]
             act_str = subst_all(act_str,`$${pth}`,pstr)
         }
-        let act_section = {}
         //
-        let [sect_str,rest_sect] = gulp_section(act_str,'|-','-|')
-        //
-        if ( sect_str ) {
-            let fieldobj_list = sect_str.split('--')
-            fieldobj_list = trimmer(fieldobj_list)
-            for ( let fo of fieldobj_list ) {
-                if ( fo.length ) {
-                    let [sect_key,sect_object] = extract_object_field(fo)
-                    act_section[sect_key] = sect_object
-                }
-            }
-            //
-            act_section = expand_section(act_section,rest_sect)
-        } else {
-            act_section.converted = act_str
-        }
+        let act_section = local_text_substitutions_and_var_table(act_str)
         //
         return act_section
     }
@@ -849,8 +894,8 @@ function process_goals(goals_descr) {
         each_host_goals.shift()
         //
         for ( let gsect of each_host_goals ) {
-            let abbr = popout(gsect,'>')
-            let gdescr = popafter(gsect,'>').trim()
+            let abbr = popout(gsect,EOF_KEY)
+            let gdescr = popafter(gsect,EOF_KEY).trim()
             hgoals[abbr] = {}
             if ( gdescr[0] === '[' ) {
                 let goal_facts = casual_array_lines_to_array(gdescr)
@@ -862,6 +907,173 @@ function process_goals(goals_descr) {
     return host_goals
 }
 
+
+function get_rules_of_depths(rtext,depth) {
+    let splitter = '\\!' + gen_repstr(depth,'-')
+    splitter += '(?!-)'
+    let rgx = new RegExp(splitter)
+    let rules_of_depth = rtext.split(rgx)
+    rules_of_depth.shift()
+    rules_of_depth = trimmer(rules_of_depth)
+    return rules_of_depth
+}
+
+
+function r_rule_tree_type_1(rtxt,depth) {
+    let rule_stuct = {}
+    let rky = first_line(rtxt)
+
+    let subrtxrt = after_first_line(rtxt)
+    if ( subrtxrt.length > 0 ) {
+        let rule_items = get_rules_of_depths(subrtxrt,depth+1)
+        if ( rule_items.length > 1 ) {
+            let n = rule_items.length
+            for ( let i = 0; i < n; i++ ) {
+                let srtxt = rule_items[i]
+                rule_items[i] = r_rule_tree_type_1(srtxt,depth+1)
+            }
+        }
+        rule_stuct[rky] = rule_items    
+    } else {
+        rule_stuct[rky] = "one-line"
+    }
+    return rule_stuct
+}
+
+
+function is_binder(code) {
+    return ( /^-\>[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+$/.test(code) ) 
+}
+
+
+function bind_goal_param(code,val_src) {
+    code = code.replace('->','')
+    let popped = gulp_section(val_src,'(',')')
+    let vtable = {}
+    vtable[code] = popped[0]
+    return vtable
+}
+
+
+function subgoal_list_to_map(subgoal_list,p_binder) {
+    let gmap = {}
+    for ( let entry of subgoal_list ) {
+        //
+        let ky = Object.keys(entry)[0]
+        let popky = popout(ky,EOF_KEY)
+        popky = remove_spaces(popky)
+        if ( popky.indexOf('),') > 0 ) {
+            popky = toplevel_split(popky,',')
+        } else popky = [popky]
+        //
+        let subgoal_txt = entry[ky]
+
+        for ( let gky of popky ) {
+
+            // choose the path belonging to the branch being evaluated
+            if ( /^.*\:[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+\=.*/.test(gky) ) {
+                let check_val = popafter(gky,'=')
+                let binder_ky = gky.substring(gky.indexOf(':')+1,gky.indexOf('='))
+                if ( check_val !== p_binder[binder_ky] ) continue
+            }
+
+            let after_piece = popafter(ky,EOF_KEY)
+            after_piece = after_piece.trim()
+            let binder = ""
+            let subgoals = ""
+            if ( is_binder(after_piece) ) {
+                binder = bind_goal_param(after_piece,gky)
+            } else if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
+                if ( after_piece.indexOf(',') > 0 ) {
+                    subgoals = toplevel_split(after_piece,',')
+                } else {
+                    subgoals = [after_piece]
+                }
+            }
+            if ( typeof subgoals === 'string' ) {
+                if ( Array.isArray(subgoal_txt) ) {
+                    binder = Object.assign(p_binder,binder)
+                    subgoals = subgoal_list_to_map(subgoal_txt,binder)
+                } else {
+                    subgoals = subgoal_txt
+                }
+            }
+            
+            gmap[gky] = {
+                binder,
+                subgoals
+            }
+        }
+    }
+
+    return gmap
+}
+
+
+
+function process_rules(rules) {
+    //
+    let rule_base = {}
+    rule_base.running = local_text_substitutions_and_var_table(rules.running)
+    
+
+    for ( let [ky,sect] of Object.entries(rule_base) ) {
+        let src_txt = sect.converted
+        let rules_of_depth = get_rules_of_depths(src_txt,1)
+        sect.depth_table = rules_of_depth
+        //
+        let n = sect.depth_table.length
+        for ( let i = 0; i < n; i++ ) {
+            let rtxt = sect.depth_table[i]
+            sect.depth_table[i] = r_rule_tree_type_1(rtxt,1)
+        }
+
+        let gmap = {}
+        sect.goal_map = gmap
+        for ( let entry of sect.depth_table ) {
+            let ky = Object.keys(entry)[0]
+            let popky = popout(ky,EOF_KEY)
+            popky = remove_spaces(popky)
+            if ( popky.indexOf('),') > 0 ) {
+                popky = toplevel_split(popky,',')
+            } else popky = [popky]
+
+            let subgoal_txt = entry[ky]
+
+            for ( let gky of popky ) {
+                let after_piece = popafter(ky,EOF_KEY)
+                after_piece = remove_spaces(after_piece)
+                let binder = ""
+                let subgoals = ""
+                if ( is_binder(after_piece) ) {
+                    binder = bind_goal_param(after_piece,gky)
+                } else if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
+                    if ( after_piece.indexOf(',') > 0 ) {
+                        subgoals = toplevel_split(after_piece,',')
+                    } else {
+                        subgoals = [after_piece]
+                    }
+                }
+
+                if ( typeof subgoals === 'string' ) {
+                    if ( Array.isArray(subgoal_txt) ) {
+                        subgoals = subgoal_list_to_map(subgoal_txt,binder)
+                    } else {
+                        subgoals = subgoal_txt
+                    }
+                }
+                
+                gmap[gky] = {
+                    binder,
+                    subgoals
+                }
+            }
+        }
+
+    }
+
+    return rule_base
+}
 
 
 // -------------------------------------
@@ -877,6 +1089,7 @@ function top_level_sections(file_str) {
     let defs = {}
     let acts = {}
     let goals = {}
+    let rules = {}
 
     let parts = file_str.split(START_OF_SECTION)
     parts = trimmer(parts)   // clean it up
@@ -895,6 +1108,7 @@ function top_level_sections(file_str) {
             let key = lparts[0]
             let maybe_def = lparts[1].substring(0,3)
             maybe_def = (maybe_def === 'goa') ? lparts[1].substring(0,lparts[1].indexOf('=')).trim() : maybe_def
+            maybe_def = (maybe_def === 'rul') ? lparts[1].substring(0,lparts[1].indexOf('=')).trim() : maybe_def
 
             if ( (maybe_def == 'act') || (maybe_def == 'def') || (maybe_def == 'goals') ) {
                 let type = ""
@@ -908,14 +1122,24 @@ function top_level_sections(file_str) {
                 if ( maybe_def == 'act' ) acts[key] = rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
                 if ( maybe_def == 'def' ) defs[key] = type + rest_p.trim()    // replace_eol(rest_p,' ').substring(0,128)
                 if ( maybe_def == 'goals' ) goals[key] = rest_p.trim()
-            }
+            } else if (maybe_def == 'rules' ) {
+                let type = ""
+                if ( has_symbol(lparts[1],'(') ) {
+                    type = get_type_specifier(lparts[1])
+                    lparts[1] = lparts[1].replace(type,'')
+                }
+                if ( has_symbol(lparts[1],'=') ) {
+                    key = get_end_var_name(lparts[1])
+                }
+                if ( maybe_def == 'rules' ) rules[key] = rest_p.trim()
+            } 
         } else {        // something else ... not being classified (special app?)
             preamble = p
         }
     }
 
    
-    return { preamble, defs, acts, goals }
+    return { preamble, defs, acts, goals, rules }
 }
 
 
@@ -975,8 +1199,8 @@ function depth_line_classifier(output,addr,sect_name) {
                     add_to.line += " | " + line.trim()
                 }    
             } else {
-                let sub_name = popout(line,'>')
-                let rest = popafter(line,'>').trim()
+                let sub_name = popout(line,EOF_KEY)
+                let rest = popafter(line,EOF_KEY).trim()
                 let typer = rest.substring(0,2)
                 let ltype = 'sect'
                 switch ( typer[0] ) {
@@ -984,7 +1208,7 @@ function depth_line_classifier(output,addr,sect_name) {
                     case '|' : { 
                         ltype = 'param'; 
                         switch ( typer[1] ) {
-                            case '>' : { ltype = 'sender'; break; }
+                            case EOF_KEY : { ltype = 'sender'; break; }
                             case '<' : { ltype = 'exec'; break; }
                         }
                         break; 
@@ -1006,7 +1230,7 @@ function depth_line_classifier(output,addr,sect_name) {
                 depth = j
             }
 
-            line = line.substring(depth+2).trim()  // should be a '>' after --
+            line = line.substring(depth+2).trim()  // should be a EOF_KEY after --
             let ltype = popout(line,'(')
             let sub_name = ""
             let rest = ""
@@ -1534,7 +1758,7 @@ function compile_exec(exec_line) {
             }
         }
         //
-    } else if ( exec_line[0] === '>' ) {  // sender
+    } else if ( exec_line[0] === EOF_KEY ) {  // sender
         //
         exec_line = exec_line.substring(1).trim()
         let expath = exec_line.split('->')
@@ -1543,7 +1767,7 @@ function compile_exec(exec_line) {
         exln_descr.goal = 'sender'        // also a match type
         exln_descr.path = expath        // should translate keywords, etc.
         //
-        if ( expath[1][0] === '>' ) {
+        if ( expath[1][0] === EOF_KEY ) {
             expath[1] = expath[1].substring(1).trim()
             exln_descr.augment = 'insert-master'
         }
@@ -1590,7 +1814,7 @@ function is_goal_type(sp) {
 
 function compile_mover_source(src_str) {
     //
-    let src_parts = src_str.split('>')
+    let src_parts = src_str.split(EOF_KEY)
     src_parts = trimmer(src_parts)
     let mover_descr = {}
     mover_descr.path = src_parts
@@ -2545,7 +2769,7 @@ async function traverse_graph(graph) {
     while ( depth <= max_depth ) {
         await r_traverse_graph(base_graph,depth,max_depth,node_operations)
         depth++
-        console.log("GARPH")
+        console.log("GRAPH")
         console.dir(base_graph,{ "depth" : null })
     }
     //
@@ -2654,11 +2878,11 @@ async function start_arc_traveler(node,graph) {   // assume that scripts to resi
         //  make an ops array string and encode it 
         let pos_ops = node.required_on_node_post_operations
         pos_ops = JSON.stringify(ops)
-        let ops_ops64 = Buffer.from(ops).toString('base64')
+        let post_ops64 = Buffer.from(ops).toString('base64')
         //
         // here->home  (hence home.pass, home.user, home.abbd) which is node.user, etc.
         //
-        await xops.perform_expect_op(pass, user, addr, propagate_op, [`${abbr} ${preamble_obj.scope.master_exec_loc} ${g_hat_str64} ${ops64} ${ops_ops64}`])           
+        await xops.perform_expect_op(pass, user, addr, propagate_op, [`${abbr} ${preamble_obj.scope.master_exec_loc} ${g_hat_str64} ${ops64} ${post_ops64}`])           
     }
     //
 }
@@ -2678,6 +2902,9 @@ let top_level = top_level_sections(confstr)
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let goals_obj = process_goals(top_level.goals)
+let rules_obj = process_rules(top_level.rules)
+
+console.dir(rules_obj,{ depth: null })
 
 associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
 

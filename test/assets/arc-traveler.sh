@@ -60,7 +60,10 @@ while IFS=$"\n" read -r c; do
     OPS=$(echo "$c" | jq -r '.required_on_node_operations')
     OPS_STR=$(base64 $OPS)   # operation list ENCODED
     #
-    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR' &
+    R_POST_OPS=$(echo "$c" | jq -r '.required_on_node_post_operations')
+    POST_OPS_STR=$(base64 $R_POST_OPS)   # operation list ENCODED
+    #
+    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR $POST_OPS_STR' &
     echo $host
 done
 
