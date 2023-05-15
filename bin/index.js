@@ -751,7 +751,7 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                     let output_map = {}
                     let sshvals = defs_obj.ssh
                     let hosts = defs_obj.host.by_key.addr
-                    let master = defs_obj.host.master
+                    let master = Object.assign({},defs_obj.host.master)
                     master = Object.assign(master,sshvals[master.addr])
                     master[master.addr] = master        /// cicrular but, the indexer uses it
                     let access = {
@@ -1145,9 +1145,10 @@ function top_level_sections(file_str) {
 
 
 
-
-
-
+//--  associate_final_state_goal_with_machines
+// attach the goals for a host onto the host object to access it from there.
+// after this, the goal map will not be required except as a shortcut to attach rules and build petri type graphs or retes
+//
 function associate_final_state_goal_with_machines(running,graph) {
     //
     for ( let [ky,g] of Object.entries(running) ) {
@@ -1159,6 +1160,23 @@ function associate_final_state_goal_with_machines(running,graph) {
     //
 }
 
+
+//--  associate_rules_with_state_goal
+// As part of builing the causality network, setup the tree of goals needed to get a particular app 
+// running on a particular machines
+function associate_rules_with_state_goal(goals,rules) {
+    //
+    for ( let [ky,g] of Object.entries(goals) ) {
+        g.subgoals = {}
+        for ( let gf of g.goal_facts ) {
+            let rnet = rules[gf]
+            if ( rnet ) {
+                g.subgoals[gf] = rnet
+            }
+        }
+    }
+    //
+}
 
 
 
@@ -2748,7 +2766,7 @@ async function r_traverse_graph(graph,depth,max_depth,node_op) {
         let nname = node_ky.split('@')[0]
         let node = graph.g[nname]
         //
-        console.log("deleting",nname,nky)
+        //console.log("deleting",nname,nky)
         delete graph.g[nname]
         delete graph.paths[nky]
         //
@@ -2769,11 +2787,11 @@ async function traverse_graph(graph) {
     while ( depth <= max_depth ) {
         await r_traverse_graph(base_graph,depth,max_depth,node_operations)
         depth++
-        console.log("GRAPH")
-        console.dir(base_graph,{ "depth" : null })
+        //console.log("GRAPH")
+        //console.dir(base_graph,{ "depth" : null })
     }
     //
-    //    console.dir(graph,{ "depth" : null })
+    console.dir(graph,{ "depth" : null })
     //
 }
 
@@ -2904,9 +2922,21 @@ let defs_obj = process_defs(top_level.defs)
 let goals_obj = process_goals(top_level.goals)
 let rules_obj = process_rules(top_level.rules)
 
-console.dir(rules_obj,{ depth: null })
+for ( let [ky,rules] of Object.entries(rules_obj) ) {
+    console.log(ky)
+    console.dir(rules.goal_map,{ depth: null })
+}
 
+// These are the goals object entries for "running" as opposed to the rules_obj entrie
+//
+//console.dir(goals_obj,{ depth: null })
+//
 associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
+for ( let [ky,rules] of Object.entries(rules_obj) ) {
+    console.log(ky)
+    associate_rules_with_state_goal(goals_obj[ky],rules.goal_map)
+}
+
 
 
 //
@@ -3008,6 +3038,7 @@ for ( let ky of preamble_obj.prog.acts ) {
     // await output_actionable_tree(actionable_tree)
     //
     // console.dir(actionable_tree,{ depth: null })
+    // console.dir(defs_obj,{ depth: null })
     //
     console.log("----------------------------------")
     await traverse_graph(preamble_obj.graph)
