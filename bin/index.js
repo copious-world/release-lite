@@ -945,6 +945,33 @@ function is_binder(code) {
     return ( /^-\>[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+$/.test(code) ) 
 }
 
+function parameter_is_binder(factoid) {
+    let chktxt = popout(popafter(factoid,'('),')')
+    if ( chktxt.indexOf('->') > 0 ) return true
+    return false
+}
+
+function parameter_to_binder(factoid) {
+    let binder = {}
+    let partxt = popout(popafter(factoid,'('),')')
+    let par_list = toplevel_split(partxt,',')
+    for ( let param of par_list ) {
+        if ( param.indexOf('->') > 0 ) {
+            let parts = param.split('->')
+            parts = trimmer(parts)
+            let vr = parts[1]
+            let vals = parts[0]
+            vals = vals.split('|')
+            vals = trimmer(vals)
+            if ( vals[0].indexOf(':') > 0 ) {           // for type specifier
+                vals[0] = (vals[0].split(':'))[1].trim()
+            }
+
+            binder[vr] = vals
+        }
+    }
+    return binder
+}
 
 function bind_goal_param(code,val_src) {
     code = code.replace('->','')
@@ -955,9 +982,30 @@ function bind_goal_param(code,val_src) {
 }
 
 
+//  match_to_subgoals
+// ---- ---- ---- ---- ---- ---- ----
+// entry_subgoals -- these are all possible subgoals for each subg being passed (only some might match)
+// p_binder
+//
+function match_to_subgoals(subg,entry_subgoals,p_binder) {
+    //
+    subg = subg.trim()
+    let subg_searcher = popout(subg,'(').trim()
+    let subgoals = []
+    for ( let e_subg of entry_subgoals ) {
+        let sg = Object.keys(e_subg)[0]
+        if ( sg.indexOf(subg_searcher) === 0 ) {
+            subgoals.push(e_subg)
+        }
+    }
+    return subgoals
+}
+
+
 function subgoal_list_to_map(subgoal_list,p_binder) {
     let gmap = {}
     for ( let entry of subgoal_list ) {
+        //
         //
         let ky = Object.keys(entry)[0]
         let popky = popout(ky,EOF_KEY)
@@ -966,7 +1014,9 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
             popky = toplevel_split(popky,',')
         } else popky = [popky]
         //
-        let subgoal_txt = entry[ky]
+        let entry_subgoals = entry[ky]
+
+console.log("entry_subgoals", entry_subgoals)
 
         for ( let gky of popky ) {
 
@@ -974,28 +1024,69 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
             if ( /^.*\:[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+\=.*/.test(gky) ) {
                 let check_val = popafter(gky,'=')
                 let binder_ky = gky.substring(gky.indexOf(':')+1,gky.indexOf('='))
-                if ( check_val !== p_binder[binder_ky] ) continue
+
+
+if ( gky.indexOf('uploaded') === 0 ) {
+    console.log("UPLOADed" )
+    console.log(check_val,p_binder[binder_ky])
+}
+
+                if ( !(Array.isArray(p_binder[binder_ky])) && (check_val !== p_binder[binder_ky]) ) continue
             }
 
             let after_piece = popafter(ky,EOF_KEY)
             after_piece = after_piece.trim()
-            let binder = ""
+            //
+
+
+            let binder = {}
             let subgoals = ""
             if ( is_binder(after_piece) ) {
                 binder = bind_goal_param(after_piece,gky)
-            } else if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
+            } else if ( (after_piece.length > 0)  && (entry_subgoals === 'one-line') ) {
                 if ( after_piece.indexOf(',') > 0 ) {
                     subgoals = toplevel_split(after_piece,',')
                 } else {
                     subgoals = [after_piece]
                 }
-            }
-            if ( typeof subgoals === 'string' ) {
-                if ( Array.isArray(subgoal_txt) ) {
-                    binder = Object.assign(p_binder,binder)
-                    subgoals = subgoal_list_to_map(subgoal_txt,binder)
+            } else if ( (after_piece.length > 0) && Array.isArray(entry_subgoals) ) {
+                // special case
+                if ( after_piece.indexOf(',') > 0 ) {
+                    subgoals = toplevel_split(after_piece,',')
                 } else {
-                    subgoals = subgoal_txt
+                    subgoals = [after_piece]
+                }
+                // after_piece is goal material before any depth increasing lines ... 
+                // subgoals should be a map from these and anything in the subgoal that matches per atom
+                let subgoal_map = {}
+                for ( let subg of subgoals ) {
+
+                    if ( parameter_is_binder(subg) ) {
+                        binder = parameter_to_binder(subg)
+                    } else {
+                        binder = {}
+                    }
+                    
+                    let list_of_subgs = match_to_subgoals(subg,entry_subgoals,p_binder)
+                    //
+                    binder = Object.assign(p_binder,binder)
+                    subgoal_map[subg] = {
+                        binder,
+                        subgoals : subgoal_list_to_map(list_of_subgs,binder)
+                    }
+                    //
+                }
+                subgoals = subgoal_map
+            }
+
+            // this is not being called ... should it be?
+            if ( typeof subgoals === 'string' ) {
+console.log("subgoals is a string",subgoals)
+                if ( Array.isArray(entry_subgoals) ) {
+                    binder = Object.assign(p_binder,binder)
+                    subgoals = subgoal_list_to_map(entry_subgoals,binder)
+                } else {
+                    subgoals = entry_subgoals
                 }
             }
             
@@ -1043,7 +1134,7 @@ function process_rules(rules) {
             for ( let gky of popky ) {
                 let after_piece = popafter(ky,EOF_KEY)
                 after_piece = remove_spaces(after_piece)
-                let binder = ""
+                let binder = {}
                 let subgoals = ""
                 if ( is_binder(after_piece) ) {
                     binder = bind_goal_param(after_piece,gky)
