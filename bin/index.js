@@ -1016,21 +1016,12 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
         //
         let entry_subgoals = entry[ky]
 
-console.log("entry_subgoals", entry_subgoals)
-
         for ( let gky of popky ) {
 
             // choose the path belonging to the branch being evaluated
             if ( /^.*\:[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+\=.*/.test(gky) ) {
                 let check_val = popafter(gky,'=')
                 let binder_ky = gky.substring(gky.indexOf(':')+1,gky.indexOf('='))
-
-
-if ( gky.indexOf('uploaded') === 0 ) {
-    console.log("UPLOADed" )
-    console.log(check_val,p_binder[binder_ky])
-}
-
                 if ( !(Array.isArray(p_binder[binder_ky])) && (check_val !== p_binder[binder_ky]) ) continue
             }
 
@@ -1045,7 +1036,13 @@ if ( gky.indexOf('uploaded') === 0 ) {
                 binder = bind_goal_param(after_piece,gky)
             } else if ( (after_piece.length > 0)  && (entry_subgoals === 'one-line') ) {
                 if ( after_piece.indexOf(',') > 0 ) {
+                    if ( after_piece[0] === '[' ) {
+                        after_piece = after_piece.substring(1)
+                        after_piece = after_piece.substring(0,after_piece.lastIndexOf(']'))
+                        after_piece = after_piece.trim()
+                    }
                     subgoals = toplevel_split(after_piece,',')
+
                 } else {
                     subgoals = [after_piece]
                 }
@@ -1252,6 +1249,25 @@ function associate_final_state_goal_with_machines(running,graph) {
 }
 
 
+
+
+
+
+
+function count_entries(plist) {
+    let n = plist.length
+    if ( n === 0 ) return 0
+    if ( (n === 1) && (plist[0] == ')') ) return 0
+    //
+    let p_count = 0
+    for ( let i = 0; i < n; i++ ) {
+        let c = plist[i]
+        if ( c === ',' ) p_count++
+    }
+    return p_count+1
+}
+
+
 //--  associate_rules_with_state_goal
 // As part of builing the causality network, setup the tree of goals needed to get a particular app 
 // running on a particular machines
@@ -1263,12 +1279,89 @@ function associate_rules_with_state_goal(goals,rules) {
             let rnet = rules[gf]
             if ( rnet ) {
                 g.subgoals[gf] = rnet
+            } else {
+                g.subgoals[gf] = "TBD"   // only building a subgoal tree for entries that have rules that allow a tree to be made.
             }
         }
     }
     //
+    let u_rules = {}
+    let q_rules = Object.keys(rules).filter( rkey => (rkey[0] === '?') )
+    q_rules.forEach(qr => {
+        let ky = qr.substring(1)
+        ky = popout(ky,'(')
+        let params = popafter(qr,'(')
+        params = params.substring(0,params.lastIndexOf(')'))
+        ky += '-' + count_entries(params)
+        let rewritten = Object.assign({},rules[qr])
+        rewritten.params = params
+        u_rules[ky] = rewritten
+        return ky
+     })
+
+    // isolated the rules that will be attached via a sort of unification process...
+    return (u_rules)
 }
 
+
+
+
+
+
+
+
+function abstract_subkey(sub_ky) {
+    let ky = popout(sub_ky,'(')
+    let params = popafter(sub_ky,'(')
+    params = params.substring(0,params.lastIndexOf(')'))
+    param = toplevel_split(params)
+    ky += '-' + param.length
+    return ky
+}
+
+
+function find_support_points(u_rules,goals) {
+    if ( goals === undefined )  return
+    for ( let g in goals ) {
+        let machine_goals = goals[g]
+        let expandable = false
+        if ( Array.isArray(machine_goals.subgoals) ) {
+            // leave the array alone unless it can be subgoaled.
+            for ( let sub_ky of machine_goals.subgoals ) {
+                let abstracted_sbky = abstract_subkey(sub_ky)
+                if ( abstracted_sbky in u_rules ) {
+                    expandable = true
+                    break
+                }
+            }
+            //
+            if ( expandable ) {
+    console.log("find_support_points - expandable ", )
+                let ky_array = machine_goals.subgoals
+                machine_goals.subgoals = {}
+                for ( let sub_ky of ky_array ) {
+                    if ( sub_ky in u_rules ) {
+                        let abstracted_sbky = abstract_subkey(sub_ky)
+                        machine_goals.subgoals[sub_ky] = u_rules[abstracted_sbky]
+                    } else {
+                        machine_goals.subgoals[sub_ky] = 'TBD'
+                    }
+                }
+            }
+        } else {
+            for ( let [sub_ky,goal] of Object.entries(machine_goals.subgoals) ) {
+                if ( goal === "TBD" ) {
+                    if ( sub_ky in u_rules ) {
+                        let abstracted_sbky = abstract_subkey(sub_ky)
+                        machine_goals.subgoals[sub_ky] = u_rules[abstracted_sbky]
+                    }
+                } else {
+                    find_support_points(u_rules,goal.subgoals)
+                }
+            }
+        }
+    }
+}
 
 
 
@@ -3025,7 +3118,10 @@ for ( let [ky,rules] of Object.entries(rules_obj) ) {
 associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
 for ( let [ky,rules] of Object.entries(rules_obj) ) {
     console.log(ky)
-    associate_rules_with_state_goal(goals_obj[ky],rules.goal_map)
+    let u_rules = associate_rules_with_state_goal(goals_obj[ky],rules.goal_map)
+    //
+    find_support_points(u_rules,goals_obj[ky])
+    //
 }
 
 
