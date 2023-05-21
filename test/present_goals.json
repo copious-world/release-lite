@@ -1,0 +1,351 @@
+[
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "otw",
+      "running(nginx)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,default)": [
+      "running",
+      "otw",
+      "running(nginx)",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )",
+      "uploaded:Z=default",
+      "compositing(default)",
+      "roller(~/Documents/GitHub/configs/nginx,default)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,of-this.world.conf)": [
+      "running",
+      "otw",
+      "running(nginx)",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )",
+      "uploaded:Z=of-this.world.conf",
+      "compositing(of-this.world.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,of-this.world.conf)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "~/deposit": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post(X:.conf)",
+      "dirs(X)",
+      "dirs:X=human-page-queue",
+      "~/deposit"
+    ]
+  },
+  {
+    "~/media": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post(X:.conf)",
+      "dirs(X)",
+      "dirs:X=human-page-queue",
+      "~/media"
+    ]
+  },
+  {
+    "/var/www/html/people": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post(X:.conf)",
+      "dirs(X)",
+      "dirs:X=human-page-queue",
+      "/var/www/html/people"
+    ]
+  },
+  {
+    "on_reboot([nginx,human-page-queue])": [
+      "running",
+      "otw",
+      "on_reboot([nginx,human-page-queue])"
+    ]
+  },
+  {
+    "schedule(certbot,60000)": [
+      "running",
+      "otw",
+      "schedule(certbot,60000)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,default)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )",
+      "uploaded:Z=default",
+      "compositing(default)",
+      "roller(~/Documents/GitHub/configs/nginx,default)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,copious.world.conf)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )",
+      "uploaded:Z=copious.world.conf",
+      "compositing(copious.world.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,copious.world.conf)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "popsong",
+      "running(nginx,config(popsongnow.com))",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,default)": [
+      "running",
+      "popsong",
+      "running(nginx,config(popsongnow.com))",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )",
+      "uploaded:Z=default",
+      "compositing(default)",
+      "roller(~/Documents/GitHub/configs/nginx,default)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,popsongnow.com.conf)": [
+      "running",
+      "popsong",
+      "running(nginx,config(popsongnow.com))",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )",
+      "uploaded:Z=popsongnow.com.conf",
+      "compositing(popsongnow.com.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,popsongnow.com.conf)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "home",
+      "running(nginx)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,default)": [
+      "running",
+      "home",
+      "running(nginx)",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? default.conf | default -> Z )",
+      "uploaded:Z=default",
+      "compositing(default)",
+      "roller(~/Documents/GitHub/configs/nginx,default)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,default.conf)": [
+      "running",
+      "home",
+      "running(nginx)",
+      "post(Y:.conf)",
+      "uploaded(/etc/nginx/sites-enabled, /Y/? default.conf | default -> Z )",
+      "uploaded:Z=default.conf",
+      "compositing(default.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,default.conf)"
+    ]
+  },
+  {
+    "running(transition:song_catcher)": [
+      "running",
+      "home",
+      "running(transition:song_catcher)"
+    ]
+  },
+  {
+    "running(enpoint:global_sessions)": [
+      "running",
+      "g_sessions",
+      "running(enpoint:global_sessions)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "contacts",
+      "running(enpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "contacts",
+      "running(enpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "contacts",
+      "running(enpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "contacts",
+      "running(enpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "contacts",
+      "running(enpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "endpoint-users",
+      "running(enpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "endpoint-users",
+      "running(enpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "endpoint-users",
+      "running(enpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "endpoint-users",
+      "running(enpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "endpoint-users",
+      "running(enpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "/media/ELEMENTS/prj_assets/humans": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "post(X:.conf)",
+      "dirs(X)",
+      "dirs:X=of-this-world",
+      "/media/ELEMENTS/prj_assets/humans"
+    ]
+  },
+  {
+    "~/otw/templates/humans": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "post(X:.conf)",
+      "dirs(X)",
+      "dirs:X=of-this-world",
+      "~/otw/templates/humans"
+    ]
+  }
+]

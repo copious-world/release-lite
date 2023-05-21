@@ -12,6 +12,7 @@ const {
     extract_popout,
     replace_eol,
     has_symbol,
+    next_var_form,
     all_var_forms,
     trimmer,
     after_first_line,
@@ -58,6 +59,17 @@ const EOF_KEY = '>'
 
 /// sections are of these types: act, def, goals
 
+
+
+function clonify(obj) {
+    return JSON.parse(JSON.stringify(obj))
+}
+
+
+// toplevel_split
+//
+//  requires that the top level parathentical symbols be removed from a string, e.g. "(a,b(c,d),e)" 
+//  should be passed as "a,b(c,d),e"
 
 let starters = "([{"
 let enders = "}])"
@@ -112,6 +124,7 @@ try {
 
 /// the file is not JSON parseable
 /// special format
+
 
 
 function casual_array_to_array(o_vals) {
@@ -881,6 +894,40 @@ function process_defs(def_list) {
 // -------------------------------------
 // -------------------------------------
 
+function subst_defs_in_scope_vars(preamble_obj,defs_obj) {
+    //
+    let scope_vars = preamble_obj.scope
+    let h_abbr = defs_obj.host.by_key.abbr
+    let ssh = defs_obj.ssh
+    let master = defs_obj.host.master
+    //
+    for ( let [vname,vdef]  of Object.entries(scope_vars) ) {
+        let vfrms = all_var_forms(vdef)
+        for ( let v in vfrms ) {
+            let path = v.substring(2,v.lastIndexOf('}')).trim()
+            path = path.split('.')
+            if ( path[0] === 'master' ) {
+                let value = master[path[1]]
+                if ( value === undefined ) {
+                    value = ssh[master.addr][path[1]]
+                }
+                vdef = subst_all(vdef,v,value)
+                scope_vars[vname] = vdef
+            } else {
+                let value = h_abbr[path[0]][path[1]]
+                vdef = subst_all(vdef,v,value)
+                scope_vars[vname] = vdef
+            }
+        }
+    }
+    //
+}
+
+
+
+
+
+
 
 
 
@@ -945,6 +992,13 @@ function is_binder(code) {
     return ( /^-\>[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+$/.test(code) ) 
 }
 
+function is_super_binder(code) {
+    if ( (code.indexOf('->') === 0) && ( code.substring(2).trim().length > 0 ) ) return true
+    return false
+}
+
+
+
 function parameter_is_binder(factoid) {
     let chktxt = popout(popafter(factoid,'('),')')
     if ( chktxt.indexOf('->') > 0 ) return true
@@ -982,6 +1036,16 @@ function bind_goal_param(code,val_src) {
 }
 
 
+function super_bind_goal_param(code,val_src) {
+    let vtable = {}
+    code = code.replace('->','')
+    let popped = gulp_section(val_src,'(',')')
+    vtable[code] = popped[0]
+    return vtable
+}
+
+
+
 //  match_to_subgoals
 // ---- ---- ---- ---- ---- ---- ----
 // entry_subgoals -- these are all possible subgoals for each subg being passed (only some might match)
@@ -1006,7 +1070,6 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
     let gmap = {}
     for ( let entry of subgoal_list ) {
         //
-        //
         let ky = Object.keys(entry)[0]
         let popky = popout(ky,EOF_KEY)
         popky = remove_spaces(popky)
@@ -1029,11 +1092,13 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
             after_piece = after_piece.trim()
             //
 
-
             let binder = {}
+            let super_binder = {}
             let subgoals = ""
             if ( is_binder(after_piece) ) {
                 binder = bind_goal_param(after_piece,gky)
+            } else if ( is_super_binder(after_piece) ) {
+                super_binder = super_bind_goal_param(after_piece,gky)
             } else if ( (after_piece.length > 0)  && (entry_subgoals === 'one-line') ) {
                 if ( after_piece.indexOf(',') > 0 ) {
                     if ( after_piece[0] === '[' ) {
@@ -1057,13 +1122,13 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
                 // subgoals should be a map from these and anything in the subgoal that matches per atom
                 let subgoal_map = {}
                 for ( let subg of subgoals ) {
-
+                    //
                     if ( parameter_is_binder(subg) ) {
                         binder = parameter_to_binder(subg)
                     } else {
                         binder = {}
                     }
-                    
+                    //
                     let list_of_subgs = match_to_subgoals(subg,entry_subgoals,p_binder)
                     //
                     binder = Object.assign(p_binder,binder)
@@ -1089,6 +1154,7 @@ console.log("subgoals is a string",subgoals)
             
             gmap[gky] = {
                 binder,
+                super_binder,
                 subgoals
             }
         }
@@ -1098,15 +1164,38 @@ console.log("subgoals is a string",subgoals)
 }
 
 
+// process rules
+//  convert the text representation of the rule definitions to rule objects
+//  keep the hierarchy of the rules in place.
+//  Handle odd rules. 
+
+
+function has_optional_parameter_structure(rhead) {
+    return /.*,\s*\*.*/.test(rhead)
+}
+
+function form_without_options(rhead) {
+    let goal_name = popout(rhead,'(')
+    let pars = popafter(rhead,'(')
+    pars = pars.substring(0,pars.lastIndexOf(')'))
+    pars = toplevel_split(pars,',')
+    pars = pars.filter( el => (el !== '*') )
+    pars = pars.join(',')
+    return `${goal_name}(${pars})`
+}
+
+
+
 
 function process_rules(rules) {
     //
     let rule_base = {}
+    let optional_parameter_rules = {}
     rule_base.running = local_text_substitutions_and_var_table(rules.running)
-    
-
+    //
+    //
     for ( let [ky,sect] of Object.entries(rule_base) ) {
-        let src_txt = sect.converted
+        let src_txt = sect.converted                // text representation of the rule definitions
         let rules_of_depth = get_rules_of_depths(src_txt,1)
         sect.depth_table = rules_of_depth
         //
@@ -1125,16 +1214,21 @@ function process_rules(rules) {
             if ( popky.indexOf('),') > 0 ) {
                 popky = toplevel_split(popky,',')
             } else popky = [popky]
+            //
 
             let subgoal_txt = entry[ky]
 
             for ( let gky of popky ) {
                 let after_piece = popafter(ky,EOF_KEY)
                 after_piece = remove_spaces(after_piece)
+                //
                 let binder = {}
+                let super_binder = {}
                 let subgoals = ""
                 if ( is_binder(after_piece) ) {
                     binder = bind_goal_param(after_piece,gky)
+                } else if ( is_super_binder(after_piece) ) {
+                    super_binder = super_bind_goal_param(after_piece,gky)
                 } else if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
                     if ( after_piece.indexOf(',') > 0 ) {
                         subgoals = toplevel_split(after_piece,',')
@@ -1150,17 +1244,34 @@ function process_rules(rules) {
                         subgoals = subgoal_txt
                     }
                 }
-                
-                gmap[gky] = {
-                    binder,
-                    subgoals
+
+                //
+                if ( has_optional_parameter_structure(gky) ) {
+                    optional_parameter_rules[gky] = {
+                        binder,
+                        super_binder,
+                        subgoals
+                    }
+                    let deoptionalized = form_without_options(gky)
+                    gmap[deoptionalized] = {
+                        binder,
+                        super_binder,
+                        subgoals
+                    }
+                } else {
+                    gmap[gky] = {
+                        binder,
+                        super_binder,
+                        subgoals
+                    }    
                 }
+
             }
         }
 
     }
 
-    return rule_base
+    return [rule_base,optional_parameter_rules]
 }
 
 
@@ -1251,6 +1362,16 @@ function associate_final_state_goal_with_machines(running,graph) {
 
 
 
+function form_with_options(rhead) {
+    let goal_name = popout(rhead,'(')
+    let pars = popafter(rhead,'(')
+    pars = pars.substring(0,pars.lastIndexOf(')'))
+    pars = toplevel_split(pars,',')
+    let first_par = pars.shift()
+    pars = pars.map(par => '*')
+    pars = pars.join(',')
+    return `${goal_name}(${first_par},${pars})`
+}
 
 
 
@@ -1271,16 +1392,25 @@ function count_entries(plist) {
 //--  associate_rules_with_state_goal
 // As part of builing the causality network, setup the tree of goals needed to get a particular app 
 // running on a particular machines
-function associate_rules_with_state_goal(goals,rules) {
+function associate_rules_with_state_goal(goals,rules,rules_optional) {
     //
     for ( let [ky,g] of Object.entries(goals) ) {
         g.subgoals = {}
         for ( let gf of g.goal_facts ) {
+            //
             let rnet = rules[gf]
+            //
             if ( rnet ) {
                 g.subgoals[gf] = rnet
             } else {
-                g.subgoals[gf] = "TBD"   // only building a subgoal tree for entries that have rules that allow a tree to be made.
+                let optionalized = form_with_options(gf)
+//console.log(optionalized,Object.keys(rules_optional))
+                rnet = rules_optional[optionalized]
+                if ( rnet ) {
+                    g.subgoals[gf] = rnet
+                } else {
+                    g.subgoals[gf] = "TBD"   // only building a subgoal tree for entries that have rules that allow a tree to be made.
+                }
             }
         }
     }
@@ -1322,6 +1452,8 @@ function abstract_subkey(sub_ky) {
 
 function find_support_points(u_rules,goals) {
     if ( goals === undefined )  return
+    if ( typeof goals === 'string' ) return
+    //
     for ( let g in goals ) {
         let machine_goals = goals[g]
         let expandable = false
@@ -1336,24 +1468,24 @@ function find_support_points(u_rules,goals) {
             }
             //
             if ( expandable ) {
-    console.log("find_support_points - expandable ", )
                 let ky_array = machine_goals.subgoals
                 machine_goals.subgoals = {}
                 for ( let sub_ky of ky_array ) {
-                    if ( sub_ky in u_rules ) {
-                        let abstracted_sbky = abstract_subkey(sub_ky)
-                        machine_goals.subgoals[sub_ky] = u_rules[abstracted_sbky]
+                    let abstracted_sbky = abstract_subkey(sub_ky)
+                    if ( abstracted_sbky in u_rules ) {
+                        machine_goals.subgoals[sub_ky] = clonify(u_rules[abstracted_sbky])
                     } else {
                         machine_goals.subgoals[sub_ky] = 'TBD'
                     }
                 }
             }
         } else {
+            if ( typeof machine_goals === "string" ) continue
             for ( let [sub_ky,goal] of Object.entries(machine_goals.subgoals) ) {
                 if ( goal === "TBD" ) {
                     if ( sub_ky in u_rules ) {
                         let abstracted_sbky = abstract_subkey(sub_ky)
-                        machine_goals.subgoals[sub_ky] = u_rules[abstracted_sbky]
+                        machine_goals.subgoals[sub_ky] = clonify(u_rules[abstracted_sbky])
                     }
                 } else {
                     find_support_points(u_rules,goal.subgoals)
@@ -2981,6 +3113,262 @@ async function traverse_graph(graph) {
 
 
 
+
+
+function r_initial_state_all_goals(goal) {
+    if ( goal ) {
+        goal.all_ready = false
+    } else return 
+    //
+    let subg = goal.subgoals
+    if ( Array.isArray(subg) ) {
+        let gs_map = {}
+        for ( let sg of subg ) {
+            gs_map[sg] = { "all_ready" : false }
+        }
+        goal.subgoals = gs_map
+    } else if ( subg ) {
+        for ( let [ky,sgoal] of Object.entries(subg) ) {
+            if ( sgoal === "TBD" ) {
+                subg[ky] = { "all_ready" : false }
+            } else {
+                sgoal.all_ready = false
+                r_initial_state_all_goals(sgoal)    
+            }
+        }
+    }
+    //
+}
+
+
+function initial_state_all_goals(goals_obj)  {
+    for ( let [ky,all_node_goal] of Object.entries(goals_obj) ) {
+        for ( let [sky,sgoal] of Object.entries(all_node_goal) ) {
+            r_initial_state_all_goals(sgoal)
+        }
+    }
+}
+
+
+
+
+// ---- value propagation.
+//
+//
+
+function all_vars_from_host(sky) {
+    let top_vars = preamble_obj.scope
+    let directories = defs_obj.path_abbreviations
+
+    let host = defs_obj.host.by_key.abbr[sky]
+    let master_host = defs_obj.host.master
+    let ssh = defs_obj.ssh[host.addr]
+
+    let valid_url = (host.host[0] !== '@') ?  true : false
+    //
+
+    return {
+        top_vars,
+        host,
+        master_host,
+        ssh,
+        directories,
+        valid_url
+    }
+        
+}
+
+
+function value_transform(sky,binders) {
+    let map_values = binders.var_info
+    let var_starter = sky.indexOf('$')
+    while ( var_starter >= 0 ) {
+        let c = sky[var_starter+1]
+        if ( (c === '[') || (c === '{') ) {
+            switch ( c ) {
+                case '[' : {
+                    //
+                    let src = sky.substring(var_starter)
+                    let $var = next_var_form(src)
+                    let vky = $var.substring(1)
+                    //
+                    if ( vky in map_values.directories.local ) {
+                        let value = map_values.directories.local[vky]
+                        sky = subst_all(sky,$var,value)
+                    } else if ( vky in map_values.directories.remotes ) {
+                        let value = map_values.directories.remotes[vky]
+                        sky = subst_all(sky,$var,value)
+                    }
+                    break;
+                }
+                case '{' : {
+                    let src = sky.substring(var_starter)
+                    let $var = next_var_form(src)
+                    let vky = $var.substring(2)
+                    vky = vky.substring(0,vky.lastIndexOf('}'))
+                    //
+                    if ( vky && (vky.indexOf('.') > 0) ) {
+                        let opath = vky.split('.')
+                        opath = trimmer(opath)
+                        let value = map_values
+                        while ( opath.length ) {
+                            value = value[opath.pop()]
+                        }
+                        if ( value[0] === '@' ) value = "default"  // @ tells us not to evaluate
+                        sky = subst_all(sky,$var,value)
+                    } else {
+                        if ( vky in map_values.top_vars ) {
+                            // vky
+                            let value = map_values.top_vars[vky]
+                            sky = subst_all(sky,$var,value)
+                        } else {
+console.log(sky,  `@binder=${vky}` )
+console.dir(binders,{ depth: null })
+                            let value = `@binder=${vky}`
+                            if ( binders.params ) {
+                                let v = binders.params[vky]
+                                if ( v !== undefined ) {
+                                    value = v
+                                }
+                            }
+                            sky = subst_all(sky,$var,value)
+                        }
+                    }
+                    //
+                    break;
+                }
+            }
+        }
+        var_starter = sky.indexOf('$')
+    }
+    return sky
+}
+
+
+
+function parameter_pop(parent_ky) {
+    console.log(parent_ky)
+    let par_list = parent_ky.substring(parent_ky.indexOf('(') + 1)
+    par_list = par_list.substring(0,par_list.lastIndexOf(')'))
+    par_list = par_list.trim()
+    return par_list
+}
+
+function extract_to_binder(params,parent_ky) {
+    let binder = {}
+    if ( params.indexOf(',') > 0 ) {
+
+    } else {
+        
+        binder[params] = parameter_pop(parent_ky)
+    }
+    return binder
+}
+
+
+
+function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
+    //
+    //
+    if ( goal ) {
+        if (  goal.binders === undefined ) {
+            goal.binder = {}
+        }
+        goal.binder.var_info  = map_values
+    } else return 
+    //
+    goal.binder.path = sky
+    //
+    if ( goal.params ) {
+        console.log(depth, "PARAMS ...", goal.params, parent_ky)
+        goal.binder.params = extract_to_binder(goal.params,parent_ky)
+    }
+    //
+    let subg = goal.subgoals
+    if ( subg ) {
+        for ( let [ky,sgoal] of Object.entries(subg) ) {
+console.log("----",ky)
+                    let vky = value_transform(ky, goal.binder)
+console.log("----",vky)
+console.log("-------------")
+                    sgoal.key_eval = vky
+                    r_value_propogation_all_goals(`${sky}.${ky}`,ky,sgoal,map_values,(depth + 1))
+        }
+    }
+    //
+}
+
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+
+
+function value_propogation_all_goals(goals_obj) {
+    for ( let [ky,all_node_goal] of Object.entries(goals_obj) ) {
+        goals_obj[ky] = clonify(all_node_goal)
+        all_node_goal = goals_obj[ky]
+        for ( let [sky,sgoal] of Object.entries(all_node_goal) ) {
+            let map_values = all_vars_from_host(sky)
+            r_value_propogation_all_goals(sky,sky,sgoal,map_values,1)
+        }
+    }
+}
+
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+
+
+
+function r_garner_requirements(gky_list,goal,fresh_goal_list) {
+    if ( !goal ) return 
+    //
+    if ( goal.all_ready === false ) {
+        let subg = goal.subgoals
+        if ( subg ) {
+            for ( let [ky,sgoal] of Object.entries(subg) ) {
+                if ( sgoal.all_ready === false ) {
+                    if ( typeof sgoal.key_eval  === 'string' ) {
+                        ky = sgoal.key_eval
+                    }    
+                    if ( !(sgoal.subgoals) ) {
+                        let gpath_info = {}
+                        gpath_info[ky] = [...gky_list,ky]
+                        fresh_goal_list.push( gpath_info )
+                    } else {
+                        r_garner_requirements([...gky_list,ky],sgoal,fresh_goal_list)
+                    }
+                }
+            }
+        } else {
+            fresh_goal_list.push(goal)
+        }
+    }
+    //
+}
+
+
+function garner_requirements(goals_obj) {
+    let fresh_goal_list = []
+    for ( let [ky,all_node_goal] of Object.entries(goals_obj) ) {  // all the different kinds of goals
+        for ( let [sky,sgoal] of Object.entries(all_node_goal) ) {
+            if ( !(sgoal.subgoals) ) {
+                let gpath_info = {}
+                if ( typeof sgoal.key_eval === 'string' ) {
+                    sky = sgoal.key_eval
+                }
+                gpath_info[sky] = [ky,sky]
+                fresh_goal_list.push( gpath_info )
+            } else {
+                if ( typeof sgoal.key_eval  === 'string' ) {
+                    sky = sgoal.key_eval
+                }
+                r_garner_requirements([ky,sky],sgoal,fresh_goal_list)
+            }
+        }                
+    }
+    return fresh_goal_list
+}
+
+
 /*
 'endpoint-users': {
     depth: 3,
@@ -3080,7 +3468,7 @@ async function start_arc_traveler(node,graph) {   // assume that scripts to resi
         //  make an ops array string and encode it 
         let pos_ops = node.required_on_node_post_operations
         pos_ops = JSON.stringify(ops)
-        let post_ops64 = Buffer.from(ops).toString('base64')
+        let post_ops64 = Buffer.from(pos_ops).toString('base64')
         //
         // here->home  (hence home.pass, home.user, home.abbd) which is node.user, etc.
         //
@@ -3104,12 +3492,17 @@ let top_level = top_level_sections(confstr)
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let goals_obj = process_goals(top_level.goals)
-let rules_obj = process_rules(top_level.rules)
+let [rules_obj,rules_with_options] = process_rules(top_level.rules)
+//
+//
+subst_defs_in_scope_vars(preamble_obj,defs_obj)
+
 
 for ( let [ky,rules] of Object.entries(rules_obj) ) {
-    console.log(ky)
-    console.dir(rules.goal_map,{ depth: null })
+    //console.log(ky)
+    //console.dir(rules.goal_map,{ depth: null })
 }
+
 
 // These are the goals object entries for "running" as opposed to the rules_obj entrie
 //
@@ -3117,13 +3510,25 @@ for ( let [ky,rules] of Object.entries(rules_obj) ) {
 //
 associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
 for ( let [ky,rules] of Object.entries(rules_obj) ) {
-    console.log(ky)
-    let u_rules = associate_rules_with_state_goal(goals_obj[ky],rules.goal_map)
+    //console.log(ky)
+    let u_rules = associate_rules_with_state_goal(goals_obj[ky],rules.goal_map,rules_with_options)
     //
     find_support_points(u_rules,goals_obj[ky])
-    //
 }
 
+
+
+initial_state_all_goals(goals_obj)
+value_propogation_all_goals(goals_obj)
+//
+let present_goals = garner_requirements(goals_obj)   // current list of things to do...
+
+//
+fos.output_string("./r_test_output.json",JSON.stringify(rules_obj,null,2))
+fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
+//
+fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
+//
 
 
 //
@@ -3164,7 +3569,7 @@ for ( let ky of exec_list ) {
 
 
 ///
-
+console.dir(defs_obj,{ depth: null })
 
 
 /*
@@ -3213,7 +3618,7 @@ for ( let ky of preamble_obj.prog.acts ) {
 */
 
 
-
+/*
 // ----
 (async () => {
 
@@ -3228,14 +3633,14 @@ for ( let ky of preamble_obj.prog.acts ) {
     // console.dir(defs_obj,{ depth: null })
     //
     console.log("----------------------------------")
-    await traverse_graph(preamble_obj.graph)
+    //await traverse_graph(preamble_obj.graph)
     console.log("----------------------------------")
     //
     // await finally_run()  // generate the final run script and submit it to our version of expect...
     //
 })()
 
-
+*/
 
 
 // mkdir -p foo/bar/zoo/andsoforth

@@ -1,0 +1,405 @@
+{
+  'running(nginx)': {
+    binder: { Y: [ 'default', '${host_url}.conf' ] },
+    subgoals: {
+      pre: { binder: {}, subgoals: [ 'apt_op(install nginx)' ] },
+      post: {
+        binder: { Y: [ 'default', '${host_url}.conf' ] },
+        subgoals: {
+          'uploaded(${nginx-e}, .conf: default | ${host_url}.conf -> Y )': {
+            binder: { Y: [ 'default', '${host_url}.conf' ] },
+            subgoals: {
+              'uploaded:Y=default': { binder: {}, subgoals: [ 'compositing(default)' ] },
+              'uploaded:Y=${host_url}.conf': {
+                binder: {},
+                subgoals: [ 'compositing(${host_url}.conf)' ]
+              }
+            }
+          },
+          'nginx_op(-s reload)': {
+            binder: { Y: [ 'default', '${host_url}.conf' ] },
+            subgoals: {}
+          }
+        }
+      }
+    }
+  },
+  'running(human-page-queue)': {
+    binder: { X: 'human-page-queue' },
+    subgoals: {
+      pre: { binder: {}, subgoals: [ 'npm_target(global:of-this-world)' ] },
+      post: {
+        binder: { X: 'human-page-queue' },
+        subgoals: {
+          'dirs(X)': {
+            binder: { X: 'human-page-queue' },
+            subgoals: {
+              'dirs:X=human-page-queue': {
+                binder: {},
+                subgoals: [ '~/deposit', '~/media', '/var/www/html/people' ]
+              }
+            }
+          },
+          'uploaded(~/, .conf: ${X}.conf )': { binder: { X: 'human-page-queue' }, subgoals: {} },
+          'bash_op(~/,${X})': { binder: { X: 'human-page-queue' }, subgoals: {} }
+        }
+      }
+    }
+  },
+  'running(of-this-world)': {
+    binder: { X: 'of-this-world' },
+    subgoals: {
+      pre: { binder: {}, subgoals: [ 'npm_target(global:of-this-world)' ] },
+      post: {
+        binder: { X: 'of-this-world' },
+        subgoals: {
+          'dirs(X)': {
+            binder: { X: 'of-this-world' },
+            subgoals: {
+              'dirs:X=of-this-world': {
+                binder: {},
+                subgoals: [ '${master_stager}/humans', '~/otw/templates/humans' ]
+              }
+            }
+          },
+          'uploaded(~/, .conf: ${X}.conf )': { binder: { X: 'of-this-world' }, subgoals: {} },
+          'bash_op(~/,${X})': { binder: { X: 'of-this-world' }, subgoals: {} }
+        }
+      }
+    }
+  },
+  'running(enpoint:contacts)': {
+    binder: {},
+    subgoals: {
+      pre: {
+        binder: {},
+        subgoals: [ 'npm_target(global:copious-endpoints)' ]
+      },
+      post: {
+        binder: {},
+        subgoals: [
+          'uploaded(~/contacts,contact-service.conf)',
+          'keys(contacts)',
+          'bash_op(~/contacts,copious-contacts)'
+        ]
+      }
+    }
+  },
+  '?npm_target(X)': { binder: {}, subgoals: [ 'installed(nodejs)', 'installed(npm)' ] },
+  '?compositing(Y)': { binder: {}, subgoals: [ 'roller($[configs]/nginx,${Y})' ] }
+}
+
+{
+  use: 'auth',
+  max_depth: 3,
+  g: {
+    here: {
+      depth: 1,
+      info: {},
+      sibs: [ 'home', 'otw', 'copious', 'popsong' ]
+    },
+    home: {
+      depth: 2,
+      backrefs: [ 'here' ],
+      sibs: [
+        'otw',
+        'copious',
+        'g_sessions',
+        'contacts',
+        'endpoint-users',
+        'otw-create'
+      ],
+      final_state: {
+        goal_facts: [ 'running(nginx)', 'running(transition:song_catcher)' ],
+        subgoals: {
+          'running(nginx)': {
+            binder: { Y: [ 'default', '${host_url}.conf' ] },
+            subgoals: {
+              pre: { binder: {}, subgoals: [ 'apt_op(install nginx)' ] },
+              post: {
+                binder: { Y: [ 'default', '${host_url}.conf' ] },
+                subgoals: {
+                  'uploaded(${nginx-e}, .conf: default | ${host_url}.conf -> Y )': {
+                    binder: { Y: [ 'default', '${host_url}.conf' ] },
+                    subgoals: {
+                      'uploaded:Y=default': {
+                        binder: {},
+                        subgoals: { 'compositing(default)': 'TBD' }
+                      },
+                      'uploaded:Y=${host_url}.conf': {
+                        binder: {},
+                        subgoals: { 'compositing(${host_url}.conf)': 'TBD' }
+                      }
+                    }
+                  },
+                  'nginx_op(-s reload)': {
+                    binder: { Y: [ 'default', '${host_url}.conf' ] },
+                    subgoals: {}
+                  }
+                }
+              }
+            }
+          },
+          'running(transition:song_catcher)': 'TBD'
+        }
+      },
+      host: {
+        addr: '76.229.181.242',
+        abbr: 'home',
+        host: '@MASTER -- Mint Linux'
+      },
+      auth: {
+        dns: '@home -- Mint Linux',
+        user: 'richard',
+        pass: 'test4test'
+      }
+    },
+    otw: {
+      depth: 2,
+      backrefs: [ 'here', 'home' ],
+      final_state: {
+        goal_facts: [
+          'running(nginx)',
+          'running(human-page-queue)',
+          'on_reboot([nginx,human-page-queue])',
+          'schedule(certbot,60000)'
+        ],
+        subgoals: {
+          'running(nginx)': {
+            binder: { Y: [ 'default', '${host_url}.conf' ] },
+            subgoals: {
+              pre: { binder: {}, subgoals: [ 'apt_op(install nginx)' ] },
+              post: {
+                binder: { Y: [ 'default', '${host_url}.conf' ] },
+                subgoals: {
+                  'uploaded(${nginx-e}, .conf: default | ${host_url}.conf -> Y )': {
+                    binder: { Y: [ 'default', '${host_url}.conf' ] },
+                    subgoals: {
+                      'uploaded:Y=default': {
+                        binder: {},
+                        subgoals: { 'compositing(default)': 'TBD' }
+                      },
+                      'uploaded:Y=${host_url}.conf': {
+                        binder: {},
+                        subgoals: { 'compositing(${host_url}.conf)': 'TBD' }
+                      }
+                    }
+                  },
+                  'nginx_op(-s reload)': {
+                    binder: { Y: [ 'default', '${host_url}.conf' ] },
+                    subgoals: {}
+                  }
+                }
+              }
+            }
+          },
+          'running(human-page-queue)': {
+            binder: { X: 'human-page-queue' },
+            subgoals: {
+              pre: {
+                binder: {},
+                subgoals: { 'npm_target(global:of-this-world)': 'TBD' }
+              },
+              post: {
+                binder: { X: 'human-page-queue' },
+                subgoals: {
+                  'dirs(X)': {
+                    binder: { X: 'human-page-queue' },
+                    subgoals: {
+                      'dirs:X=human-page-queue': {
+                        binder: {},
+                        subgoals: [
+                          '~/deposit',
+                          '~/media',
+                          '/var/www/html/people'
+                        ]
+                      }
+                    }
+                  },
+                  'uploaded(~/, .conf: ${X}.conf )': { binder: { X: 'human-page-queue' }, subgoals: {} },
+                  'bash_op(~/,${X})': { binder: { X: 'human-page-queue' }, subgoals: {} }
+                }
+              }
+            }
+          },
+          'on_reboot([nginx,human-page-queue])': 'TBD',
+          'schedule(certbot,60000)': 'TBD'
+        }
+      },
+      host: { addr: '45.32.219.78', abbr: 'otw', host: 'of-this.world' },
+      auth: { dns: 'of-this.world', user: 'root', pass: 'L2v=95$J,q[)4wF-' }
+    },
+    copious: {
+      depth: 2,
+      backrefs: [ 'here', 'home' ],
+      final_state: {
+        goal_facts: [ 'running(nginx,config("copious.world" -> !host_url>))' ],
+        subgoals: {
+          'running(nginx,config("copious.world" -> !host_url>))': 'TBD'
+        }
+      },
+      host: {
+        addr: '155.138.235.197',
+        abbr: 'copious',
+        host: 'copious.world'
+      },
+      auth: {
+        dns: [ 'copious.world', 'popsongnow.com' ],
+        user: 'root',
+        pass: 'hH8?ocrM%gebn8MN'
+      }
+    },
+    popsong: {
+      depth: 2,
+      backrefs: [ 'here' ],
+      final_state: {
+        goal_facts: [ 'running(nginx,config("popsongnow.com" -> !host_url>))' ],
+        subgoals: {
+          'running(nginx,config("popsongnow.com" -> !host_url>))': 'TBD'
+        }
+      },
+      host: {
+        addr: '155.138.235.197',
+        abbr: 'popsong',
+        host: 'popsongnow.com'
+      },
+      auth: {
+        dns: [ 'copious.world', 'popsongnow.com' ],
+        user: 'root',
+        pass: 'hH8?ocrM%gebn8MN'
+      }
+    },
+    g_sessions: {
+      depth: 3,
+      backrefs: [ 'home' ],
+      final_state: {
+        goal_facts: [ 'running(enpoint:global_sessions)' ],
+        subgoals: { 'running(enpoint:global_sessions)': 'TBD' }
+      },
+      host: {
+        addr: '192.168.1.71',
+        abbr: 'g_sessions',
+        host: '@home=LAN -- DietPi'
+      },
+      auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
+    },
+    contacts: {
+      depth: 3,
+      backrefs: [ 'home' ],
+      final_state: {
+        goal_facts: [ 'running(enpoint:contacts)' ],
+        subgoals: {
+          'running(enpoint:contacts)': {
+            binder: {},
+            subgoals: {
+              pre: {
+                binder: {},
+                subgoals: { 'npm_target(global:copious-endpoints)': 'TBD' }
+              },
+              post: {
+                binder: {},
+                subgoals: [
+                  'uploaded(~/contacts,contact-service.conf)',
+                  'keys(contacts)',
+                  'bash_op(~/contacts,copious-contacts)'
+                ]
+              }
+            }
+          }
+        }
+      },
+      host: {
+        addr: '192.168.1.75',
+        abbr: 'contacts',
+        host: '@home=LAN -- DietPi'
+      },
+      auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
+    },
+    'endpoint-users': {
+      depth: 3,
+      backrefs: [ 'home' ],
+      final_state: {
+        goal_facts: [ 'running(enpoint:contacts)' ],
+        subgoals: {
+          'running(enpoint:contacts)': {
+            binder: {},
+            subgoals: {
+              pre: {
+                binder: {},
+                subgoals: { 'npm_target(global:copious-endpoints)': 'TBD' }
+              },
+              post: {
+                binder: {},
+                subgoals: [
+                  'uploaded(~/contacts,contact-service.conf)',
+                  'keys(contacts)',
+                  'bash_op(~/contacts,copious-contacts)'
+                ]
+              }
+            }
+          }
+        }
+      },
+      host: {
+        addr: '192.168.1.77',
+        abbr: 'endpoint-users',
+        host: '@home=LAN -- DietPi'
+      },
+      auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
+    },
+    'otw-create': {
+      depth: 3,
+      backrefs: [ 'home' ],
+      final_state: {
+        goal_facts: [ 'running(of-this-world)' ],
+        subgoals: {
+          'running(of-this-world)': {
+            binder: { X: 'of-this-world' },
+            subgoals: {
+              pre: {
+                binder: {},
+                subgoals: { 'npm_target(global:of-this-world)': 'TBD' }
+              },
+              post: {
+                binder: { X: 'of-this-world' },
+                subgoals: {
+                  'dirs(X)': {
+                    binder: { X: 'of-this-world' },
+                    subgoals: {
+                      'dirs:X=of-this-world': {
+                        binder: {},
+                        subgoals: [
+                          '${master_stager}/humans',
+                          '~/otw/templates/humans'
+                        ]
+                      }
+                    }
+                  },
+                  'uploaded(~/, .conf: ${X}.conf )': { binder: { X: 'of-this-world' }, subgoals: {} },
+                  'bash_op(~/,${X})': { binder: { X: 'of-this-world' }, subgoals: {} }
+                }
+              }
+            }
+          }
+        }
+      },
+      host: {
+        addr: '192.168.1.81',
+        abbr: 'otw-create',
+        host: '@home=LAN -- DietPi'
+      },
+      auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
+    }
+  },
+  paths: {
+    here: 'here@1',
+    'here.home': 'home@2',
+    'here.otw': 'otw@2',
+    'here.copious': 'copious@2',
+    'here.popsong': 'popsong@2',
+    'here.home.g_sessions': 'g_sessions@3',
+    'here.home.contacts': 'contacts@3',
+    'here.home.endpoint-users': 'endpoint-users@3',
+    'here.home.otw-create': 'otw-create@3'
+  }
+}

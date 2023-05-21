@@ -1,0 +1,367 @@
+{
+  "running": {
+    "top_dir_location": {
+      "nginx": "$[configs]/nginx",
+      "www": "$[sites]",
+      "configs": "configs"
+    },
+    "converted": "!-running(nginx,*)> -> (*,*(Y)) | (*,Y=default)\n!-- pre>                    apt_op(install nginx)\n!-- post(Y:.conf)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)\n!---uploaded:Z=default>     compositing(default)\n!---uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)\n!- running(human-page-queue), running(of-this-world)> -> X\n!-- pre>                      npm_target(global:of-this-world)\n!-- post(X:.conf)>            dirs(X),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})\n!---dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]\n!---dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]\n!- running(enpoint:contacts)>\n!-- pre>                     npm_target(global:copious-endpoints)\n!-- post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)\n!-?npm_target(*)>           installed(nodejs),installed(npm)\n!-?compositing(Y)>          roller($[configs]/nginx,${Y})",
+    "depth_table": [
+      {
+        "running(nginx,*)> -> (*,*(Y)) | (*,Y=default)": [
+          {
+            "pre>                    apt_op(install nginx)": "one-line"
+          },
+          {
+            "post(Y:.conf)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)": [
+              {
+                "uploaded:Z=default>     compositing(default)": "one-line"
+              },
+              {
+                "uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)": "one-line"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "running(human-page-queue), running(of-this-world)> -> X": [
+          {
+            "pre>                      npm_target(global:of-this-world)": "one-line"
+          },
+          {
+            "post(X:.conf)>            dirs(X),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})": [
+              {
+                "dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]": "one-line"
+              },
+              {
+                "dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]": "one-line"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "running(enpoint:contacts)>": [
+          {
+            "pre>                     npm_target(global:copious-endpoints)": "one-line"
+          },
+          {
+            "post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)": "one-line"
+          }
+        ]
+      },
+      {
+        "?npm_target(*)>           installed(nodejs),installed(npm)": "one-line"
+      },
+      {
+        "?compositing(Y)>          roller($[configs]/nginx,${Y})": "one-line"
+      }
+    ],
+    "goal_map": {
+      "running(nginx)": {
+        "binder": {
+          "Z": [
+            "/Y/? ${host.host}.conf",
+            "default"
+          ]
+        },
+        "super_binder": {
+          "(*,*(Y))|(*,Y=default)": "nginx,*"
+        },
+        "subgoals": {
+          "pre": {
+            "binder": {},
+            "super_binder": {},
+            "subgoals": {
+              "apt_op(install nginx)": {
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          },
+          "post(Y:.conf)": {
+            "binder": {
+              "Z": [
+                "/Y/? ${host.host}.conf",
+                "default"
+              ]
+            },
+            "super_binder": {},
+            "subgoals": {
+              "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
+                "binder": {
+                  "Z": [
+                    "/Y/? ${host.host}.conf",
+                    "default"
+                  ]
+                },
+                "subgoals": {
+                  "uploaded:Z=default": {
+                    "binder": {},
+                    "super_binder": {},
+                    "subgoals": {
+                      "compositing(default)": {
+                        "binder": {},
+                        "super_binder": {},
+                        "subgoals": {
+                          "roller($[configs]/nginx,${Y})": {
+                            "all_ready": false
+                          }
+                        },
+                        "params": "Y",
+                        "all_ready": false
+                      }
+                    },
+                    "all_ready": false
+                  },
+                  "uploaded:Z=${host.host}.conf": {
+                    "binder": {},
+                    "super_binder": {},
+                    "subgoals": {
+                      "compositing(${host.host}.conf)": {
+                        "binder": {},
+                        "super_binder": {},
+                        "subgoals": {
+                          "roller($[configs]/nginx,${Y})": {
+                            "all_ready": false
+                          }
+                        },
+                        "params": "Y",
+                        "all_ready": false
+                      }
+                    },
+                    "all_ready": false
+                  }
+                },
+                "all_ready": false
+              },
+              "nginx_op(-s reload)": {
+                "binder": {
+                  "Z": [
+                    "/Y/? ${host.host}.conf",
+                    "default"
+                  ]
+                },
+                "subgoals": {},
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          }
+        },
+        "all_ready": false
+      },
+      "running(human-page-queue)": {
+        "binder": {
+          "X": "human-page-queue"
+        },
+        "super_binder": {},
+        "subgoals": {
+          "pre": {
+            "binder": {},
+            "super_binder": {},
+            "subgoals": {
+              "npm_target(global:of-this-world)": {
+                "binder": {},
+                "super_binder": {},
+                "subgoals": {
+                  "installed(nodejs)": {
+                    "all_ready": false
+                  },
+                  "installed(npm)": {
+                    "all_ready": false
+                  }
+                },
+                "params": "*",
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          },
+          "post(X:.conf)": {
+            "binder": {
+              "X": "human-page-queue"
+            },
+            "super_binder": {},
+            "subgoals": {
+              "dirs(X)": {
+                "binder": {
+                  "X": "human-page-queue"
+                },
+                "subgoals": {
+                  "dirs:X=human-page-queue": {
+                    "binder": {},
+                    "super_binder": {},
+                    "subgoals": {
+                      "~/deposit": {
+                        "all_ready": false
+                      },
+                      "~/media": {
+                        "all_ready": false
+                      },
+                      "/var/www/html/people": {
+                        "all_ready": false
+                      }
+                    },
+                    "all_ready": false
+                  }
+                },
+                "all_ready": false
+              },
+              "uploaded(~/, ${X}.conf )": {
+                "binder": {
+                  "X": "human-page-queue"
+                },
+                "subgoals": {},
+                "all_ready": false
+              },
+              "bash_op(~/,${X})": {
+                "binder": {
+                  "X": "human-page-queue"
+                },
+                "subgoals": {},
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          }
+        },
+        "all_ready": false
+      },
+      "running(of-this-world)": {
+        "binder": {
+          "X": "of-this-world"
+        },
+        "super_binder": {},
+        "subgoals": {
+          "pre": {
+            "binder": {},
+            "super_binder": {},
+            "subgoals": {
+              "npm_target(global:of-this-world)": {
+                "binder": {},
+                "super_binder": {},
+                "subgoals": {
+                  "installed(nodejs)": {
+                    "all_ready": false
+                  },
+                  "installed(npm)": {
+                    "all_ready": false
+                  }
+                },
+                "params": "*",
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          },
+          "post(X:.conf)": {
+            "binder": {
+              "X": "of-this-world"
+            },
+            "super_binder": {},
+            "subgoals": {
+              "dirs(X)": {
+                "binder": {
+                  "X": "of-this-world"
+                },
+                "subgoals": {
+                  "dirs:X=of-this-world": {
+                    "binder": {},
+                    "super_binder": {},
+                    "subgoals": {
+                      "${master_stager}/humans": {
+                        "all_ready": false
+                      },
+                      "~/otw/templates/humans": {
+                        "all_ready": false
+                      }
+                    },
+                    "all_ready": false
+                  }
+                },
+                "all_ready": false
+              },
+              "uploaded(~/, ${X}.conf )": {
+                "binder": {
+                  "X": "of-this-world"
+                },
+                "subgoals": {},
+                "all_ready": false
+              },
+              "bash_op(~/,${X})": {
+                "binder": {
+                  "X": "of-this-world"
+                },
+                "subgoals": {},
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          }
+        },
+        "all_ready": false
+      },
+      "running(enpoint:contacts)": {
+        "binder": {},
+        "super_binder": {},
+        "subgoals": {
+          "pre": {
+            "binder": {},
+            "super_binder": {},
+            "subgoals": {
+              "npm_target(global:copious-endpoints)": {
+                "binder": {},
+                "super_binder": {},
+                "subgoals": {
+                  "installed(nodejs)": {
+                    "all_ready": false
+                  },
+                  "installed(npm)": {
+                    "all_ready": false
+                  }
+                },
+                "params": "*",
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          },
+          "post": {
+            "binder": {},
+            "super_binder": {},
+            "subgoals": {
+              "uploaded(~/contacts,contact-service.conf)": {
+                "all_ready": false
+              },
+              "keys(contacts)": {
+                "all_ready": false
+              },
+              "bash_op(~/contacts,copious-contacts)": {
+                "all_ready": false
+              }
+            },
+            "all_ready": false
+          }
+        },
+        "all_ready": false
+      },
+      "?npm_target(*)": {
+        "binder": {},
+        "super_binder": {},
+        "subgoals": [
+          "installed(nodejs)",
+          "installed(npm)"
+        ]
+      },
+      "?compositing(Y)": {
+        "binder": {},
+        "super_binder": {},
+        "subgoals": [
+          "roller($[configs]/nginx,${Y})"
+        ]
+      }
+    }
+  }
+}
