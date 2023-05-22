@@ -104,6 +104,45 @@ function toplevel_split(str,delim) {
 }
 
 
+function pop_to_unbounded_space(str) {
+
+
+    str = str.trim()
+    const delim_s = ' '
+    const delim_t = '\t'
+
+    let cdepth = 0
+    let splits = []
+    let n = str.length
+    let cur_split = ""
+
+    for ( let i = 0; i < n; i++ ) {
+        let c = str[i]
+        if ( (cdepth === 0) && ( c === delim_s || c === delim_t) ) {
+            splits.push(cur_split.trim())
+            let rest  = str.substring(i+1).trim()
+            splits.push(rest)
+            break
+        } else {
+            if ( starters.indexOf(c) >= 0 ) {
+                cdepth++
+            } else if ( enders.indexOf(c) >= 0 ) {
+                cdepth--
+            }
+            cur_split += c
+        }
+    }
+
+    if ( splits.length < 2 ) {
+        splits.push(cur_split.trim())
+        splits.push("")
+    }
+    //
+    return splits
+}
+
+
+
 const g_out_dir_prefix = './scripts'
 
 let all_machines_script = './all-machines.conf'
@@ -1055,6 +1094,10 @@ console.log(vals)
     binder[factoid] = b_vars
     return binder
 }
+
+
+
+
 
 function parse_var_producer(var_producer) {
     //
