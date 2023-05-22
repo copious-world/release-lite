@@ -1005,43 +1005,217 @@ function parameter_is_binder(factoid) {
     return false
 }
 
+
+function pop_selector(str) {
+    str = str.trim()
+    if ( str[0] == '/' ) {
+        str = str.substring(1)
+        let parts = str.split('\/?')
+        parts = trimmer(parts)
+        let sltr = parts[0]
+        let rest = parts[1]
+        return [sltr,rest]
+    }
+    return ["",vals]
+}
+
 function parameter_to_binder(factoid) {
-    let binder = {}
+    let binder = {
+    }
     let partxt = popout(popafter(factoid,'('),')')
     let par_list = toplevel_split(partxt,',')
+    let b_vars = {
+        "type" : "=",
+        "selectors" : {}
+    }
     for ( let param of par_list ) {
         if ( param.indexOf('->') > 0 ) {
             let parts = param.split('->')
             parts = trimmer(parts)
             let vr = parts[1]
+            //
             let vals = parts[0]
+            let [selector, rest ] = pop_selector(vals)
+            vals = rest
             vals = vals.split('|')
             vals = trimmer(vals)
+console.log(vals)
             if ( vals[0].indexOf(':') > 0 ) {           // for type specifier
                 vals[0] = (vals[0].split(':'))[1].trim()
             }
 
-            binder[vr] = vals
+            if (selector) {
+                b_vars.type = "select"
+                b_vars.selectors[selector] = ""
+            }
+
+            b_vars[vr] = vals
         }
     }
+    binder[factoid] = b_vars
     return binder
 }
 
-function bind_goal_param(code,val_src) {
-    code = code.replace('->','')
-    let popped = gulp_section(val_src,'(',')')
-    let vtable = {}
-    vtable[code] = popped[0]
-    return vtable
+function parse_var_producer(var_producer) {
+    //
+    let maybe_conditions = false
+    let form_type = "block"
+    var_producer = var_producer.trim()
+    if ( (var_producer.indexOf('|') < 0) && (var_producer[0] === '(') ) {
+        var_producer = var_producer.substring(1)
+        var_producer = var_producer.trim()
+        if ( (var_producer.lastIndexOf(')')+1) < var_producer.length ) {
+            maybe_conditions = var_producer.substring(var_producer.lastIndexOf(')')+1)
+        }
+        var_producer = var_producer.substring(0,var_producer.lastIndexOf(')'))
+        var_producer = var_producer.trim()
+    }
+    if ( var_producer.indexOf(',') > 0 || var_producer.indexOf('|') > 0  ) {
+        let ast = {
+            "code" : var_producer,
+            "parts" : false
+        }
+        let splitter = var_producer.indexOf('|')
+        let parts = ( splitter > 0) ? toplevel_split(var_producer,'|') : toplevel_split(var_producer,',')
+        if ( splitter > 0 ) {
+            form_type = "match"
+        } else {
+            form_type = "list"
+        }
+        parts = trimmer(parts)
+        let vars = {}
+        let ast_parts = []
+        for ( let prt of parts ) {
+            let [vrs,ast] = parse_var_producer(prt)
+            vars = Object.assign(vars,vrs)
+            ast_parts.push(ast)
+        }
+        ast.parts = ast_parts
+        delete vars['*']
+        //
+        ast.vars = vars
+        ast.f_type = form_type
+        return [vars,ast]
+    } else if ( var_producer.indexOf('(') > 0 ) {   // e.g. *(*)
+        let ast = {
+            "code" : var_producer,
+            "parts" : false
+        }
+        ast.f_type = "call"
+
+        let vars = {}
+        let ast_parts = []
+
+        let prt = var_producer.substring(var_producer.indexOf('('))
+        let [vrs,s_ast] = parse_var_producer(prt)
+        vars = Object.assign(vars,vrs)
+        ast_parts.push(s_ast)
+
+        ast.parts = ast_parts
+        delete vars['*']
+        ast.vars = vrs
+        return [vars,ast]
+    } else {
+        form_type = "value"
+        if ( var_producer.indexOf('=') > 0 ) {
+            let v_parts = var_producer.split('=')
+            v_parts = trimmer(v_parts)
+            let vmp = {}
+            vmp[v_parts[0]] = ""
+            return [vmp,{ "default" : v_parts[1], "f_type" : form_type }]
+        } else if ( (typeof maybe_conditions === 'string') && (maybe_conditions.indexOf('=>') == 0) ) {
+            maybe_conditions = maybe_conditions.substring(2).trim()
+            //
+            let v_parts = maybe_conditions.split('=')
+            v_parts = trimmer(v_parts)
+            let vmp = {}
+            vmp[v_parts[0]] = ""
+            return [vmp,{ "code" : var_producer, "default" : v_parts[1], "vars" :  v_parts[0], "f_type" : form_type  }]
+        }
+        let vmp = {}
+        vmp[var_producer] = ""
+        return [vmp,var_producer]
+    }
 }
 
 
-function super_bind_goal_param(code,val_src) {
-    let vtable = {}
-    code = code.replace('->','')
+function is_conditional_value_assignment(str) {
+    if ( str.indexOf('=>') === 0 ) return true
+    return false
+}
+
+function pop_past_value_assigner(str) {
+    let front_str = str.substring(0,2)
+    str = str.substring(2)
+    let rest = ""
+    let n = str.length
+    for ( let i = 0; i < n; i++ ) {
+        let c = str[i]
+        if ( c === '=' ) {  // start of the assignment
+            front_str += '='
+            i++
+            while ( i < n && (c == ' ' || c == '\t')  ) { c = str[i]; i++ }
+            while ( i < n && (c !== ' ' || c !== '\t')  ) { c = str[i]; front_str += c ; i++ }
+            rest = str.substring(i).trim()
+            break;
+        }
+        front_str += c
+    }
+
+    return [front_str,rest]
+}
+
+function pop_and_process_var_producer(code_src) {
+    //
+    code_src = code_src.trim()
+    let [var_producer,restl] = pop_to_unbounded_space(code_src)
+    restl = restl.trim()
+    //
+    if ( is_conditional_value_assignment(restl) ) {
+        let [var_p_continue,rest2] = pop_past_value_assigner(restl)
+        var_producer += var_p_continue
+        restl = rest2
+    }
+
+    while ( restl[0] === '|' ) {
+        var_producer += '|'
+        let [vp2,rest2] = pop_to_unbounded_space(restl.substring(1))
+        var_producer += vp2
+        if ( is_conditional_value_assignment(rest2) ) {
+            let [var_p_continue,rest3] = pop_past_value_assigner(rest2)
+            var_producer += var_p_continue
+            rest2 = rest3
+        }
+    
+        restl = rest2.trim()
+    }
+    let [vars,ast] = parse_var_producer(var_producer)
+    return[vars,ast,restl]
+}
+
+function bind_goal_param(binder,code_src,val_src,depth) {
+    //
+    let var_table = {
+        "v_type" : "single"
+    }
+    //
+
+    code_src = code_src.replace('->','').trim()
     let popped = gulp_section(val_src,'(',')')
-    vtable[code] = popped[0]
-    return vtable
+
+    let [v_list,ast,rest_line] = pop_and_process_var_producer(code_src)
+
+    let key = Object.keys(v_list).join(',')
+    var_table.form = popped[0]
+    var_table.ast = ast
+    //
+    binder.v_list = v_list
+    //
+    if (  binder[var_table.form] === undefined ) binder[var_table.form] = {}
+
+    binder[var_table.form][key] = var_table
+    return [binder,rest_line]
+
 }
 
 
@@ -1066,7 +1240,7 @@ function match_to_subgoals(subg,entry_subgoals,p_binder) {
 }
 
 
-function subgoal_list_to_map(subgoal_list,p_binder) {
+function subgoal_list_to_map(subgoal_list,p_binder,depth) {
     let gmap = {}
     for ( let entry of subgoal_list ) {
         //
@@ -1093,13 +1267,15 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
             //
 
             let binder = {}
-            let super_binder = {}
             let subgoals = ""
-            if ( is_binder(after_piece) ) {
-                binder = bind_goal_param(after_piece,gky)
-            } else if ( is_super_binder(after_piece) ) {
-                super_binder = super_bind_goal_param(after_piece,gky)
-            } else if ( (after_piece.length > 0)  && (entry_subgoals === 'one-line') ) {
+            if ( is_binder(after_piece) || is_super_binder(after_piece)  ) {
+                let [binder_update,rest_line] = bind_goal_param(p_binder,after_piece,gky,depth)
+                if ( binder_update ) binder = binder_update
+                if ( rest_line ) after_piece = rest_line
+                else after_piece = ""
+            }
+
+            if ( (after_piece.length > 0)  && (entry_subgoals === 'one-line') ) {
                 if ( after_piece.indexOf(',') > 0 ) {
                     if ( after_piece[0] === '[' ) {
                         after_piece = after_piece.substring(1)
@@ -1134,7 +1310,7 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
                     binder = Object.assign(p_binder,binder)
                     subgoal_map[subg] = {
                         binder,
-                        subgoals : subgoal_list_to_map(list_of_subgs,binder)
+                        subgoals : subgoal_list_to_map(list_of_subgs,binder,(depth+1))
                     }
                     //
                 }
@@ -1146,7 +1322,7 @@ function subgoal_list_to_map(subgoal_list,p_binder) {
 console.log("subgoals is a string",subgoals)
                 if ( Array.isArray(entry_subgoals) ) {
                     binder = Object.assign(p_binder,binder)
-                    subgoals = subgoal_list_to_map(entry_subgoals,binder)
+                    subgoals = subgoal_list_to_map(entry_subgoals,binder,(depth+1))
                 } else {
                     subgoals = entry_subgoals
                 }
@@ -1154,7 +1330,6 @@ console.log("subgoals is a string",subgoals)
             
             gmap[gky] = {
                 binder,
-                super_binder,
                 subgoals
             }
         }
@@ -1189,6 +1364,8 @@ function form_without_options(rhead) {
 
 function process_rules(rules) {
     //
+    let depth = 1
+    //
     let rule_base = {}
     let optional_parameter_rules = {}
     rule_base.running = local_text_substitutions_and_var_table(rules.running)
@@ -1220,16 +1397,20 @@ function process_rules(rules) {
 
             for ( let gky of popky ) {
                 let after_piece = popafter(ky,EOF_KEY)
-                after_piece = remove_spaces(after_piece)
+                after_piece = after_piece.trim()
                 //
                 let binder = {}
-                let super_binder = {}
                 let subgoals = ""
-                if ( is_binder(after_piece) ) {
-                    binder = bind_goal_param(after_piece,gky)
-                } else if ( is_super_binder(after_piece) ) {
-                    super_binder = super_bind_goal_param(after_piece,gky)
-                } else if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
+                if ( is_binder(after_piece) || is_super_binder(after_piece)  ) {
+                    let [binder_update,rest_line] = bind_goal_param(binder,after_piece,gky,depth)
+                    if ( binder_update ) binder = binder_update
+                    if ( rest_line ) after_piece = rest_line
+                    else after_piece = ""
+                }
+
+                after_piece = remove_spaces(after_piece)
+                
+                if ( (after_piece.length > 0)  && (subgoal_txt === 'one-line') ){
                     if ( after_piece.indexOf(',') > 0 ) {
                         subgoals = toplevel_split(after_piece,',')
                     } else {
@@ -1239,7 +1420,7 @@ function process_rules(rules) {
 
                 if ( typeof subgoals === 'string' ) {
                     if ( Array.isArray(subgoal_txt) ) {
-                        subgoals = subgoal_list_to_map(subgoal_txt,binder)
+                        subgoals = subgoal_list_to_map(subgoal_txt,binder,(depth+1))
                     } else {
                         subgoals = subgoal_txt
                     }
@@ -1249,19 +1430,16 @@ function process_rules(rules) {
                 if ( has_optional_parameter_structure(gky) ) {
                     optional_parameter_rules[gky] = {
                         binder,
-                        super_binder,
                         subgoals
                     }
                     let deoptionalized = form_without_options(gky)
                     gmap[deoptionalized] = {
                         binder,
-                        super_binder,
                         subgoals
                     }
                 } else {
                     gmap[gky] = {
                         binder,
-                        super_binder,
                         subgoals
                     }    
                 }

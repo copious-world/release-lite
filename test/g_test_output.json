@@ -55,9 +55,6 @@
             },
             "path": "otw.running(nginx)"
           },
-          "super_binder": {
-            "(*,*(Y))|(*,Y=default)": "nginx,*"
-          },
           "subgoals": {
             "pre": {
               "binder": {
@@ -106,7 +103,6 @@
                 },
                 "path": "otw.running(nginx).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "apt_op(install nginx)": {
                   "all_ready": false,
@@ -209,7 +205,6 @@
                 },
                 "path": "otw.running(nginx).post(Y:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
                   "binder": {
@@ -258,328 +253,7 @@
                     },
                     "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )"
                   },
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "45.32.219.78",
-                            "abbr": "otw",
-                            "host": "of-this.world"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "of-this.world",
-                            "user": "root",
-                            "pass": "L2v=95$J,q[)4wF-"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(default)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "45.32.219.78",
-                                "abbr": "otw",
-                                "host": "of-this.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "of-this.world",
-                                "user": "root",
-                                "pass": "L2v=95$J,q[)4wF-"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default)",
-                            "params": {
-                              "Y": "default"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,default)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "45.32.219.78",
-                                    "abbr": "otw",
-                                    "host": "of-this.world"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": "of-this.world",
-                                    "user": "root",
-                                    "pass": "L2v=95$J,q[)4wF-"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(default)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=default"
-                    },
-                    "uploaded:Z=${host.host}.conf": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "45.32.219.78",
-                            "abbr": "otw",
-                            "host": "of-this.world"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "of-this.world",
-                            "user": "root",
-                            "pass": "L2v=95$J,q[)4wF-"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(${host.host}.conf)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "45.32.219.78",
-                                "abbr": "otw",
-                                "host": "of-this.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "of-this.world",
-                                "user": "root",
-                                "pass": "L2v=95$J,q[)4wF-"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf)",
-                            "params": {
-                              "Y": "${host.host}.conf"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,of-this.world.conf)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "45.32.219.78",
-                                    "abbr": "otw",
-                                    "host": "of-this.world"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": "of-this.world",
-                                    "user": "root",
-                                    "pass": "L2v=95$J,q[)4wF-"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "otw.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(of-this.world.conf)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=of-this.world.conf"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )"
                 },
@@ -689,7 +363,6 @@
             },
             "path": "otw.running(human-page-queue)"
           },
-          "super_binder": {},
           "subgoals": {
             "pre": {
               "binder": {
@@ -738,7 +411,6 @@
                 },
                 "path": "otw.running(human-page-queue).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "npm_target(global:of-this-world)": {
                   "binder": {
@@ -790,7 +462,6 @@
                       "*": "global:of-this-world"
                     }
                   },
-                  "super_binder": {},
                   "subgoals": {
                     "installed(nodejs)": {
                       "all_ready": false,
@@ -948,7 +619,6 @@
                 },
                 "path": "otw.running(human-page-queue).post(X:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "dirs(X)": {
                   "binder": {
@@ -997,211 +667,7 @@
                     },
                     "path": "otw.running(human-page-queue).post(X:.conf).dirs(X)"
                   },
-                  "subgoals": {
-                    "dirs:X=human-page-queue": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "45.32.219.78",
-                            "abbr": "otw",
-                            "host": "of-this.world"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "of-this.world",
-                            "user": "root",
-                            "pass": "L2v=95$J,q[)4wF-"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "otw.running(human-page-queue).post(X:.conf).dirs(X).dirs:X=human-page-queue"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "~/deposit": {
-                          "all_ready": false,
-                          "key_eval": "~/deposit",
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "45.32.219.78",
-                                "abbr": "otw",
-                                "host": "of-this.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "of-this.world",
-                                "user": "root",
-                                "pass": "L2v=95$J,q[)4wF-"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "otw.running(human-page-queue).post(X:.conf).dirs(X).dirs:X=human-page-queue.~/deposit"
-                          }
-                        },
-                        "~/media": {
-                          "all_ready": false,
-                          "key_eval": "~/media",
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "45.32.219.78",
-                                "abbr": "otw",
-                                "host": "of-this.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "of-this.world",
-                                "user": "root",
-                                "pass": "L2v=95$J,q[)4wF-"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "otw.running(human-page-queue).post(X:.conf).dirs(X).dirs:X=human-page-queue.~/media"
-                          }
-                        },
-                        "/var/www/html/people": {
-                          "all_ready": false,
-                          "key_eval": "/var/www/html/people",
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "45.32.219.78",
-                                "abbr": "otw",
-                                "host": "of-this.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "of-this.world",
-                                "user": "root",
-                                "pass": "L2v=95$J,q[)4wF-"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "otw.running(human-page-queue).post(X:.conf).dirs(X).dirs:X=human-page-queue./var/www/html/people"
-                          }
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "dirs:X=human-page-queue"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "dirs(X)"
                 },
@@ -1519,9 +985,6 @@
             },
             "path": "copious.running(nginx,config(copious.world))"
           },
-          "super_binder": {
-            "(*,*(Y))|(*,Y=default)": "nginx,*"
-          },
           "subgoals": {
             "pre": {
               "binder": {
@@ -1573,7 +1036,6 @@
                 },
                 "path": "copious.running(nginx,config(copious.world)).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "apt_op(install nginx)": {
                   "all_ready": false,
@@ -1682,7 +1144,6 @@
                 },
                 "path": "copious.running(nginx,config(copious.world)).post(Y:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
                   "binder": {
@@ -1734,346 +1195,7 @@
                     },
                     "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )"
                   },
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "155.138.235.197",
-                            "abbr": "copious",
-                            "host": "copious.world"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": [
-                              "copious.world",
-                              "popsongnow.com"
-                            ],
-                            "user": "root",
-                            "pass": "hH8?ocrM%gebn8MN"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(default)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "155.138.235.197",
-                                "abbr": "copious",
-                                "host": "copious.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": [
-                                  "copious.world",
-                                  "popsongnow.com"
-                                ],
-                                "user": "root",
-                                "pass": "hH8?ocrM%gebn8MN"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default)",
-                            "params": {
-                              "Y": "default"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,default)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "155.138.235.197",
-                                    "abbr": "copious",
-                                    "host": "copious.world"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": [
-                                      "copious.world",
-                                      "popsongnow.com"
-                                    ],
-                                    "user": "root",
-                                    "pass": "hH8?ocrM%gebn8MN"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(default)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=default"
-                    },
-                    "uploaded:Z=${host.host}.conf": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "155.138.235.197",
-                            "abbr": "copious",
-                            "host": "copious.world"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": [
-                              "copious.world",
-                              "popsongnow.com"
-                            ],
-                            "user": "root",
-                            "pass": "hH8?ocrM%gebn8MN"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(${host.host}.conf)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "155.138.235.197",
-                                "abbr": "copious",
-                                "host": "copious.world"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": [
-                                  "copious.world",
-                                  "popsongnow.com"
-                                ],
-                                "user": "root",
-                                "pass": "hH8?ocrM%gebn8MN"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf)",
-                            "params": {
-                              "Y": "${host.host}.conf"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,copious.world.conf)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "155.138.235.197",
-                                    "abbr": "copious",
-                                    "host": "copious.world"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": [
-                                      "copious.world",
-                                      "popsongnow.com"
-                                    ],
-                                    "user": "root",
-                                    "pass": "hH8?ocrM%gebn8MN"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "copious.running(nginx,config(copious.world)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(copious.world.conf)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=copious.world.conf"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )"
                 },
@@ -2193,10 +1315,10 @@
     },
     "popsong": {
       "goal_facts": [
-        "running(nginx,config(popsongnow.com))"
+        "running(nginx,popsongnow.com)"
       ],
       "subgoals": {
-        "running(nginx,config(popsongnow.com))": {
+        "running(nginx,popsongnow.com)": {
           "binder": {
             "var_info": {
               "top_vars": {
@@ -2244,10 +1366,7 @@
               },
               "valid_url": true
             },
-            "path": "popsong.running(nginx,config(popsongnow.com))"
-          },
-          "super_binder": {
-            "(*,*(Y))|(*,Y=default)": "nginx,*"
+            "path": "popsong.running(nginx,popsongnow.com)"
           },
           "subgoals": {
             "pre": {
@@ -2298,9 +1417,8 @@
                   },
                   "valid_url": true
                 },
-                "path": "popsong.running(nginx,config(popsongnow.com)).pre"
+                "path": "popsong.running(nginx,popsongnow.com).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "apt_op(install nginx)": {
                   "all_ready": false,
@@ -2352,7 +1470,7 @@
                       },
                       "valid_url": true
                     },
-                    "path": "popsong.running(nginx,config(popsongnow.com)).pre.apt_op(install nginx)"
+                    "path": "popsong.running(nginx,popsongnow.com).pre.apt_op(install nginx)"
                   }
                 }
               },
@@ -2407,9 +1525,8 @@
                   },
                   "valid_url": true
                 },
-                "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf)"
+                "path": "popsong.running(nginx,popsongnow.com).post(Y:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
                   "binder": {
@@ -2459,348 +1576,9 @@
                       },
                       "valid_url": true
                     },
-                    "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )"
+                    "path": "popsong.running(nginx,popsongnow.com).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )"
                   },
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "155.138.235.197",
-                            "abbr": "popsong",
-                            "host": "popsongnow.com"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": [
-                              "copious.world",
-                              "popsongnow.com"
-                            ],
-                            "user": "root",
-                            "pass": "hH8?ocrM%gebn8MN"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(default)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "155.138.235.197",
-                                "abbr": "popsong",
-                                "host": "popsongnow.com"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": [
-                                  "copious.world",
-                                  "popsongnow.com"
-                                ],
-                                "user": "root",
-                                "pass": "hH8?ocrM%gebn8MN"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default)",
-                            "params": {
-                              "Y": "default"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,default)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "155.138.235.197",
-                                    "abbr": "popsong",
-                                    "host": "popsongnow.com"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": [
-                                      "copious.world",
-                                      "popsongnow.com"
-                                    ],
-                                    "user": "root",
-                                    "pass": "hH8?ocrM%gebn8MN"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(default)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=default"
-                    },
-                    "uploaded:Z=${host.host}.conf": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "155.138.235.197",
-                            "abbr": "popsong",
-                            "host": "popsongnow.com"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": [
-                              "copious.world",
-                              "popsongnow.com"
-                            ],
-                            "user": "root",
-                            "pass": "hH8?ocrM%gebn8MN"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": true
-                        },
-                        "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(${host.host}.conf)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "155.138.235.197",
-                                "abbr": "popsong",
-                                "host": "popsongnow.com"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": [
-                                  "copious.world",
-                                  "popsongnow.com"
-                                ],
-                                "user": "root",
-                                "pass": "hH8?ocrM%gebn8MN"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": true
-                            },
-                            "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf)",
-                            "params": {
-                              "Y": "${host.host}.conf"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,popsongnow.com.conf)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "155.138.235.197",
-                                    "abbr": "popsong",
-                                    "host": "popsongnow.com"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": [
-                                      "copious.world",
-                                      "popsongnow.com"
-                                    ],
-                                    "user": "root",
-                                    "pass": "hH8?ocrM%gebn8MN"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": true
-                                },
-                                "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(popsongnow.com.conf)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=popsongnow.com.conf"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )"
                 },
@@ -2852,7 +1630,7 @@
                       },
                       "valid_url": true
                     },
-                    "path": "popsong.running(nginx,config(popsongnow.com)).post(Y:.conf).nginx_op(-s reload)"
+                    "path": "popsong.running(nginx,popsongnow.com).post(Y:.conf).nginx_op(-s reload)"
                   },
                   "subgoals": {},
                   "all_ready": false,
@@ -2864,7 +1642,7 @@
             }
           },
           "all_ready": false,
-          "key_eval": "running(nginx,config(popsongnow.com))"
+          "key_eval": "running(nginx,popsongnow.com)"
         }
       },
       "all_ready": false,
@@ -2971,9 +1749,6 @@
             },
             "path": "home.running(nginx)"
           },
-          "super_binder": {
-            "(*,*(Y))|(*,Y=default)": "nginx,*"
-          },
           "subgoals": {
             "pre": {
               "binder": {
@@ -3022,7 +1797,6 @@
                 },
                 "path": "home.running(nginx).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "apt_op(install nginx)": {
                   "all_ready": false,
@@ -3125,7 +1899,6 @@
                 },
                 "path": "home.running(nginx).post(Y:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
                   "binder": {
@@ -3174,328 +1947,7 @@
                     },
                     "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )"
                   },
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "@home -- Mint Linux",
-                            "user": "richard",
-                            "pass": "test4test"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": false
-                        },
-                        "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(default)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "@home -- Mint Linux",
-                                "user": "richard",
-                                "pass": "test4test"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": false
-                            },
-                            "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default)",
-                            "params": {
-                              "Y": "default"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,default)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": "@home -- Mint Linux",
-                                    "user": "richard",
-                                    "pass": "test4test"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": false
-                                },
-                                "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=default.compositing(default).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(default)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=default"
-                    },
-                    "uploaded:Z=${host.host}.conf": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "@home -- Mint Linux",
-                            "user": "richard",
-                            "pass": "test4test"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": false
-                        },
-                        "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "compositing(${host.host}.conf)": {
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "@home -- Mint Linux",
-                                "user": "richard",
-                                "pass": "test4test"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": false
-                            },
-                            "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf)",
-                            "params": {
-                              "Y": "${host.host}.conf"
-                            }
-                          },
-                          "super_binder": {},
-                          "subgoals": {
-                            "roller($[configs]/nginx,${Y})": {
-                              "all_ready": false,
-                              "key_eval": "roller(~/Documents/GitHub/configs/nginx,default.conf)",
-                              "binder": {
-                                "var_info": {
-                                  "top_vars": {
-                                    "secret": "9wriw08wrw40su",
-                                    "my-mount-otw": "of_this_world",
-                                    "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                    "master_stager": "/media/ELEMENTS/prj_assets",
-                                    "naming_loc": "/home/naming",
-                                    "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                    "master_user": "richard@76.229.181.242",
-                                    "master_exec_loc": "/home/richard/distro-op",
-                                    "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                    "remote_arrow": "/home/richard/distro-op/for-remotes"
-                                  },
-                                  "host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "master_host": {
-                                    "addr": "76.229.181.242",
-                                    "abbr": "home",
-                                    "host": "@MASTER -- Mint Linux"
-                                  },
-                                  "ssh": {
-                                    "dns": "@home -- Mint Linux",
-                                    "user": "richard",
-                                    "pass": "test4test"
-                                  },
-                                  "directories": {
-                                    "local": {
-                                      "[github]": "~/Documents/GitHub",
-                                      "[configs]": "~/Documents/GitHub/configs",
-                                      "[sites]": "~/Documents/GitHub/alphas/websites",
-                                      "[alphas]": "~/Documents/GitHub/alphas"
-                                    },
-                                    "remotes": {
-                                      "[nginx-e]": "/etc/nginx/sites-enabled",
-                                      "[web]": "/var/www/html",
-                                      "[home]": "/home"
-                                    }
-                                  },
-                                  "valid_url": false
-                                },
-                                "path": "home.running(nginx).post(Y:.conf).uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ).uploaded:Z=${host.host}.conf.compositing(${host.host}.conf).roller($[configs]/nginx,${Y})"
-                              }
-                            }
-                          },
-                          "params": "Y",
-                          "all_ready": false,
-                          "key_eval": "compositing(default.conf)"
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "uploaded:Z=default.conf"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "uploaded(/etc/nginx/sites-enabled, /Y/? default.conf | default -> Z )"
                 },
@@ -3659,12 +2111,12 @@
     },
     "g_sessions": {
       "goal_facts": [
-        "running(enpoint:global_sessions)"
+        "running(endpoint:global_sessions)"
       ],
       "subgoals": {
-        "running(enpoint:global_sessions)": {
+        "running(endpoint:global_sessions)": {
           "all_ready": false,
-          "key_eval": "running(enpoint:global_sessions)",
+          "key_eval": "running(endpoint:global_sessions)",
           "binder": {
             "var_info": {
               "top_vars": {
@@ -3709,7 +2161,7 @@
               },
               "valid_url": false
             },
-            "path": "g_sessions.running(enpoint:global_sessions)"
+            "path": "g_sessions.running(endpoint:global_sessions)"
           }
         }
       },
@@ -3763,10 +2215,10 @@
     },
     "contacts": {
       "goal_facts": [
-        "running(enpoint:contacts)"
+        "running(endpoint:contacts)"
       ],
       "subgoals": {
-        "running(enpoint:contacts)": {
+        "running(endpoint:contacts)": {
           "binder": {
             "var_info": {
               "top_vars": {
@@ -3811,9 +2263,8 @@
               },
               "valid_url": false
             },
-            "path": "contacts.running(enpoint:contacts)"
+            "path": "contacts.running(endpoint:contacts)"
           },
-          "super_binder": {},
           "subgoals": {
             "pre": {
               "binder": {
@@ -3860,9 +2311,8 @@
                   },
                   "valid_url": false
                 },
-                "path": "contacts.running(enpoint:contacts).pre"
+                "path": "contacts.running(endpoint:contacts).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "npm_target(global:copious-endpoints)": {
                   "binder": {
@@ -3909,12 +2359,11 @@
                       },
                       "valid_url": false
                     },
-                    "path": "contacts.running(enpoint:contacts).pre.npm_target(global:copious-endpoints)",
+                    "path": "contacts.running(endpoint:contacts).pre.npm_target(global:copious-endpoints)",
                     "params": {
                       "*": "global:copious-endpoints"
                     }
                   },
-                  "super_binder": {},
                   "subgoals": {
                     "installed(nodejs)": {
                       "all_ready": false,
@@ -3963,7 +2412,7 @@
                           },
                           "valid_url": false
                         },
-                        "path": "contacts.running(enpoint:contacts).pre.npm_target(global:copious-endpoints).installed(nodejs)"
+                        "path": "contacts.running(endpoint:contacts).pre.npm_target(global:copious-endpoints).installed(nodejs)"
                       }
                     },
                     "installed(npm)": {
@@ -4013,7 +2462,7 @@
                           },
                           "valid_url": false
                         },
-                        "path": "contacts.running(enpoint:contacts).pre.npm_target(global:copious-endpoints).installed(npm)"
+                        "path": "contacts.running(endpoint:contacts).pre.npm_target(global:copious-endpoints).installed(npm)"
                       }
                     }
                   },
@@ -4070,9 +2519,8 @@
                   },
                   "valid_url": false
                 },
-                "path": "contacts.running(enpoint:contacts).post"
+                "path": "contacts.running(endpoint:contacts).post"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded(~/contacts,contact-service.conf)": {
                   "all_ready": false,
@@ -4121,7 +2569,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "contacts.running(enpoint:contacts).post.uploaded(~/contacts,contact-service.conf)"
+                    "path": "contacts.running(endpoint:contacts).post.uploaded(~/contacts,contact-service.conf)"
                   }
                 },
                 "keys(contacts)": {
@@ -4171,7 +2619,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "contacts.running(enpoint:contacts).post.keys(contacts)"
+                    "path": "contacts.running(endpoint:contacts).post.keys(contacts)"
                   }
                 },
                 "bash_op(~/contacts,copious-contacts)": {
@@ -4221,7 +2669,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "contacts.running(enpoint:contacts).post.bash_op(~/contacts,copious-contacts)"
+                    "path": "contacts.running(endpoint:contacts).post.bash_op(~/contacts,copious-contacts)"
                   }
                 }
               },
@@ -4230,7 +2678,7 @@
             }
           },
           "all_ready": false,
-          "key_eval": "running(enpoint:contacts)"
+          "key_eval": "running(endpoint:contacts)"
         }
       },
       "all_ready": false,
@@ -4283,10 +2731,10 @@
     },
     "endpoint-users": {
       "goal_facts": [
-        "running(enpoint:contacts)"
+        "running(endpoint:contacts)"
       ],
       "subgoals": {
-        "running(enpoint:contacts)": {
+        "running(endpoint:contacts)": {
           "binder": {
             "var_info": {
               "top_vars": {
@@ -4331,9 +2779,8 @@
               },
               "valid_url": false
             },
-            "path": "endpoint-users.running(enpoint:contacts)"
+            "path": "endpoint-users.running(endpoint:contacts)"
           },
-          "super_binder": {},
           "subgoals": {
             "pre": {
               "binder": {
@@ -4380,9 +2827,8 @@
                   },
                   "valid_url": false
                 },
-                "path": "endpoint-users.running(enpoint:contacts).pre"
+                "path": "endpoint-users.running(endpoint:contacts).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "npm_target(global:copious-endpoints)": {
                   "binder": {
@@ -4429,12 +2875,11 @@
                       },
                       "valid_url": false
                     },
-                    "path": "endpoint-users.running(enpoint:contacts).pre.npm_target(global:copious-endpoints)",
+                    "path": "endpoint-users.running(endpoint:contacts).pre.npm_target(global:copious-endpoints)",
                     "params": {
                       "*": "global:copious-endpoints"
                     }
                   },
-                  "super_binder": {},
                   "subgoals": {
                     "installed(nodejs)": {
                       "all_ready": false,
@@ -4483,7 +2928,7 @@
                           },
                           "valid_url": false
                         },
-                        "path": "endpoint-users.running(enpoint:contacts).pre.npm_target(global:copious-endpoints).installed(nodejs)"
+                        "path": "endpoint-users.running(endpoint:contacts).pre.npm_target(global:copious-endpoints).installed(nodejs)"
                       }
                     },
                     "installed(npm)": {
@@ -4533,7 +2978,7 @@
                           },
                           "valid_url": false
                         },
-                        "path": "endpoint-users.running(enpoint:contacts).pre.npm_target(global:copious-endpoints).installed(npm)"
+                        "path": "endpoint-users.running(endpoint:contacts).pre.npm_target(global:copious-endpoints).installed(npm)"
                       }
                     }
                   },
@@ -4590,9 +3035,8 @@
                   },
                   "valid_url": false
                 },
-                "path": "endpoint-users.running(enpoint:contacts).post"
+                "path": "endpoint-users.running(endpoint:contacts).post"
               },
-              "super_binder": {},
               "subgoals": {
                 "uploaded(~/contacts,contact-service.conf)": {
                   "all_ready": false,
@@ -4641,7 +3085,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "endpoint-users.running(enpoint:contacts).post.uploaded(~/contacts,contact-service.conf)"
+                    "path": "endpoint-users.running(endpoint:contacts).post.uploaded(~/contacts,contact-service.conf)"
                   }
                 },
                 "keys(contacts)": {
@@ -4691,7 +3135,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "endpoint-users.running(enpoint:contacts).post.keys(contacts)"
+                    "path": "endpoint-users.running(endpoint:contacts).post.keys(contacts)"
                   }
                 },
                 "bash_op(~/contacts,copious-contacts)": {
@@ -4741,7 +3185,7 @@
                       },
                       "valid_url": false
                     },
-                    "path": "endpoint-users.running(enpoint:contacts).post.bash_op(~/contacts,copious-contacts)"
+                    "path": "endpoint-users.running(endpoint:contacts).post.bash_op(~/contacts,copious-contacts)"
                   }
                 }
               },
@@ -4750,7 +3194,7 @@
             }
           },
           "all_ready": false,
-          "key_eval": "running(enpoint:contacts)"
+          "key_eval": "running(endpoint:contacts)"
         }
       },
       "all_ready": false,
@@ -4853,7 +3297,6 @@
             },
             "path": "otw-create.running(of-this-world)"
           },
-          "super_binder": {},
           "subgoals": {
             "pre": {
               "binder": {
@@ -4902,7 +3345,6 @@
                 },
                 "path": "otw-create.running(of-this-world).pre"
               },
-              "super_binder": {},
               "subgoals": {
                 "npm_target(global:of-this-world)": {
                   "binder": {
@@ -4954,7 +3396,6 @@
                       "*": "global:of-this-world"
                     }
                   },
-                  "super_binder": {},
                   "subgoals": {
                     "installed(nodejs)": {
                       "all_ready": false,
@@ -5112,7 +3553,6 @@
                 },
                 "path": "otw-create.running(of-this-world).post(X:.conf)"
               },
-              "super_binder": {},
               "subgoals": {
                 "dirs(X)": {
                   "binder": {
@@ -5161,161 +3601,7 @@
                     },
                     "path": "otw-create.running(of-this-world).post(X:.conf).dirs(X)"
                   },
-                  "subgoals": {
-                    "dirs:X=of-this-world": {
-                      "binder": {
-                        "var_info": {
-                          "top_vars": {
-                            "secret": "9wriw08wrw40su",
-                            "my-mount-otw": "of_this_world",
-                            "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                            "master_stager": "/media/ELEMENTS/prj_assets",
-                            "naming_loc": "/home/naming",
-                            "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                            "master_user": "richard@76.229.181.242",
-                            "master_exec_loc": "/home/richard/distro-op",
-                            "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                            "remote_arrow": "/home/richard/distro-op/for-remotes"
-                          },
-                          "host": {
-                            "addr": "192.168.1.81",
-                            "abbr": "otw-create",
-                            "host": "@home=LAN -- DietPi"
-                          },
-                          "master_host": {
-                            "addr": "76.229.181.242",
-                            "abbr": "home",
-                            "host": "@MASTER -- Mint Linux"
-                          },
-                          "ssh": {
-                            "dns": "@home:LAN -- DietPi",
-                            "user": "root",
-                            "pass": "dietpi"
-                          },
-                          "directories": {
-                            "local": {
-                              "[github]": "~/Documents/GitHub",
-                              "[configs]": "~/Documents/GitHub/configs",
-                              "[sites]": "~/Documents/GitHub/alphas/websites",
-                              "[alphas]": "~/Documents/GitHub/alphas"
-                            },
-                            "remotes": {
-                              "[nginx-e]": "/etc/nginx/sites-enabled",
-                              "[web]": "/var/www/html",
-                              "[home]": "/home"
-                            }
-                          },
-                          "valid_url": false
-                        },
-                        "path": "otw-create.running(of-this-world).post(X:.conf).dirs(X).dirs:X=of-this-world"
-                      },
-                      "super_binder": {},
-                      "subgoals": {
-                        "${master_stager}/humans": {
-                          "all_ready": false,
-                          "key_eval": "/media/ELEMENTS/prj_assets/humans",
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "192.168.1.81",
-                                "abbr": "otw-create",
-                                "host": "@home=LAN -- DietPi"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "@home:LAN -- DietPi",
-                                "user": "root",
-                                "pass": "dietpi"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": false
-                            },
-                            "path": "otw-create.running(of-this-world).post(X:.conf).dirs(X).dirs:X=of-this-world.${master_stager}/humans"
-                          }
-                        },
-                        "~/otw/templates/humans": {
-                          "all_ready": false,
-                          "key_eval": "~/otw/templates/humans",
-                          "binder": {
-                            "var_info": {
-                              "top_vars": {
-                                "secret": "9wriw08wrw40su",
-                                "my-mount-otw": "of_this_world",
-                                "asset_stager": "richard@76.229.181.242:/media/ELEMENTS/prj_assets",
-                                "master_stager": "/media/ELEMENTS/prj_assets",
-                                "naming_loc": "/home/naming",
-                                "master_loc": "richard@76.229.181.242:/home/richard/distro-op",
-                                "master_user": "richard@76.229.181.242",
-                                "master_exec_loc": "/home/richard/distro-op",
-                                "remote_exec_hop": "/home/richard/distro-op/to-remotes",
-                                "remote_arrow": "/home/richard/distro-op/for-remotes"
-                              },
-                              "host": {
-                                "addr": "192.168.1.81",
-                                "abbr": "otw-create",
-                                "host": "@home=LAN -- DietPi"
-                              },
-                              "master_host": {
-                                "addr": "76.229.181.242",
-                                "abbr": "home",
-                                "host": "@MASTER -- Mint Linux"
-                              },
-                              "ssh": {
-                                "dns": "@home:LAN -- DietPi",
-                                "user": "root",
-                                "pass": "dietpi"
-                              },
-                              "directories": {
-                                "local": {
-                                  "[github]": "~/Documents/GitHub",
-                                  "[configs]": "~/Documents/GitHub/configs",
-                                  "[sites]": "~/Documents/GitHub/alphas/websites",
-                                  "[alphas]": "~/Documents/GitHub/alphas"
-                                },
-                                "remotes": {
-                                  "[nginx-e]": "/etc/nginx/sites-enabled",
-                                  "[web]": "/var/www/html",
-                                  "[home]": "/home"
-                                }
-                              },
-                              "valid_url": false
-                            },
-                            "path": "otw-create.running(of-this-world).post(X:.conf).dirs(X).dirs:X=of-this-world.~/otw/templates/humans"
-                          }
-                        }
-                      },
-                      "all_ready": false,
-                      "key_eval": "dirs:X=of-this-world"
-                    }
-                  },
+                  "subgoals": {},
                   "all_ready": false,
                   "key_eval": "dirs(X)"
                 },
