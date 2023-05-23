@@ -1182,61 +1182,17 @@ function parse_var_producer(var_producer) {
 }
 
 
-function is_conditional_value_assignment(str) {
-    if ( str.indexOf('=>') === 0 ) return true
-    return false
-}
-
-function pop_past_value_assigner(str) {
-    let front_str = str.substring(0,2)
-    str = str.substring(2)
-    let rest = ""
-    let n = str.length
-    for ( let i = 0; i < n; i++ ) {
-        let c = str[i]
-        if ( c === '=' ) {  // start of the assignment
-            front_str += '='
-            i++
-            while ( i < n && (c == ' ' || c == '\t')  ) { c = str[i]; i++ }
-            while ( i < n && (c !== ' ' || c !== '\t')  ) { c = str[i]; front_str += c ; i++ }
-            rest = str.substring(i).trim()
-            break;
-        }
-        front_str += c
-    }
-
-    return [front_str,rest]
-}
-
 function pop_and_process_var_producer(code_src) {
-    //
-    code_src = code_src.trim()
-    let [var_producer,restl] = pop_to_unbounded_space(code_src)
-    restl = restl.trim()
-    //
-    if ( is_conditional_value_assignment(restl) ) {
-        let [var_p_continue,rest2] = pop_past_value_assigner(restl)
-        var_producer += var_p_continue
-        restl = rest2
-    }
-
-    while ( restl[0] === '|' ) {
-        var_producer += '|'
-        let [vp2,rest2] = pop_to_unbounded_space(restl.substring(1))
-        var_producer += vp2
-        if ( is_conditional_value_assignment(rest2) ) {
-            let [var_p_continue,rest3] = pop_past_value_assigner(rest2)
-            var_producer += var_p_continue
-            rest2 = rest3
-        }
-    
-        restl = rest2.trim()
-    }
+    let [var_producer,restl] = pop_var_producer(code_src)
     let [vars,ast] = parse_var_producer(var_producer)
     return[vars,ast,restl]
 }
 
-function bind_goal_param(binder,code_src,val_src,depth) {
+
+
+
+
+function bind_goal_param(binder,code_src,val_src) {
     //
     let var_table = {
         "v_type" : "single"
@@ -1283,8 +1239,16 @@ function match_to_subgoals(subg,entry_subgoals,p_binder) {
 }
 
 
-function subgoal_list_to_map(subgoal_list,p_binder,depth) {
+
+
+
+// subgoal_list_to_map
+//
+// all_stacks -- put splits onto all_stacks
+
+function subgoal_list_to_map(subgoal_list,p_binder,stack,all_stacks) {
     let gmap = {}
+    //
     for ( let entry of subgoal_list ) {
         //
         let ky = Object.keys(entry)[0]
@@ -1298,7 +1262,8 @@ function subgoal_list_to_map(subgoal_list,p_binder,depth) {
 
         for ( let gky of popky ) {
 
-            // choose the path belonging to the branch being evaluated
+            // PATH PRUNING HERE....  -- just one case
+            // choose the path belonging to the branch being evaluated  
             if ( /^.*\:[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+\=.*/.test(gky) ) {
                 let check_val = popafter(gky,'=')
                 let binder_ky = gky.substring(gky.indexOf(':')+1,gky.indexOf('='))
@@ -1312,7 +1277,7 @@ function subgoal_list_to_map(subgoal_list,p_binder,depth) {
             let binder = {}
             let subgoals = ""
             if ( is_binder(after_piece) || is_super_binder(after_piece)  ) {
-                let [binder_update,rest_line] = bind_goal_param(p_binder,after_piece,gky,depth)
+                let [binder_update,rest_line] = bind_goal_param(p_binder,after_piece,gky)
                 if ( binder_update ) binder = binder_update
                 if ( rest_line ) after_piece = rest_line
                 else after_piece = ""
@@ -1353,7 +1318,7 @@ function subgoal_list_to_map(subgoal_list,p_binder,depth) {
                     binder = Object.assign(p_binder,binder)
                     subgoal_map[subg] = {
                         binder,
-                        subgoals : subgoal_list_to_map(list_of_subgs,binder,(depth+1))
+                        subgoals : subgoal_list_to_map(list_of_subgs,binder,stack,all_stacks)
                     }
                     //
                 }
@@ -1365,7 +1330,7 @@ function subgoal_list_to_map(subgoal_list,p_binder,depth) {
 console.log("subgoals is a string",subgoals)
                 if ( Array.isArray(entry_subgoals) ) {
                     binder = Object.assign(p_binder,binder)
-                    subgoals = subgoal_list_to_map(entry_subgoals,binder,(depth+1))
+                    subgoals = subgoal_list_to_map(entry_subgoals,binder,stack,all_stacks)
                 } else {
                     subgoals = entry_subgoals
                 }
@@ -1392,6 +1357,63 @@ function has_optional_parameter_structure(rhead) {
     return /.*,\s*\*.*/.test(rhead)
 }
 
+
+
+function is_conditional_value_assignment(str) {
+    if ( str.indexOf('=>') === 0 ) return true
+    return false
+}
+
+function pop_past_value_assigner(str) {
+    let front_str = str.substring(0,2)
+    str = str.substring(2)
+    let rest = ""
+    let n = str.length
+    for ( let i = 0; i < n; i++ ) {
+        let c = str[i]
+        if ( c === '=' ) {  // start of the assignment
+            front_str += '='
+            i++
+            while ( i < n && (c == ' ' || c == '\t')  ) { c = str[i]; i++ }
+            while ( i < n && (c !== ' ' || c !== '\t')  ) { c = str[i]; front_str += c ; i++ }
+            rest = str.substring(i).trim()
+            break;
+        }
+        front_str += c
+    }
+
+    return [front_str,rest]
+}
+
+
+
+function pop_var_producer(code_src) {
+    code_src = code_src.trim()
+    let [var_producer,restl] = pop_to_unbounded_space(code_src)
+    restl = restl.trim()
+    //
+    if ( is_conditional_value_assignment(restl) ) {
+        let [var_p_continue,rest2] = pop_past_value_assigner(restl)
+        var_producer += var_p_continue
+        restl = rest2
+    }
+    //
+    while ( restl[0] === '|' ) {
+        var_producer += '|'
+        let [vp2,rest2] = pop_to_unbounded_space(restl.substring(1))
+        var_producer += vp2
+        if ( is_conditional_value_assignment(rest2) ) {
+            let [var_p_continue,rest3] = pop_past_value_assigner(rest2)
+            var_producer += var_p_continue
+            rest2 = rest3
+        }
+    
+        restl = rest2.trim()
+    }
+
+    return [var_producer,restl]
+}
+
 function form_without_options(rhead) {
     let goal_name = popout(rhead,'(')
     let pars = popafter(rhead,'(')
@@ -1403,12 +1425,126 @@ function form_without_options(rhead) {
 }
 
 
+function has_goal_structure(goal_part) {
+    if ( typeof goal_part === 'string' ) {
+        if ( /.+\(.*\)/.test(goal_part)  ) {
+            return true
+        }
+    }
+    return false
+}
+
+function has_list_structure(goal_part) {
+    if ( typeof goal_part === 'string' ) {
+        if ( /^\[(.+)(,.+)*\]$/.test(goal_part)  ) {
+            return true
+        }
+    }
+    return false
+}
+
+
+function unpack_vars_and_goals(line) {
+    let var_intro = false
+    let goals = []
+    let goal_part = ""
+    if ( line.indexOf('->') === 0 ) {
+        line = line.replace('->','').trim()
+        let [var_produder, restl] = pop_var_producer(line)
+        var_intro = var_produder
+        goal_part = restl
+    } else {
+        goal_part = line
+    }
+    //
+    if ( has_goal_structure(goal_part) ) {
+        goals = toplevel_split(goal_part,',')
+    } else if ( has_list_structure(goal_part) ) {
+        goals = casual_array_to_array(goal_part)
+    }
+    return [var_intro,goals]
+}
+
+
+
+function map_rules_def_to_structure(dtable_rule) {
+    for ( let [rdef,rsubs] of Object.entries(dtable_rule) ) {
+        //
+        let popky = popout(rdef,EOF_KEY)
+        popky = remove_spaces(popky)
+        if ( popky.indexOf('),') > 0 ) {
+            popky = toplevel_split(popky,',')
+        } else popky = [popky]
+        //
+        let after_piece = popafter(rdef,EOF_KEY)
+        after_piece = after_piece.trim()
+        //
+        for ( let rky of popky ) {
+            let subs = clonify(rsubs)
+            dtable_rule[rky] = {
+                "rest_line" : after_piece,
+                "subs" : subs
+            }
+            if ( Array.isArray(subs) ) {
+                for ( let sub of subs ) {
+                    map_rules_def_to_structure(sub)
+                }
+            }
+            //
+            let further = dtable_rule[rky]
+            if ( further.rest_line.length ) {
+                let [var_intro,subgoals] = unpack_vars_and_goals(further.rest_line)
+                //
+                further.var_producer = var_intro
+                further.line_goals = subgoals
+                //
+            }
+            delete further.rest_line
+        }
+        //
+        delete dtable_rule[rdef]
+    }
+}
+
+
+
+function pre_process_rules(rules) {
+    let rule_base = {}
+    //
+    for ( let [rb_name,rbase] of Object.entries(rules) ) {
+        rule_base[rb_name] = local_text_substitutions_and_var_table(rbase)
+    }
+    //
+    for ( let [ky,sect] of Object.entries(rule_base) ) {
+
+        let src_txt = sect.converted                // text representation of the rule definitions
+        let rules_of_depth = get_rules_of_depths(src_txt,1)
+        sect.depth_table = rules_of_depth
+        //
+        let n = sect.depth_table.length
+        for ( let i = 0; i < n; i++ ) {
+            let rtxt = sect.depth_table[i]
+            sect.depth_table[i] = {
+                "var_stack" : {},
+                "rule" : r_rule_tree_type_1(rtxt,1)
+            }
+            //
+            let dtable_rule = sect.depth_table[i].rule
+            map_rules_def_to_structure(dtable_rule)
+            //
+        }
+    }
+    //
+    return rule_base
+}
+
+
 
 
 function process_rules(rules) {
     //
-    let depth = 1
     //
+    let all_stacks = {}
     let rule_base = {}
     let optional_parameter_rules = {}
     rule_base.running = local_text_substitutions_and_var_table(rules.running)
@@ -1428,6 +1564,7 @@ function process_rules(rules) {
         let gmap = {}
         sect.goal_map = gmap
         for ( let entry of sect.depth_table ) {
+            //
             let ky = Object.keys(entry)[0]
             let popky = popout(ky,EOF_KEY)
             popky = remove_spaces(popky)
@@ -1436,19 +1573,26 @@ function process_rules(rules) {
             } else popky = [popky]
             //
 
+
             let subgoal_txt = entry[ky]
 
             for ( let gky of popky ) {
+                //
                 let after_piece = popafter(ky,EOF_KEY)
                 after_piece = after_piece.trim()
                 //
+                let stack = {}          // var to stack index
                 let binder = {}
                 let subgoals = ""
+                //
+                all_stacks[gky] = stack
                 if ( is_binder(after_piece) || is_super_binder(after_piece)  ) {
-                    let [binder_update,rest_line] = bind_goal_param(binder,after_piece,gky,depth)
+                    let [binder_update,rest_line] = bind_goal_param(binder,after_piece,gky)
                     if ( binder_update ) binder = binder_update
                     if ( rest_line ) after_piece = rest_line
                     else after_piece = ""
+                    //
+                    custom_stack_push(stack,binder)
                 }
 
                 after_piece = remove_spaces(after_piece)
@@ -1463,7 +1607,7 @@ function process_rules(rules) {
 
                 if ( typeof subgoals === 'string' ) {
                     if ( Array.isArray(subgoal_txt) ) {
-                        subgoals = subgoal_list_to_map(subgoal_txt,binder,(depth+1))
+                        subgoals = subgoal_list_to_map(subgoal_txt,binder,stack,all_stacks)
                     } else {
                         subgoals = subgoal_txt
                     }
@@ -3713,6 +3857,12 @@ let top_level = top_level_sections(confstr)
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let goals_obj = process_goals(top_level.goals)
+
+
+let rule_base = pre_process_rules(top_level.rules)
+console.dir(rule_base,{ depth : null })
+process.exit(0)
+
 let [rules_obj,rules_with_options] = process_rules(top_level.rules)
 //
 //
