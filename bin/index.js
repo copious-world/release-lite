@@ -66,6 +66,18 @@ function clonify(obj) {
 }
 
 
+function popout_parameters(ffrm) {
+    let pars = popout(popafter(ffrm,'('),')')
+    return pars
+}
+
+function popout_var_of_var_form(vfrm) {
+    if ( vfrm[0] === '$' ) vfrm = vfrm.substring(1)
+    let vr = popout(popafter(vfrm,'{'),'}').trim()
+    return vr
+}
+
+
 // toplevel_split
 //
 //  requires that the top level parathentical symbols be removed from a string, e.g. "(a,b(c,d),e)" 
@@ -1444,6 +1456,61 @@ function has_list_structure(goal_part) {
 }
 
 
+function has_selector_structure(producer_part) {
+    let str = producer_part.trim()
+    if ( str[0] === '/' && str.indexOf('\/?') > 0 && str.indexOf('|') > 0 ) {
+        return true
+    }
+    return false
+}
+
+
+function check_for_var_producer(term) {
+    //
+    if ( term.indexOf('(') > 0 ) {
+        let pars = popout(popafter(term,'('),')').trim()
+        if ( pars.length ) {
+            if ( pars.indexOf('->') > 0 ) {
+                let v_producer = {}
+                let p_list = toplevel_split(pars,',')
+                for ( let i = 0; i < p_list.length; i++ ) {
+                    let par = p_list[i]
+                    if ( par.indexOf('->') > 0 ) {
+                        let vparts = par.split('->')
+                        vparts = trimmer(vparts)
+                        let pvr = vparts[1]
+                        let prod_part = vparts[0]
+
+                        if ( has_selector_structure(prod_part) ) {
+                            let selector_pair = pop_selector(prod_part)
+                            let selections = selector_pair[1]
+                            selections = toplevel_split(selections,'|')
+                            prod_part = {
+                                "source" : selector_pair[0]
+                            }
+                            v_producer[pvr] = {
+                                index : (i+1),
+                                "selections" : selections,
+                                producer : prod_part
+                             }     
+                        } else {
+                            v_producer[pvr] = {
+                                index : (i+1),
+                                producer : prod_part
+                             }     
+                        }
+
+                    }
+                }
+                return v_producer
+            }
+        }
+    }
+    //
+    return false
+}
+
+
 function unpack_vars_and_goals(line) {
     let var_intro = false
     let goals = []
@@ -1458,13 +1525,54 @@ function unpack_vars_and_goals(line) {
     }
     //
     if ( has_goal_structure(goal_part) ) {
-        goals = toplevel_split(goal_part,',')
+        let g_list = toplevel_split(goal_part,',')
+        g_list = g_list.map( g_term => {
+            let gpair = {}
+            let v_producer = check_for_var_producer(g_term)
+            gpair[g_term] = {
+                "var_producer" : v_producer,
+                "subs" : "terminus"
+            }
+            return gpair
+        })
+        goals = {
+            "use" : "subgoals",
+            "subs" : g_list
+        }
     } else if ( has_list_structure(goal_part) ) {
-        goals = casual_array_to_array(goal_part)
+        goals = {
+            "use" : "p-list",
+            "list" : casual_array_to_array(goal_part)
+        }
     }
     return [var_intro,goals]
 }
 
+
+function marked_match(sub,marker) {
+    let ky = Object.keys(sub)[0]
+    if ( ky.indexOf(marker) === 0 ) return true
+    return false
+}
+
+
+
+function is_var_consumer(rky)  {
+    //
+    if ( /^.*\(\..*\:.+\)/.test(rky) || /^.+\:.+\=/.test(rky) ) return true
+    return false
+}
+
+
+function is_branch_select(rky) {
+    if ( /^.+\:.+\=/.test(rky) ) return true
+    return false
+}
+
+function is_type_filter(rky) {
+    if ( /^.*\(\..*\:.+\)/.test(rky) ) return true
+    return false
+}
 
 
 function map_rules_def_to_structure(dtable_rule) {
@@ -1483,26 +1591,230 @@ function map_rules_def_to_structure(dtable_rule) {
             let subs = clonify(rsubs)
             dtable_rule[rky] = {
                 "rest_line" : after_piece,
+                "var_evals" : {},
                 "subs" : subs
             }
+
+            let further = dtable_rule[rky]
+
+            //
+            if ( is_var_consumer(rky) ) {
+                if ( is_branch_select(rky) ) {
+                    let vr = popout(popafter(rky,':'),'=')
+                    let match = popafter(rky,'=').trim()
+                    if ( further.var_consume === undefined ) further.var_consume = {}
+                    //
+                    further.var_consume[vr] = {
+                        "type"  : "path-select",
+                        "value" : match
+                    }
+                } else if ( is_type_filter(rky) ) {
+                    let vr = popout(popafter(rky,':'),')')
+                    let checker = popout(popafter(rky,'('),':')
+                    if ( further.var_consume === undefined ) further.var_consume = {}
+                    //
+                    further.var_consume[vr] = {
+                        "type"  : "file-type",
+                        "check" : checker
+                    }
+                }
+            }
+            //
             if ( Array.isArray(subs) ) {
                 for ( let sub of subs ) {
                     map_rules_def_to_structure(sub)
                 }
             }
             //
-            let further = dtable_rule[rky]
             if ( further.rest_line.length ) {
                 let [var_intro,subgoals] = unpack_vars_and_goals(further.rest_line)
                 //
                 further.var_producer = var_intro
-                further.line_goals = subgoals
+                if ( ( typeof var_intro === "string" ) && (var_intro.indexOf('*') < 0) && (rky.indexOf('*') < 0 ) ) {
+                    let var_val = popout_parameters(rky)
+                    further.var_evals[var_intro] = var_val
+                }
+
+                //
+                if ( subgoals.use == "p-list" ) {
+                    further.p_list = subgoals.list
+                } else if ( subgoals.use == "subgoals" ) {
+                    if ( further.subs === 'one-line' ) {
+                        further.subs = subgoals.subs
+                    } else {
+                        // merge goals....
+                        let new_subs = []
+                        //
+                        let dominant = subgoals.subs
+                        for ( let dsub_pair of dominant ) {
+                            let dsubkey = Object.keys(dsub_pair)[0]
+                            let dsubinfo = dsub_pair[dsubkey]
+                            //
+                            let marker = popout(dsubkey,'(')
+                            let marked_subs = further.subs.filter( sub => (marked_match(sub,marker)) )
+                            let other_subs = further.subs.filter( sub => (!marked_match(sub,marker)) )
+
+                            //
+                            if ( marked_subs.length ) {
+                                if ( dsubinfo.subs === 'terminus' ) {
+                                    dsubinfo.subs = marked_subs
+                                } else if ( Array.isArray(dsubinfo.subs) ) {
+                                    dsubinfo.subs = dsubinfo.subs.concat(marked_subs)
+                                }
+                                for ( let msub of marked_subs ) {
+                                    msub.dominated = true
+                                }
+                                new_subs.push(dsub_pair)
+                            } else {
+                                new_subs.push(dsub_pair)
+                            }
+                            new_subs = new_subs.concat(other_subs)
+                        }
+                        further.subs = new_subs.filter(sub => !(sub.dominated))
+                    }
+                }
                 //
             }
             delete further.rest_line
         }
         //
         delete dtable_rule[rdef]
+    }
+}
+
+
+
+/*
+            if ( dsubkey.indexOf('${') > 0 ) {   // consumer on the line.. line of subs
+                let dvr = dsubkey.substring(dsubkey.indexOf('${')+2)
+                dvr = dvr.substring(0,dvr.indexOf('}'))
+                if ( dvr ) {
+                    if ( dsubinfo.var_consume === undefined ) dsubinfo.var_consume = {}
+                    dsubinfo.var_consume[dvr] = {
+                        "type"  : "value",
+                        "value" : further.var_consume[dvr]
+                    }
+                }
+            }
+*/
+
+
+function is_subst_var_consumer(frm) {
+    if ( frm.indexOf('${') >= 0 ) return true
+    return false
+}
+
+
+function is_match_var_consumer(frm) {
+    return /^.+\:.+\=/.test(frm)
+}
+
+
+function last_pass_extract_var_consumers(dtable_rule) {
+    if ( !(dtable_rule) ) return
+    if ( typeof dtable_rule === "string" ) return
+    for ( let [rdef,rsub] of Object.entries(dtable_rule) ) {
+        if ( typeof rsub === "object" && rsub.subs ) {
+            //console.log("last_pass_extract_var_consumers",rdef,rsub.var_consume,rsub.var_evals)
+            if ( is_subst_var_consumer(rdef) ) {
+                if ( rsub.var_consume === undefined ) rsub.var_consume = {}
+                let vars = all_var_forms(rdef)
+                for ( let kys in vars ) {
+                    if ( is_subst_var_consumer(kys) ) {
+                        let vr = popout_var_of_var_form(kys)
+                        if ( vr.length === 0 ) {
+                            console.log("ZERO LENGTH VAR ",kys)
+                        } else {
+                            rsub.var_consume[vr] = {
+                                "type" : "value",
+                                "value" : "?"
+                            }
+                        }
+                    }
+                }
+            }
+            for ( let sub of rsub.subs ) {
+                last_pass_extract_var_consumers(sub)
+            }
+        }
+    }
+}
+
+
+
+function is_constant_yielding_form(frm) {
+    if ( /^.*\(/.test(frm) ) return true
+    return false
+}
+
+
+
+function push_constant_values(dtable_rule) {
+    if ( !(dtable_rule) ) return
+    if ( typeof dtable_rule === "string" ) return
+    for ( let [rdef,rsub] of Object.entries(dtable_rule) ) {
+        if ( typeof rsub === "object" && rsub.subs ) {
+            if ( is_constant_yielding_form(rdef) ) {
+                if ( (rsub.var_evals !== undefined) && ( Object.keys(rsub.var_evals).length ) ) {
+//console.dir(rsub.var_evals)
+                    for ( let subm of rsub.subs ) {
+                        for ( let [sky, sub] of Object.entries(subm) ) {
+                            if ( sub.var_consume ) {
+                                for ( let vky in sub.var_consume ) {
+                                    let cval = rsub.var_evals[vky]
+                                    if ( cval !== undefined ) {
+//console.log(sky, vky, cval, sub)
+                                        sub.var_consume[vky].input = cval
+                                        let evaled_goal_marker = ""
+                                        if ( is_subst_var_consumer(sky) ) {
+                                            subst_all(sky,`\${${vky}}`,cval.value)
+                                        } else if ( is_match_var_consumer(sky) &&  (sub.var_consume[vky].type === 'path-select' ) ) {
+                                            let match_val = popafter(sky,'=')
+//console.log("MATCH",match_val,cval.value.value)
+                                            if ( match_val === cval.value.value ) {
+                                                sub.live_path = true
+                                            } else {
+                                                sub.live_path = false
+                                            }
+                                        }
+
+
+                                        sub.real_goal = evaled_goal_marker
+                                        if ( sub.var_evals === undefined ) sub.var_evals = {}
+
+                                        sub.var_evals[vky] = { "type" : "param", "value" : cval }
+                                    }
+                                }
+                            }    
+                        }
+                    }
+
+                    if ( Array.isArray(rsub.subs) ) {
+console.log("Array.isArray(rsub.subs)")
+
+                        rsub.subs = rsub.subs.filter ( subpair => {
+
+                            let kys = Object.keys(subpair)[0]
+                            let sub = subpair[kys]
+
+                            if ( sub.live_path !== undefined ) {
+                                return sub.live_path
+                            }
+                            return true
+                        })
+
+                        rsub.subs.forEach( ss => { console.dir(ss,{depth : null})})
+
+console.log("END Array.isArray(rsub.subs)")
+                    }
+
+
+                    for ( let sub of rsub.subs ) {
+                        push_constant_values(sub)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1531,6 +1843,9 @@ function pre_process_rules(rules) {
             //
             let dtable_rule = sect.depth_table[i].rule
             map_rules_def_to_structure(dtable_rule)
+            //
+            last_pass_extract_var_consumers(dtable_rule)
+            push_constant_values(dtable_rule)
             //
         }
     }
