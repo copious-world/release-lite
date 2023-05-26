@@ -1601,12 +1601,14 @@ function map_rules_def_to_structure(dtable_rule) {
             if ( is_var_consumer(rky) ) {
                 if ( is_branch_select(rky) ) {
                     let vr = popout(popafter(rky,':'),'=')
+                    let op = popout(rky,':')
                     let match = popafter(rky,'=').trim()
                     if ( further.var_consume === undefined ) further.var_consume = {}
                     //
                     further.var_consume[vr] = {
                         "type"  : "path-select",
-                        "value" : match
+                        "value" : match,
+                        "goal_op" : op
                     }
                 } else if ( is_type_filter(rky) ) {
                     let vr = popout(popafter(rky,':'),')')
@@ -1710,6 +1712,11 @@ function is_match_var_consumer(frm) {
 }
 
 
+function is_type_check(frm) {
+    return /^.+\(\..+\:.+\)/.test(frm)
+}
+
+
 function last_pass_extract_var_consumers(dtable_rule) {
     if ( !(dtable_rule) ) return
     if ( typeof dtable_rule === "string" ) return
@@ -1767,19 +1774,26 @@ function push_constant_values(dtable_rule) {
                                         sub.var_consume[vky].input = cval
                                         let evaled_goal_marker = ""
                                         if ( is_subst_var_consumer(sky) ) {
-                                            subst_all(sky,`\${${vky}}`,cval.value)
+                                            evaled_goal_marker = subst_all(sky,`\${${vky}}`,cval.value)
                                         } else if ( is_match_var_consumer(sky) &&  (sub.var_consume[vky].type === 'path-select' ) ) {
                                             let match_val = popafter(sky,'=')
-//console.log("MATCH",match_val,cval.value.value)
                                             if ( match_val === cval.value.value ) {
                                                 sub.live_path = true
+                                                let operative = sub.var_consume[vky].goal_op
+                                                evaled_goal_marker = `${operative} \${p_list} # ${match_val}`
                                             } else {
                                                 sub.live_path = false
                                             }
+                                        } else if ( is_type_check(sky) &&  (sub.var_consume[vky].type === 'file-type' )) {
+                                            let ftype = sub.var_consume[vky].check
+                                            // popout(popafter(sky,'('),':')
+                                            // ftype = '.conf'
+                                            evaled_goal_marker = `${sub.var_consume[vky].input}${ftype}`
+                                            //
                                         }
-
-
                                         sub.real_goal = evaled_goal_marker
+//console.log(sky, "GOAL MARKER",evaled_goal_marker)
+
                                         if ( sub.var_evals === undefined ) sub.var_evals = {}
 
                                         sub.var_evals[vky] = { "type" : "param", "value" : cval }
@@ -1789,9 +1803,7 @@ function push_constant_values(dtable_rule) {
                         }
                     }
 
-                    if ( Array.isArray(rsub.subs) ) {
-console.log("Array.isArray(rsub.subs)")
-
+                    if ( Array.isArray(rsub.subs) ) {           // FILTER : only live paths
                         rsub.subs = rsub.subs.filter ( subpair => {
 
                             let kys = Object.keys(subpair)[0]
@@ -1802,10 +1814,7 @@ console.log("Array.isArray(rsub.subs)")
                             }
                             return true
                         })
-
-                        rsub.subs.forEach( ss => { console.dir(ss,{depth : null})})
-
-console.log("END Array.isArray(rsub.subs)")
+                        //rsub.subs.forEach( ss => { console.dir(ss,{depth : null})})
                     }
 
 
@@ -1817,6 +1826,80 @@ console.log("END Array.isArray(rsub.subs)")
         }
     }
 }
+
+
+function is_unbounded_rule(rdef) {
+    if ( rdef[0] === '?' ) return true
+    return false
+}
+
+
+function r_hunt_match_termini(terminal_list,marker,deeper_rules) {
+    //
+    for ( let rules of deeper_rules ) {
+        for ( let [rk,robj] of Object.entries(rules) ) {
+            if ( robj.subs === 'terminus' ) {
+                if ( rk.indexOf(marker) === 0 ) {
+                    terminal_list.push(rules)
+                }
+            } else if ( robj.subs ) {
+                r_hunt_match_termini(terminal_list,marker,robj.subs)
+            }
+        }
+    }
+    //
+}
+
+
+function hunt_match_termini(terminal_list,marker,rules_of_depth,rdef) {
+    //
+    for ( let rb of rules_of_depth ) {
+        let rules = Object.keys(rb.rule)
+        for ( let rk of rules ) {
+            if ( rk != rdef ) {
+                let robj = rb.rule[rk]
+                if ( robj.subs === 'terminus' ) {
+                    if ( rk.indexOf(marker) === 0 ) {
+                        terminal_list.push(robj)
+                    }
+                } else if ( robj.subs ) {
+                    r_hunt_match_termini(terminal_list,marker,robj.subs)
+                }
+            }
+        }
+    }
+    //
+}
+
+
+// sect.depth_table 
+function bind_unbounded_rules(dtable_rule,rules_of_depth ) {
+    if ( !(dtable_rule) ) return
+    if ( typeof dtable_rule === "string" ) return
+    for ( let [rdef,rsub] of Object.entries(dtable_rule) ) {
+        if ( typeof rsub === "object" && rsub.subs ) {
+            if ( is_unbounded_rule(rdef) ) {
+                let terminal_list = []
+                let marker = rdef.substring(1)
+                marker = popout(marker,'(')
+                hunt_match_termini(terminal_list,marker,rules_of_depth,rdef)
+                if ( terminal_list.length ) {
+                    for ( let terminal of terminal_list ) {
+                        let cpy_dtable_rule = clonify(dtable_rule)
+                        //terminal.subs = [cpy_dtable_rule]
+                        //console.log(terminal)
+                        for ( let [kt,tobj] of Object.entries(terminal) ) {
+                            tobj.subs = [cpy_dtable_rule]
+                        }
+                        push_constant_values(terminal)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 
 
 
@@ -1848,10 +1931,18 @@ function pre_process_rules(rules) {
             push_constant_values(dtable_rule)
             //
         }
+
+        for ( let i = 0; i < n; i++ ) {
+            let dtable_rule = sect.depth_table[i].rule
+            bind_unbounded_rules(dtable_rule,rules_of_depth)
+        }
     }
     //
     return rule_base
 }
+
+
+
 
 
 
@@ -1887,8 +1978,7 @@ function process_rules(rules) {
                 popky = toplevel_split(popky,',')
             } else popky = [popky]
             //
-
-
+            //
             let subgoal_txt = entry[ky]
 
             for ( let gky of popky ) {
