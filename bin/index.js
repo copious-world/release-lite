@@ -1717,6 +1717,13 @@ function is_type_check(frm) {
 }
 
 
+
+function is_def_table_var(vr) {
+    if ( vr.indexOf('.') > 0 ) return true
+    return false
+}
+
+
 function last_pass_extract_var_consumers(dtable_rule) {
     if ( !(dtable_rule) ) return
     if ( typeof dtable_rule === "string" ) return
@@ -1732,9 +1739,16 @@ function last_pass_extract_var_consumers(dtable_rule) {
                         if ( vr.length === 0 ) {
                             console.log("ZERO LENGTH VAR ",kys)
                         } else {
-                            rsub.var_consume[vr] = {
-                                "type" : "value",
-                                "value" : "?"
+                            if ( is_def_table_var(vr) ) {
+                                rsub.var_consume[kys] = {
+                                    "type" : "def-table",
+                                    "value" : "?"
+                                }
+                            } else {
+                                rsub.var_consume[vr] = {
+                                    "type" : "value",
+                                    "value" : "?"
+                                }    
                             }
                         }
                     }
@@ -1872,6 +1886,62 @@ function hunt_match_termini(terminal_list,marker,rules_of_depth,rdef) {
 }
 
 
+function pair_parts(sub) {
+    let sub_ky = Object.keys(sub)[0]
+    let sub_obj = sub[sub_ky]
+    return [sub_ky,sub_obj]
+}
+
+
+function extract_rule_var_value(subst_var,parent_key,parent_obj,rkey,rule,v_info) {
+    //
+    if ( parent_obj.var_consume || parent_obj.var_producer ) {
+        if ( parent_obj.var_consume ) {
+            for ( let [vc,vobj] of Object.entries(parent_obj.var_consume) ) {
+                if ( vobj.type === 'def-table' ) {
+                    let var_val = vc
+                    let sub = false
+                    let new_subs = []
+                    while ( sub = rule.subs.shift() ) {
+                        let [sky,sobj] = pair_parts(sub)
+                        let new_key = subst_all(sky,`\${${subst_var}}`,var_val)
+            //console.log("new_key",`\${subst_var}`,new_key)
+                        let new_sub = {}
+                        new_sub[new_key] = sobj
+                        sobj.real_goal = new_key
+                        new_subs.push(new_sub)
+                    }
+                    rule.subs = new_subs            
+                }
+            }
+        }
+    } else {  // maybe the parent key has a value for the variable...
+        /*
+        console.log("parent_obj > extract_rule_var_value", parent_obj)
+        console.log("1.extract_rule_var_value",rule)
+        console.log("2.extract_rule_var_value: rkey",rkey)
+        console.log("3.extract_rule_var_value",parent_key)
+        console.log(" ---- ---- ",subst_var)
+        */
+        let var_val = popout_parameters(parent_key)
+        let sub = false
+        let new_subs = []
+        while ( sub = rule.subs.shift() ) {
+            let [sky,sobj] = pair_parts(sub)
+            let new_key = subst_all(sky,`\${${subst_var}}`,var_val)
+//console.log("new_key",`\${subst_var}`,new_key)
+            let new_sub = {}
+            new_sub[new_key] = sobj
+            sobj.real_goal = new_key
+            new_subs.push(new_sub)
+        }
+        rule.subs = new_subs
+        //console.log(rule)
+    }
+}
+
+
+
 // sect.depth_table 
 function bind_unbounded_rules(dtable_rule,rules_of_depth ) {
     if ( !(dtable_rule) ) return
@@ -1887,9 +1957,20 @@ function bind_unbounded_rules(dtable_rule,rules_of_depth ) {
                     for ( let terminal of terminal_list ) {
                         let cpy_dtable_rule = clonify(dtable_rule)
                         //terminal.subs = [cpy_dtable_rule]
-                        //console.log(terminal)
+                        let rkey = Object.keys(cpy_dtable_rule)[0]
+                        let rule = cpy_dtable_rule[rkey]
                         for ( let [kt,tobj] of Object.entries(terminal) ) {
-                            tobj.subs = [cpy_dtable_rule]
+                            if ( rule.var_producer ) {
+                                let subst_var = rule.var_producer
+                                if ( typeof subst_var === 'string' ) {
+                                    extract_rule_var_value(subst_var,kt,tobj,rkey,rule)
+                                } else {
+                                    for ( let [svr,v_info] in Object.entries(subst_var) ) {
+                                        extract_rule_var_value(svr,kt,tobj,rkey,rule,v_info)
+                                    }
+                                }
+                            }
+                            tobj.subs = rule.subs
                         }
                         push_constant_values(terminal)
                     }
@@ -1902,8 +1983,23 @@ function bind_unbounded_rules(dtable_rule,rules_of_depth ) {
 
 
 
+function collect_optional_parameter_rules(dtable_rule,opt_rules,rule_heads) {
+    if ( !(dtable_rule) ) return
+    if ( typeof dtable_rule === "string" ) return
+    for ( let [rdef,rsub] of Object.entries(dtable_rule) ) {
+        if ( typeof rsub === "object" && rsub.subs ) {
+            if ( has_optional_parameter_structure(rdef) ) {
+                let deoptionalized = form_without_options(rdef)
+                opt_rules[deoptionalized] = rdef
+            }
+            rule_heads[rdef] = rsub
+        }
+    }
+}
 
-function pre_process_rules(rules) {
+
+
+function pre_process_rules(rules,optional_parameter_rules,rule_heads) {
     let rule_base = {}
     //
     for ( let [rb_name,rbase] of Object.entries(rules) ) {
@@ -1930,6 +2026,9 @@ function pre_process_rules(rules) {
             last_pass_extract_var_consumers(dtable_rule)
             push_constant_values(dtable_rule)
             //
+            if ( optional_parameter_rules ) {
+                collect_optional_parameter_rules(dtable_rule,optional_parameter_rules,rule_heads)
+            }
         }
 
         for ( let i = 0; i < n; i++ ) {
@@ -2138,9 +2237,13 @@ function form_with_options(rhead) {
     pars = pars.substring(0,pars.lastIndexOf(')'))
     pars = toplevel_split(pars,',')
     let first_par = pars.shift()
-    pars = pars.map(par => '*')
-    pars = pars.join(',')
-    return `${goal_name}(${first_par},${pars})`
+    if ( pars.length ) {
+        pars = pars.map(par => '*')
+        pars = pars.join(',')
+        return `${goal_name}(${first_par},${pars})`    
+    } else {
+        return`${goal_name}(${first_par})`
+    }
 }
 
 
@@ -2164,8 +2267,9 @@ function count_entries(plist) {
 // running on a particular machines
 function associate_rules_with_state_goal(goals,rules,rules_optional) {
     //
-    for ( let [ky,g] of Object.entries(goals) ) {
-        g.subgoals = {}
+    for ( let [host_nick_name,g] of Object.entries(goals) ) {
+        console.log("-----",host_nick_name)
+        g.subgoals = {}         // add subgoals to the host's list of goals
         for ( let gf of g.goal_facts ) {
             //
             let rnet = rules[gf]
@@ -2173,9 +2277,13 @@ function associate_rules_with_state_goal(goals,rules,rules_optional) {
             if ( rnet ) {
                 g.subgoals[gf] = rnet
             } else {
-                let optionalized = form_with_options(gf)
-//console.log(optionalized,Object.keys(rules_optional))
-                rnet = rules_optional[optionalized]
+                let opt_key = rules_optional[gf]
+                if ( !opt_key ) {
+                    opt_key = form_with_options(gf)
+                }
+                //
+                rnet = rules[opt_key]
+                //
                 if ( rnet ) {
                     g.subgoals[gf] = rnet
                 } else {
@@ -2185,22 +2293,6 @@ function associate_rules_with_state_goal(goals,rules,rules_optional) {
         }
     }
     //
-    let u_rules = {}
-    let q_rules = Object.keys(rules).filter( rkey => (rkey[0] === '?') )
-    q_rules.forEach(qr => {
-        let ky = qr.substring(1)
-        ky = popout(ky,'(')
-        let params = popafter(qr,'(')
-        params = params.substring(0,params.lastIndexOf(')'))
-        ky += '-' + count_entries(params)
-        let rewritten = Object.assign({},rules[qr])
-        rewritten.params = params
-        u_rules[ky] = rewritten
-        return ky
-     })
-
-    // isolated the rules that will be attached via a sort of unification process...
-    return (u_rules)
 }
 
 
@@ -4262,37 +4354,33 @@ let top_level = top_level_sections(confstr)
 let preamble_obj = process_preamble(top_level.preamble)
 let defs_obj = process_defs(top_level.defs)
 let goals_obj = process_goals(top_level.goals)
-
-
-let rule_base = pre_process_rules(top_level.rules)
-console.dir(rule_base,{ depth : null })
-process.exit(0)
-
-let [rules_obj,rules_with_options] = process_rules(top_level.rules)
-//
 //
 subst_defs_in_scope_vars(preamble_obj,defs_obj)
+associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
 
+//
+let rules_with_options = {}
+let rule_heads = {}
+//
+let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads)
+//console.dir(rule_base,{ depth : null })
+//console.dir(goals_obj,{ depth : null })
+//
+//console.dir(rules_with_options,{ depth : null })
+//console.dir(rule_heads,{ depth : null })
 
-for ( let [ky,rules] of Object.entries(rules_obj) ) {
-    //console.log(ky)
-    //console.dir(rules.goal_map,{ depth: null })
-}
-
-
-// These are the goals object entries for "running" as opposed to the rules_obj entrie
+// associate_rules_with_state_goal
+//
+// Currently, "running" is the only rule context in the test file
 //
 //console.dir(goals_obj,{ depth: null })
 //
-associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
-for ( let [ky,rules] of Object.entries(rules_obj) ) {
-    //console.log(ky)
-    let u_rules = associate_rules_with_state_goal(goals_obj[ky],rules.goal_map,rules_with_options)
-    //
-    find_support_points(u_rules,goals_obj[ky])
+
+console.log("--------------------------------->associate_rules_with_state_goal")
+for ( let [ky,host_map] of Object.entries(goals_obj) ) {
+    console.log(ky)
+    associate_rules_with_state_goal(host_map,rule_heads,rules_with_options)
 }
-
-
 
 initial_state_all_goals(goals_obj)
 value_propogation_all_goals(goals_obj)
@@ -4300,11 +4388,17 @@ value_propogation_all_goals(goals_obj)
 let present_goals = garner_requirements(goals_obj)   // current list of things to do...
 
 //
-fos.output_string("./r_test_output.json",JSON.stringify(rules_obj,null,2))
+fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
 fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
 //
 fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
 //
+
+
+console.dir(goals_obj,{ depth : null })
+
+process.exit(0)
+
 
 
 //
