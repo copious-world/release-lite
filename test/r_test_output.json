@@ -5,621 +5,626 @@
       "www": "$[sites]",
       "configs": "configs"
     },
-    "converted": "!-running(nginx,*)> -> (*,*(Y)) | (*) => Y = default | (*,Y)\n!-- pre>                    apt_op(install nginx)\n!-- post(Y:.conf)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)\n!---uploaded:Z=default>     compositing(default)\n!---uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)\n!- running(human-page-queue), running(of-this-world)> -> X\n!-- pre>                      npm_target(global:of-this-world)\n!-- post(X:.conf)>            dirs(X),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})\n!---dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]\n!---dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]\n!- running(endpoint:contacts)>\n!-- pre>                     npm_target(global:copious-endpoints)\n!-- post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)\n!-?npm_target(*)>           installed(nodejs),installed(npm)\n!-?compositing(*)>  -> Y    roller($[configs]/nginx,${Y})",
+    "converted": "!-running(nginx,*)> -> (*,*(Y)) | (*) => Y = default | (*,Y)\n!-- pre>                    apt_op(install nginx)\n!-- post(.conf:Y)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)\n!---uploaded:Z=default>     compositing(default)\n!---uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)\n!- running(human-page-queue), running(of-this-world)> -> X\n!-- pre>                      npm_target(global:of-this-world)\n!-- post(.conf:X)>            dirs(${X}),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})\n!---dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]\n!---dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]\n!- running(endpoint:contacts)>\n!-- pre>                     npm_target(global:copious-endpoints)\n!-- post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)\n!-?npm_target(*)>           installed(nodejs),installed(npm)\n!-?compositing(*)>  -> Y    roller($[configs]/nginx,${Y})",
     "depth_table": [
       {
-        "running(nginx,*)> -> (*,*(Y)) | (*) => Y = default | (*,Y)": [
-          {
-            "pre>                    apt_op(install nginx)": "one-line"
-          },
-          {
-            "post(Y:.conf)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)": [
+        "var_stack": {},
+        "rule": {
+          "running(nginx,*)": {
+            "var_evals": {},
+            "subs": [
               {
-                "uploaded:Z=default>     compositing(default)": "one-line"
-              },
-              {
-                "uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)": "one-line"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "running(human-page-queue), running(of-this-world)> -> X": [
-          {
-            "pre>                      npm_target(global:of-this-world)": "one-line"
-          },
-          {
-            "post(X:.conf)>            dirs(X),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})": [
-              {
-                "dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]": "one-line"
-              },
-              {
-                "dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]": "one-line"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "running(endpoint:contacts)>": [
-          {
-            "pre>                     npm_target(global:copious-endpoints)": "one-line"
-          },
-          {
-            "post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)": "one-line"
-          }
-        ]
-      },
-      {
-        "?npm_target(*)>           installed(nodejs),installed(npm)": "one-line"
-      },
-      {
-        "?compositing(*)>  -> Y    roller($[configs]/nginx,${Y})": "one-line"
-      }
-    ],
-    "goal_map": {
-      "running(nginx)": {
-        "binder": {
-          "v_list": {
-            "Y": ""
-          },
-          "nginx,*": {
-            "Y": {
-              "v_type": "single",
-              "form": "nginx,*",
-              "ast": {
-                "code": "(*,*(Y))|(*)=> Y = default | (*,Y)",
-                "parts": [
-                  {
-                    "code": "*,*(Y)",
-                    "parts": [
-                      "*",
-                      {
-                        "code": "*(Y)",
-                        "parts": [
-                          "Y"
-                        ],
-                        "f_type": "call",
-                        "vars": {
-                          "Y": ""
-                        }
+                "pre": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "apt_op(install nginx)": {
+                        "var_producer": false,
+                        "subs": "terminus"
                       }
-                    ],
-                    "vars": {
-                      "Y": ""
-                    },
-                    "f_type": "list"
-                  },
-                  {
-                    "code": "*",
-                    "default": "default",
-                    "vars": "Y",
-                    "f_type": "value"
-                  },
-                  {
-                    "code": "*,Y",
-                    "parts": [
-                      "*",
-                      "Y"
-                    ],
-                    "vars": {
-                      "Y": ""
-                    },
-                    "f_type": "list"
-                  }
-                ],
-                "vars": {
-                  "Y": ""
-                },
-                "f_type": "match"
-              }
-            }
-          },
-          "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
-            "type": "select",
-            "selectors": {
-              "Y": ""
-            },
-            "Z": [
-              "${host.host}.conf",
-              "default"
-            ]
-          }
-        },
-        "subgoals": {
-          "pre": {
-            "binder": {},
-            "subgoals": {
-              "apt_op(install nginx)": {
-                "all_ready": false
-              }
-            },
-            "all_ready": false
-          },
-          "post(Y:.conf)": {
-            "binder": {
-              "v_list": {
-                "Y": ""
+                    }
+                  ],
+                  "var_producer": false
+                }
               },
-              "nginx,*": {
-                "Y": {
-                  "v_type": "single",
-                  "form": "nginx,*",
-                  "ast": {
-                    "code": "(*,*(Y))|(*)=> Y = default | (*,Y)",
-                    "parts": [
-                      {
-                        "code": "*,*(Y)",
-                        "parts": [
-                          "*",
-                          {
-                            "code": "*(Y)",
-                            "parts": [
-                              "Y"
+              {
+                "post(.conf:Y)": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
+                        "var_producer": {
+                          "Z": {
+                            "index": 2,
+                            "selections": [
+                              "${host.host}.conf",
+                              "default"
                             ],
-                            "f_type": "call",
-                            "vars": {
-                              "Y": ""
+                            "producer": {
+                              "source": "Y"
                             }
                           }
-                        ],
-                        "vars": {
-                          "Y": ""
                         },
-                        "f_type": "list"
-                      },
-                      {
-                        "code": "*",
-                        "default": "default",
-                        "vars": "Y",
-                        "f_type": "value"
-                      },
-                      {
-                        "code": "*,Y",
-                        "parts": [
-                          "*",
-                          "Y"
-                        ],
-                        "vars": {
-                          "Y": ""
-                        },
-                        "f_type": "list"
-                      }
-                    ],
-                    "vars": {
-                      "Y": ""
-                    },
-                    "f_type": "match"
-                  }
-                }
-              },
-              "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
-                "type": "select",
-                "selectors": {
-                  "Y": ""
-                },
-                "Z": [
-                  "${host.host}.conf",
-                  "default"
-                ]
-              }
-            },
-            "subgoals": {
-              "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
-                "binder": {
-                  "v_list": {
-                    "Y": ""
-                  },
-                  "nginx,*": {
-                    "Y": {
-                      "v_type": "single",
-                      "form": "nginx,*",
-                      "ast": {
-                        "code": "(*,*(Y))|(*)=> Y = default | (*,Y)",
-                        "parts": [
+                        "subs": [
                           {
-                            "code": "*,*(Y)",
-                            "parts": [
-                              "*",
-                              {
-                                "code": "*(Y)",
-                                "parts": [
-                                  "Y"
-                                ],
-                                "f_type": "call",
-                                "vars": {
-                                  "Y": ""
+                            "uploaded:Z=default": {
+                              "var_evals": {},
+                              "subs": [
+                                {
+                                  "compositing(default)": {
+                                    "var_producer": false,
+                                    "subs": [
+                                      {
+                                        "roller($[configs]/nginx,default)": {
+                                          "var_producer": false,
+                                          "subs": "terminus",
+                                          "var_consume": {
+                                            "Y": {
+                                              "type": "value",
+                                              "value": "?"
+                                            }
+                                          },
+                                          "real_goal": "roller($[configs]/nginx,default)"
+                                        }
+                                      }
+                                    ]
+                                  }
                                 }
-                              }
-                            ],
-                            "vars": {
-                              "Y": ""
+                              ],
+                              "var_consume": {
+                                "Z": {
+                                  "type": "path-select",
+                                  "value": "default",
+                                  "goal_op": "uploaded"
+                                }
+                              },
+                              "var_producer": false
                             },
-                            "f_type": "list"
+                            "dominated": true
                           },
                           {
-                            "code": "*",
-                            "default": "default",
-                            "vars": "Y",
-                            "f_type": "value"
-                          },
-                          {
-                            "code": "*,Y",
-                            "parts": [
-                              "*",
-                              "Y"
-                            ],
-                            "vars": {
-                              "Y": ""
+                            "uploaded:Z=${host.host}.conf": {
+                              "var_evals": {},
+                              "subs": [
+                                {
+                                  "compositing(${host.host}.conf)": {
+                                    "var_producer": false,
+                                    "subs": [
+                                      {
+                                        "roller($[configs]/nginx,${host.host})": {
+                                          "var_producer": false,
+                                          "subs": "terminus",
+                                          "var_consume": {
+                                            "Y": {
+                                              "type": "value",
+                                              "value": "?"
+                                            }
+                                          },
+                                          "real_goal": "roller($[configs]/nginx,${host.host})"
+                                        }
+                                      }
+                                    ],
+                                    "var_consume": {
+                                      "${host.host}": {
+                                        "type": "def-table",
+                                        "value": "?"
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "var_consume": {
+                                "Z": {
+                                  "type": "path-select",
+                                  "value": "${host.host}.conf",
+                                  "goal_op": "uploaded"
+                                },
+                                "${host.host}": {
+                                  "type": "def-table",
+                                  "value": "?"
+                                }
+                              },
+                              "var_producer": false
                             },
-                            "f_type": "list"
+                            "dominated": true
                           }
                         ],
-                        "vars": {
-                          "Y": ""
-                        },
-                        "f_type": "match"
+                        "var_consume": {
+                          "${host.host}": {
+                            "type": "def-table",
+                            "value": "?"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "nginx_op(-s reload)": {
+                        "var_producer": false,
+                        "subs": "terminus"
                       }
                     }
-                  },
-                  "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
-                    "type": "select",
-                    "selectors": {
-                      "Y": ""
-                    },
-                    "Z": [
-                      "${host.host}.conf",
-                      "default"
-                    ]
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              },
-              "nginx_op(-s reload)": {
-                "binder": {
-                  "v_list": {
-                    "Y": ""
-                  },
-                  "nginx,*": {
+                  ],
+                  "var_consume": {
                     "Y": {
-                      "v_type": "single",
-                      "form": "nginx,*",
-                      "ast": {
-                        "code": "(*,*(Y))|(*)=> Y = default | (*,Y)",
-                        "parts": [
+                      "type": "file-type",
+                      "check": ".conf"
+                    }
+                  },
+                  "var_producer": false
+                }
+              }
+            ],
+            "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
+            "all_ready": false
+          }
+        }
+      },
+      {
+        "var_stack": {},
+        "rule": {
+          "running(human-page-queue)": {
+            "var_evals": {
+              "X": "human-page-queue"
+            },
+            "subs": [
+              {
+                "pre": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "npm_target(global:of-this-world)": {
+                        "var_producer": false,
+                        "subs": [
                           {
-                            "code": "*,*(Y)",
-                            "parts": [
-                              "*",
-                              {
-                                "code": "*(Y)",
-                                "parts": [
-                                  "Y"
-                                ],
-                                "f_type": "call",
-                                "vars": {
-                                  "Y": ""
+                            "installed(nodejs)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          },
+                          {
+                            "installed(npm)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "var_producer": false
+                }
+              },
+              {
+                "post(.conf:X)": {
+                  "var_evals": {
+                    "X": {
+                      "type": "param",
+                      "value": "human-page-queue"
+                    }
+                  },
+                  "subs": [
+                    {
+                      "dirs(${X})": {
+                        "var_producer": false,
+                        "subs": [
+                          {
+                            "dirs:X=human-page-queue": {
+                              "var_evals": {
+                                "X": {
+                                  "type": "param",
+                                  "value": {
+                                    "type": "param",
+                                    "value": {
+                                      "type": "param",
+                                      "value": "human-page-queue"
+                                    }
+                                  }
                                 }
-                              }
-                            ],
-                            "vars": {
-                              "Y": ""
+                              },
+                              "subs": "one-line",
+                              "var_consume": {
+                                "X": {
+                                  "type": "path-select",
+                                  "value": "human-page-queue",
+                                  "goal_op": "dirs",
+                                  "input": {
+                                    "type": "param",
+                                    "value": {
+                                      "type": "param",
+                                      "value": "human-page-queue"
+                                    }
+                                  }
+                                }
+                              },
+                              "var_producer": false,
+                              "p_list": [
+                                "~/deposit",
+                                "~/media",
+                                "/var/www/html/people"
+                              ],
+                              "live_path": true,
+                              "real_goal": "dirs ${p_list} # human-page-queue"
                             },
-                            "f_type": "list"
-                          },
-                          {
-                            "code": "*",
-                            "default": "default",
-                            "vars": "Y",
-                            "f_type": "value"
-                          },
-                          {
-                            "code": "*,Y",
-                            "parts": [
-                              "*",
-                              "Y"
-                            ],
-                            "vars": {
-                              "Y": ""
-                            },
-                            "f_type": "list"
+                            "dominated": true
                           }
                         ],
-                        "vars": {
-                          "Y": ""
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
                         },
-                        "f_type": "match"
+                        "real_goal": "dirs(human-page-queue)",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "uploaded(~/, ${X}.conf )": {
+                        "var_producer": false,
+                        "subs": "terminus",
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
+                        },
+                        "real_goal": "uploaded(~/, human-page-queue.conf )",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "bash_op(~/,${X})": {
+                        "var_producer": false,
+                        "subs": "terminus",
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
+                        },
+                        "real_goal": "bash_op(~/,human-page-queue)",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "human-page-queue"
+                            }
+                          }
+                        }
                       }
                     }
+                  ],
+                  "var_consume": {
+                    "X": {
+                      "type": "file-type",
+                      "check": ".conf",
+                      "input": "human-page-queue"
+                    }
                   },
-                  "uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z )": {
-                    "type": "select",
-                    "selectors": {
-                      "Y": ""
+                  "var_producer": false,
+                  "real_goal": "human-page-queue.conf"
+                }
+              }
+            ],
+            "var_producer": "X",
+            "all_ready": false
+          },
+          "running(of-this-world)": {
+            "var_evals": {
+              "X": "of-this-world"
+            },
+            "subs": [
+              {
+                "pre": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "npm_target(global:of-this-world)": {
+                        "var_producer": false,
+                        "subs": [
+                          {
+                            "installed(nodejs)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          },
+                          {
+                            "installed(npm)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "var_producer": false
+                }
+              },
+              {
+                "post(.conf:X)": {
+                  "var_evals": {
+                    "X": {
+                      "type": "param",
+                      "value": "of-this-world"
+                    }
+                  },
+                  "subs": [
+                    {
+                      "dirs(${X})": {
+                        "var_producer": false,
+                        "subs": [
+                          {
+                            "dirs:X=of-this-world": {
+                              "var_evals": {
+                                "X": {
+                                  "type": "param",
+                                  "value": {
+                                    "type": "param",
+                                    "value": {
+                                      "type": "param",
+                                      "value": "of-this-world"
+                                    }
+                                  }
+                                }
+                              },
+                              "subs": "one-line",
+                              "var_consume": {
+                                "X": {
+                                  "type": "path-select",
+                                  "value": "of-this-world",
+                                  "goal_op": "dirs",
+                                  "input": {
+                                    "type": "param",
+                                    "value": {
+                                      "type": "param",
+                                      "value": "of-this-world"
+                                    }
+                                  }
+                                }
+                              },
+                              "var_producer": false,
+                              "p_list": [
+                                "${master_stager}/humans",
+                                "~/otw/templates/humans"
+                              ],
+                              "live_path": true,
+                              "real_goal": "dirs ${p_list} # of-this-world"
+                            },
+                            "dominated": true
+                          }
+                        ],
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        },
+                        "real_goal": "dirs(of-this-world)",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        }
+                      }
                     },
-                    "Z": [
-                      "${host.host}.conf",
-                      "default"
-                    ]
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              }
-            },
-            "all_ready": false
-          }
-        },
-        "all_ready": false
-      },
-      "running(human-page-queue)": {
-        "binder": {
-          "v_list": {
-            "X": ""
-          },
-          "human-page-queue": {
-            "X": {
-              "v_type": "single",
-              "form": "human-page-queue",
-              "ast": "X"
-            }
-          }
-        },
-        "subgoals": {
-          "pre": {
-            "binder": {},
-            "subgoals": {
-              "npm_target(global:of-this-world)": {
-                "binder": {},
-                "subgoals": {
-                  "installed(nodejs)": {
-                    "all_ready": false
+                    {
+                      "uploaded(~/, ${X}.conf )": {
+                        "var_producer": false,
+                        "subs": "terminus",
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        },
+                        "real_goal": "uploaded(~/, of-this-world.conf )",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "bash_op(~/,${X})": {
+                        "var_producer": false,
+                        "subs": "terminus",
+                        "var_consume": {
+                          "X": {
+                            "type": "value",
+                            "value": "?",
+                            "input": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        },
+                        "real_goal": "bash_op(~/,of-this-world)",
+                        "var_evals": {
+                          "X": {
+                            "type": "param",
+                            "value": {
+                              "type": "param",
+                              "value": "of-this-world"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "var_consume": {
+                    "X": {
+                      "type": "file-type",
+                      "check": ".conf",
+                      "input": "of-this-world"
+                    }
                   },
-                  "installed(npm)": {
-                    "all_ready": false
-                  }
-                },
-                "params": "*",
-                "all_ready": false
-              }
-            },
-            "all_ready": false
-          },
-          "post(X:.conf)": {
-            "binder": {
-              "v_list": {
-                "X": ""
-              },
-              "human-page-queue": {
-                "X": {
-                  "v_type": "single",
-                  "form": "human-page-queue",
-                  "ast": "X"
+                  "var_producer": false,
+                  "real_goal": "of-this-world.conf"
                 }
               }
-            },
-            "subgoals": {
-              "dirs(X)": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "human-page-queue": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "human-page-queue",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              },
-              "uploaded(~/, ${X}.conf )": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "human-page-queue": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "human-page-queue",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              },
-              "bash_op(~/,${X})": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "human-page-queue": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "human-page-queue",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              }
-            },
+            ],
+            "var_producer": "X",
             "all_ready": false
           }
-        },
-        "all_ready": false
+        }
       },
-      "running(of-this-world)": {
-        "binder": {
-          "v_list": {
-            "X": ""
-          },
-          "of-this-world": {
-            "X": {
-              "v_type": "single",
-              "form": "of-this-world",
-              "ast": "X"
-            }
-          }
-        },
-        "subgoals": {
-          "pre": {
-            "binder": {},
-            "subgoals": {
-              "npm_target(global:of-this-world)": {
-                "binder": {},
-                "subgoals": {
-                  "installed(nodejs)": {
-                    "all_ready": false
-                  },
-                  "installed(npm)": {
-                    "all_ready": false
-                  }
-                },
-                "params": "*",
-                "all_ready": false
-              }
-            },
-            "all_ready": false
-          },
-          "post(X:.conf)": {
-            "binder": {
-              "v_list": {
-                "X": ""
+      {
+        "var_stack": {},
+        "rule": {
+          "running(endpoint:contacts)": {
+            "var_evals": {},
+            "subs": [
+              {
+                "pre": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "npm_target(global:copious-endpoints)": {
+                        "var_producer": false,
+                        "subs": [
+                          {
+                            "installed(nodejs)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          },
+                          {
+                            "installed(npm)": {
+                              "var_producer": false,
+                              "subs": "terminus"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "var_producer": false
+                }
               },
-              "of-this-world": {
-                "X": {
-                  "v_type": "single",
-                  "form": "of-this-world",
-                  "ast": "X"
+              {
+                "post": {
+                  "var_evals": {},
+                  "subs": [
+                    {
+                      "uploaded(~/contacts,contact-service.conf)": {
+                        "var_producer": false,
+                        "subs": "terminus"
+                      }
+                    },
+                    {
+                      "keys(contacts)": {
+                        "var_producer": false,
+                        "subs": "terminus"
+                      }
+                    },
+                    {
+                      "bash_op(~/contacts,copious-contacts)": {
+                        "var_producer": false,
+                        "subs": "terminus"
+                      }
+                    }
+                  ],
+                  "var_producer": false
                 }
               }
-            },
-            "subgoals": {
-              "dirs(X)": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "of-this-world": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "of-this-world",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              },
-              "uploaded(~/, ${X}.conf )": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "of-this-world": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "of-this-world",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              },
-              "bash_op(~/,${X})": {
-                "binder": {
-                  "v_list": {
-                    "X": ""
-                  },
-                  "of-this-world": {
-                    "X": {
-                      "v_type": "single",
-                      "form": "of-this-world",
-                      "ast": "X"
-                    }
-                  }
-                },
-                "subgoals": {},
-                "all_ready": false
-              }
-            },
+            ],
             "all_ready": false
           }
-        },
-        "all_ready": false
+        }
       },
-      "running(endpoint:contacts)": {
-        "binder": {},
-        "subgoals": {
-          "pre": {
-            "binder": {},
-            "subgoals": {
-              "npm_target(global:copious-endpoints)": {
-                "binder": {},
-                "subgoals": {
-                  "installed(nodejs)": {
-                    "all_ready": false
-                  },
-                  "installed(npm)": {
-                    "all_ready": false
+      {
+        "var_stack": {},
+        "rule": {
+          "?npm_target(*)": {
+            "var_evals": {},
+            "subs": [
+              {
+                "installed(nodejs)": {
+                  "var_producer": false,
+                  "subs": "terminus"
+                }
+              },
+              {
+                "installed(npm)": {
+                  "var_producer": false,
+                  "subs": "terminus"
+                }
+              }
+            ],
+            "var_producer": false
+          }
+        }
+      },
+      {
+        "var_stack": {},
+        "rule": {
+          "?compositing(*)": {
+            "var_evals": {},
+            "subs": [
+              {
+                "roller($[configs]/nginx,${Y})": {
+                  "var_producer": false,
+                  "subs": "terminus",
+                  "var_consume": {
+                    "Y": {
+                      "type": "value",
+                      "value": "?"
+                    }
                   }
-                },
-                "params": "*",
-                "all_ready": false
+                }
               }
-            },
-            "all_ready": false
-          },
-          "post": {
-            "binder": {},
-            "subgoals": {
-              "uploaded(~/contacts,contact-service.conf)": {
-                "all_ready": false
-              },
-              "keys(contacts)": {
-                "all_ready": false
-              },
-              "bash_op(~/contacts,copious-contacts)": {
-                "all_ready": false
-              }
-            },
-            "all_ready": false
+            ],
+            "var_producer": "Y"
           }
-        },
-        "all_ready": false
-      },
-      "?npm_target(*)": {
-        "binder": {},
-        "subgoals": [
-          "installed(nodejs)",
-          "installed(npm)"
-        ]
-      },
-      "?compositing(*)": {
-        "binder": {
-          "v_list": {
-            "Y": ""
-          },
-          "*": {
-            "Y": {
-              "v_type": "single",
-              "form": "*",
-              "ast": "Y"
-            }
-          }
-        },
-        "subgoals": [
-          "roller($[configs]/nginx,${Y})"
-        ]
+        }
       }
-    }
+    ]
   }
 }

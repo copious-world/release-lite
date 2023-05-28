@@ -1,0 +1,200 @@
+[
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "otw",
+      "running(nginx)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "on_reboot([nginx,human-page-queue])": [
+      "running",
+      "otw",
+      "on_reboot([nginx,human-page-queue])"
+    ]
+  },
+  {
+    "schedule(certbot,60000)": [
+      "running",
+      "otw",
+      "schedule(certbot,60000)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "popsong",
+      "running(nginx,popsongnow.com)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "home",
+      "running(nginx)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "running(transition:song_catcher)": [
+      "running",
+      "home",
+      "running(transition:song_catcher)"
+    ]
+  },
+  {
+    "running(endpoint:global_sessions)": [
+      "running",
+      "g_sessions",
+      "running(endpoint:global_sessions)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  }
+]

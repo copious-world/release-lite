@@ -56,6 +56,10 @@ const LOCAL_SUBST_START ='|-'
 const LOCAL_SUBST_END ='-|'
 const EOF_KEY = '>'
 
+let preamble_obj = false
+let defs_obj = false
+let goals_obj = false
+//
 
 /// sections are of these types: act, def, goals
 
@@ -153,23 +157,6 @@ function pop_to_unbounded_space(str) {
     return splits
 }
 
-
-
-const g_out_dir_prefix = './scripts'
-
-let all_machines_script = './all-machines.conf'
-
-let confstr = fs.readFileSync(all_machines_script).toString() // will crash if the file is not in the CWD
-
-let g_cmd_gen_filter = {}
-let filter_json_name = 'save-data/select-machine-actions.json'
-try {
-    let filterstr = fs.readFileSync(filter_json_name).toString() // will do not filtering unless this file is present
-    g_cmd_gen_filter = JSON.parse(filterstr)
-    console.log(filter_json_name + " will be used to selection actions")
-} catch (e) {
-    console.log("All actions will be perormed: " + filter_json_name + " has not been found")
-}
 
 
 
@@ -753,7 +740,6 @@ function attach_defs_to_graph(preamble,defs) {
 
 
 function get_dot_val(lk,access,index) {
-    let i = 0;
     let v = access[lk[0]]
     let n = lk.length
     for ( let i = 1; i < n; i++ ) {
@@ -1706,6 +1692,11 @@ function is_subst_var_consumer(frm) {
     return false
 }
 
+
+function is_subst_dir_consumer(frm) {
+    if ( frm.indexOf('$[') >= 0 ) return true
+    return false
+}
 
 function is_match_var_consumer(frm) {
     return /^.+\:.+\=/.test(frm)
@@ -4041,8 +4032,8 @@ function all_vars_from_host(sky) {
 }
 
 
-function value_transform(sky,binders) {
-    let map_values = binders.var_info
+function value_transform(sky,map_values) {
+    //
     let var_starter = sky.indexOf('$')
     while ( var_starter >= 0 ) {
         let c = sky[var_starter+1]
@@ -4084,6 +4075,7 @@ function value_transform(sky,binders) {
                             let value = map_values.top_vars[vky]
                             sky = subst_all(sky,$var,value)
                         } else {
+                            /*
 console.log(sky,  `@binder=${vky}` )
 console.dir(binders,{ depth: null })
                             let value = `@binder=${vky}`
@@ -4094,6 +4086,7 @@ console.dir(binders,{ depth: null })
                                 }
                             }
                             sky = subst_all(sky,$var,value)
+                            */
                         }
                     }
                     //
@@ -4128,33 +4121,108 @@ function extract_to_binder(params,parent_ky) {
 }
 
 
+function handle_terminal(sky,parent_ky,goal,map_values,depth) {
+
+}
+
+
+// push_constant_values 1760
+
+function subst_global_values(sky,map_values,goal) {
+    //subst_all(sky,`\${${vky}}`,cval.value)
+    //
+    let vars_in_sky = all_var_forms(sky)
+    for ( let vr in vars_in_sky ) {
+
+        if ( vr.indexOf('.') > 0 ) {
+            vr = popout_var_of_var_form(vr)
+            let vpath = vr.split('.')
+            let val = get_dot_val(vpath,map_values)
+            if ( (typeof val === 'string') && (val.length > 0) ) {
+                sky = subst_all(sky,`\${${vr}}`,val)
+            }
+        } else if ( vr.indexOf('$[') === 0 ) {   // handle directory
+            vr = vr.substring(1)
+            let dirs_vars = map_values.directories
+            let val = false
+            if ( vr in dirs_vars.local ) {
+                val = dirs_vars.local[vr]
+            } else if ( vr in dirs_vars.remotes ) {
+                val = dirs_vars.remotes[vr]
+            }
+            if ( (typeof val === 'string') && (val.length > 0) ) {
+                sky = subst_all(sky,`\$${vr}`,val)
+            }
+        } else if ( is_subst_var_consumer(vr) ) {
+            if ( goal && goal.var_consume ) {
+                let vr_plain = popout_var_of_var_form(vr)
+                let vcnsmr = goal.var_consume[vr_plain]
+
+console.log(sky, "vr.indexOf('${')",vr,vr_plain,vcnsmr)
+
+                let val = ""
+                if ( vcnsmr ) {
+                    val = (typeof vcnsmr.input === 'string') ? vcnsmr.input : vcnsmr.input.value
+                    if ( (typeof val === 'string') && (val.length > 0) ) {
+                        sky = subst_all(sky,`${vr}`,val)
+console.log(sky,`\${${vr}}`,val)
+                    }
+                }
+            }
+        }
+    }
+    return sky
+}
+
 
 function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
     //
-    //
     if ( goal ) {
-        if (  goal.binders === undefined ) {
-            goal.binder = {}
+        //
+        let subgs = goal.subgoals
+        if ( subgs ) {
+            console.log("r_value_propogation_all_goals -- has subgoals" ,Object.keys(subgs))
+        } else {
+            if ( goal.subs ) {
+                console.log("r_value_propogation_all_goals -- needs subgoals" ,goal.subs.length)
+                if ( Array.isArray(goal.subs) ) {
+                    subgs = {}
+                    for ( let sub of goal.subs ) {
+                        let [sky,sobj] = pair_parts(sub)
+
+                        if ( is_subst_var_consumer(sky) || is_subst_dir_consumer(sky) ) {
+                            sky =  subst_global_values(sky,map_values,goal)
+                        }
+
+                        let sky_base = sky
+    console.log( "subgoal name         -------->>   ", sky_base )
+                        let i = 1
+                        while ( subgs[sky_base] !== undefined ) {
+                            sky_base = `${sky}_${i}`
+                            i++
+                        }
+                        subgs[sky_base] = sobj
+                    }
+                    goal.subgoals = subgs
+                    delete goal.subs
+                } else {
+                    handle_terminal(sky,parent_ky,goal,map_values,depth)
+                }
+            } else {
+console.log("NO SUBS: ",sky,parent_ky,goal)
+            }
         }
-        goal.binder.var_info  = map_values
-    } else return 
+        // there are subgoals... fix them up... 
+        if ( subgs ) {
+            for ( let [ky,sgoal] of Object.entries(subgs) ) {
+    //console.log("ky,sgoal----",ky)
+                        let vky = ky //value_transform(ky, map_values)
+    //console.log("ky,sgoal----",vky)
+    //console.log("ky,sgoal-------------")
     //
-    goal.binder.path = sky
-    //
-    if ( goal.params ) {
-        console.log(depth, "PARAMS ...", goal.params, parent_ky)
-        goal.binder.params = extract_to_binder(goal.params,parent_ky)
-    }
-    //
-    let subg = goal.subgoals
-    if ( subg ) {
-        for ( let [ky,sgoal] of Object.entries(subg) ) {
-console.log("----",ky)
-                    let vky = value_transform(ky, goal.binder)
-console.log("----",vky)
-console.log("-------------")
-                    sgoal.key_eval = vky
-                    r_value_propogation_all_goals(`${sky}.${ky}`,ky,sgoal,map_values,(depth + 1))
+                sgoal.real_goal = vky
+                r_value_propogation_all_goals(`${sky}.${ky}`,ky,sgoal,map_values,(depth + 1))
+            }
         }
     }
     //
@@ -4165,12 +4233,14 @@ console.log("-------------")
 
 
 function value_propogation_all_goals(goals_obj) {
-    for ( let [ky,all_node_goal] of Object.entries(goals_obj) ) {
-        goals_obj[ky] = clonify(all_node_goal)
+    for ( let [ky,all_node_goal] of Object.entries(goals_obj) ) {   // such as =running from the section def
+        goals_obj[ky] = clonify(all_node_goal)                      // had to make a copy (can be repeated by host(=node))
         all_node_goal = goals_obj[ky]
-        for ( let [sky,sgoal] of Object.entries(all_node_goal) ) {
-            let map_values = all_vars_from_host(sky)
-            r_value_propogation_all_goals(sky,sky,sgoal,map_values,1)
+        for ( let [host_name_abbr,host_node] of Object.entries(all_node_goal) ) {   // these are the nodes
+console.log("value_propogation_all_goals",host_name_abbr)
+            let map_values = all_vars_from_host(host_name_abbr)
+            let hky = host_name_abbr
+            r_value_propogation_all_goals(hky,hky,host_node,map_values,1)
         }
     }
 }
@@ -4183,15 +4253,24 @@ function value_propogation_all_goals(goals_obj) {
 function r_garner_requirements(gky_list,goal,fresh_goal_list) {
     if ( !goal ) return 
     //
-    if ( goal.all_ready === false ) {
+    console.log("garner_requirements",gky_list)
+    console.dir(goal)
+    //
+    if ( goal.all_ready === false || goal.all_ready === undefined ) {
+        if ( goal.all_ready === undefined ) goal.all_ready = false
+        //
         let subg = goal.subgoals
         if ( subg ) {
             for ( let [ky,sgoal] of Object.entries(subg) ) {
-                if ( sgoal.all_ready === false ) {
-                    if ( typeof sgoal.key_eval  === 'string' ) {
-                        ky = sgoal.key_eval
+                if ( sgoal.all_ready === false || sgoal.all_ready === undefined ) {
+                    if ( goal.all_ready === undefined ) goal.all_ready = false
+                    //
+                    if ( typeof sgoal.real_goal  === 'string' ) {
+                        ky = sgoal.real_goal
                     }    
                     if ( !(sgoal.subgoals) ) {
+
+console.log(sgoal)
                         let gpath_info = {}
                         gpath_info[ky] = [...gky_list,ky]
                         fresh_goal_list.push( gpath_info )
@@ -4214,14 +4293,14 @@ function garner_requirements(goals_obj) {
         for ( let [sky,sgoal] of Object.entries(all_node_goal) ) {
             if ( !(sgoal.subgoals) ) {
                 let gpath_info = {}
-                if ( typeof sgoal.key_eval === 'string' ) {
-                    sky = sgoal.key_eval
+                if ( typeof sgoal.real_goal === 'string' ) {
+                    sky = sgoal.real_goal
                 }
                 gpath_info[sky] = [ky,sky]
                 fresh_goal_list.push( gpath_info )
             } else {
-                if ( typeof sgoal.key_eval  === 'string' ) {
-                    sky = sgoal.key_eval
+                if ( typeof sgoal.real_goal  === 'string' ) {
+                    sky = sgoal.real_goal
                 }
                 r_garner_requirements([ky,sky],sgoal,fresh_goal_list)
             }
@@ -4340,177 +4419,105 @@ async function start_arc_traveler(node,graph) {   // assume that scripts to resi
 }
 
 
+const g_out_dir_prefix = './scripts'
+let all_machines_script = './all-machines.conf'
+
 
 //  MAIN PROGRAM STARTS HERE
-
-//
-confstr = eliminate_line_start_comments(confstr,'--')
-confstr = eliminate_empty_lines(confstr)
-confstr = eliminate_line_end_comments(confstr,'\\s+--')
-//
-let top_level = top_level_sections(confstr)
-
-////
-let preamble_obj = process_preamble(top_level.preamble)
-let defs_obj = process_defs(top_level.defs)
-let goals_obj = process_goals(top_level.goals)
-//
-subst_defs_in_scope_vars(preamble_obj,defs_obj)
-associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
-
-//
-let rules_with_options = {}
-let rule_heads = {}
-//
-let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads)
-//console.dir(rule_base,{ depth : null })
-//console.dir(goals_obj,{ depth : null })
-//
-//console.dir(rules_with_options,{ depth : null })
-//console.dir(rule_heads,{ depth : null })
-
-// associate_rules_with_state_goal
-//
-// Currently, "running" is the only rule context in the test file
-//
-//console.dir(goals_obj,{ depth: null })
-//
-
-console.log("--------------------------------->associate_rules_with_state_goal")
-for ( let [ky,host_map] of Object.entries(goals_obj) ) {
-    console.log(ky)
-    associate_rules_with_state_goal(host_map,rule_heads,rules_with_options)
-}
-
-initial_state_all_goals(goals_obj)
-value_propogation_all_goals(goals_obj)
-//
-let present_goals = garner_requirements(goals_obj)   // current list of things to do...
-
-//
-fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
-fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
-//
-fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
-//
-
-
-console.dir(goals_obj,{ depth : null })
-
-process.exit(0)
-
-
-
-//
-let acts_obj = process_acts(top_level.acts,preamble_obj,defs_obj)
-//
-
-
-
-
-
-
-// 
-attach_defs_to_graph(preamble_obj,defs_obj)
-
-let actionable_tree = {}
-let top_order = {
-    "partial" : {},
-    "total" : [],
-    "total_map" : {},
-    "topper_map" : {}
-}
-
-let breadcrumb_map = {}
-
-
-let exec_list = [].concat(preamble_obj.prog.acts)
-
-
-// ----
-
-for ( let ky of exec_list ) {
-    let exec_obj = top_order.partial[ky]
-    if ( exec_obj === undefined ) continue
-    // top_order.total.push(ky)
+async function main_prog() {
     //
-    sub_order_organize(exec_obj,top_order,ky)
-}
 
-
-///
-console.dir(defs_obj,{ depth: null })
-
-
-/*
-//console.dir(preamble_obj,{ depth: null })
-//console.dir(goals_obj,{ depth: null })
-//console.dir(defs_obj,{ depth: null })
-//console.log(JSON.stringify(defs_obj,null,2))
-//console.dir(acts_obj)
-//console.log(JSON.stringify(acts_obj,null,2))
-
-// ----
-//console.log(top_order.total)
-//console.dir(top_order,{ depth: null })
-//console.dir(breadcrumb_map,{ depth: null })
-
-
-
-
-for ( let ky of preamble_obj.prog.acts ) {
-    let target = acts_obj[ky]
-    if ( target === undefined ) continue
-    top_order.partial[ky] = {}
-    if ( target.outputs !== undefined ) {
-        for ( let [addr,output] of Object.entries(target.outputs) ) {
-            //console.log(output)
-            console.log("---------------------------")
-            let tree = depth_line_classifier(output,addr,ky)
-            tree = subordinates_tree_builder(tree,ky)
-            //console.dir(tree,{ depth: null })
-            tree = compile_pass_1(tree,addr)
-            tree = operations_execs_and_movers(tree)
-            tree = operation_movers(tree)
-            //tree = handle_discards(tree)
-            tree = breadcrumbs_and_addresses(tree,addr,breadcrumb_map)
-            tree = capture_actionable(tree,actionable_tree)
-            //console.dir(tree,{ depth: null })
-            console.log("---------------------------")
-            top_order.partial[ky][addr] = {
-                "tree" : tree,
-                "partial" : {}
-            }
-            //
-        }
+    let confstr = fs.readFileSync(all_machines_script).toString() // will crash if the file is not in the CWD
+    
+    let g_cmd_gen_filter = {}
+    let filter_json_name = 'save-data/select-machine-actions.json'
+    try {
+        let filterstr = fs.readFileSync(filter_json_name).toString() // will do not filtering unless this file is present
+        g_cmd_gen_filter = JSON.parse(filterstr)
+        console.log(filter_json_name + " will be used to selection actions")
+    } catch (e) {
+        console.log("All actions will be perormed: " + filter_json_name + " has not been found")
     }
+    
+    //
+    confstr = eliminate_line_start_comments(confstr,'--')
+    confstr = eliminate_empty_lines(confstr)
+    confstr = eliminate_line_end_comments(confstr,'\\s+--')
+    //
+    let top_level = top_level_sections(confstr)
+
+    ////
+    preamble_obj = process_preamble(top_level.preamble)
+    defs_obj = process_defs(top_level.defs)
+    goals_obj = process_goals(top_level.goals)
+    //
+    subst_defs_in_scope_vars(preamble_obj,defs_obj)
+    associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
+
+    //
+    let rules_with_options = {}
+    let rule_heads = {}
+    //
+    let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads)
+    //console.dir(rule_base,{ depth : null })
+    //console.dir(goals_obj,{ depth : null })
+    //
+    //console.dir(rules_with_options,{ depth : null })
+    //console.dir(rule_heads,{ depth : null })
+
+    // associate_rules_with_state_goal
+    //
+    // Currently, "running" is the only rule context in the test file
+    //
+    //console.dir(goals_obj,{ depth: null })
+    //
+
+    console.log("--------------------------------->associate_rules_with_state_goal")
+    for ( let [ky,host_map] of Object.entries(goals_obj) ) {
+        console.log(ky)
+        associate_rules_with_state_goal(host_map,rule_heads,rules_with_options)
+    }
+
+    initial_state_all_goals(goals_obj)
+    console.log("--------------------------------->value_propogation_all_goals")
+    value_propogation_all_goals(goals_obj)
+    //
+    //
+    await fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
+    await fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
+
+    let present_goals = garner_requirements(goals_obj)   // current list of things to do...
+
+    //
+    await fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
+
+
+    /*
+
+    console.log(present_goals.length)
+
+    let prioritized_present_goals = present_goals.sort((a,b) => {
+        let [a_key,a_path] = pair_parts(a)
+        let [b_key,b_path] = pair_parts(b)
+        let a_is_pre = a_path.indexOf('pre') >= 0
+        let b_is_pre = b_path.indexOf('pre') >= 0
+        if ( a_is_pre && b_is_pre ) return(0)
+        if ( a_is_pre ) return -1
+        if ( b_is_pre ) return 1
+        let a_is_post = a_path.indexOf('post') >= 0
+        let b_is_post = b_path.indexOf('post') >= 0
+        if ( a_is_post && b_is_post ) return(0)
+        if ( a_is_post ) return 1
+        if ( b_is_post ) return -1
+        return 0
+    })
+    //
+
+    console.log(prioritized_present_goals.length)
+
+    console.dir(prioritized_present_goals,{ depth : null })
+    */
 }
-*/
 
 
-/*
-// ----
-(async () => {
-
-//console.dir(goals_obj.running,{ depth: null })
-
-    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-    // console.log("--------------actionable_tree--------------------")
-    //
-    // await output_actionable_tree(actionable_tree)
-    //
-    // console.dir(actionable_tree,{ depth: null })
-    // console.dir(defs_obj,{ depth: null })
-    //
-    console.log("----------------------------------")
-    //await traverse_graph(preamble_obj.graph)
-    console.log("----------------------------------")
-    //
-    // await finally_run()  // generate the final run script and submit it to our version of expect...
-    //
-})()
-
-*/
-
-
-// mkdir -p foo/bar/zoo/andsoforth
+main_prog()
