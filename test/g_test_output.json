@@ -9,7 +9,9 @@
       ],
       "subgoals": {
         "running(nginx)": {
-          "var_evals": {},
+          "var_evals": {
+            "Y": "default"
+          },
           "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
           "real_goal": "running(nginx)",
@@ -320,7 +322,9 @@
       ],
       "subgoals": {
         "running(nginx,config(copious.world))": {
-          "var_evals": {},
+          "var_evals": {
+            "Y": "copious.world"
+          },
           "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
           "real_goal": "running(nginx,config(copious.world))",
@@ -461,7 +465,9 @@
       ],
       "subgoals": {
         "running(nginx,popsongnow.com)": {
-          "var_evals": {},
+          "var_evals": {
+            "Y": "popsongnow.com"
+          },
           "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
           "real_goal": "running(nginx,popsongnow.com)",
@@ -603,7 +609,9 @@
       ],
       "subgoals": {
         "running(nginx)": {
-          "var_evals": {},
+          "var_evals": {
+            "Y": "default"
+          },
           "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
           "real_goal": "running(nginx)",

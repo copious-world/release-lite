@@ -4175,6 +4175,150 @@ console.log(sky,`\${${vr}}`,val)
 }
 
 
+const c_puncts = "(){};:,\'\"!@#$%^&*`~"
+
+function is_punctuated(str) {
+    let n = c_puncts.length
+    for ( let i = 0; i < n; i++ ) {
+        let c = c_puncts[i]
+        let i_p = str.indexOf(c) 
+        if ( i_p >= 0 ) return true
+    }
+    return false
+}
+
+
+
+function parse_expr_call(expr) {
+    if ( typeof expr !== 'string' ) return expr
+    if ( expr.indexOf('(') < 0 ) return expr
+    let caller = popout(expr,'(')
+    let params = popout_parameters(expr)
+    let call_tree = {
+        "caller" : caller
+    }
+    if ( params.length ) {
+        if ( params.indexOf(',') > 0 ) {
+            let pseq = toplevel_split(params,',')
+            call_tree.arity = pseq.length
+            call_tree.parts = []
+            for ( let p of pseq ) {
+                let pp = parse_expr_call(p)
+                call_tree.parts.push(pp)
+            }
+        } else {
+            call_tree.arity = 1
+            call_tree.parts = parse_expr_call(params)
+        }
+    } else {
+        call_tree.arity = 0
+    }
+
+    return call_tree
+}
+
+
+function extract_value_map(prod_vars,prod_ast,key_ast) {
+    let match_map = prod_vars
+    let index = key_ast.arity
+    //
+    if ( prod_ast.f_type === 'match' ) {
+        let extractors = []
+        for ( let prt of prod_ast.parts ) {
+            if ( prt.parts && Array.isArray(prt.parts) ) {
+                if ( prt.parts.length === index) {
+                    prt.arity = index
+                    extractors.push(prt)
+                }
+            } else {
+                if ( index === 1 ) {
+                    prt.arity = 1
+                    extractors.push(prt)
+                }
+            }
+        }
+        console.log(extractors)
+        for ( let extrct of extractors ) {
+            if ( extrct.vars ) {
+                if ( extrct.default ) {
+                    match_map[extrct.vars] = extrct.default
+                } else if ( extrct.arity === 1 ) {
+                    match_map[extrct.vars] = key_ast.parts
+                } else {
+                    for ( let i = 0; i < index; i++ ) {
+                        let kpart = key_ast.parts[i]
+                        let ppart = extrct.parts[i]
+                        if ( typeof kpart === typeof ppart ) {
+                            if ( typeof kpart === 'string' ) {
+                                if ( ppart !== '*' ) {
+                                    if ( match_map[ppart] !== undefined ) {
+                                        match_map[ppart] = kpart
+                                    }
+                                }
+                            } else if ( typeof kpart === 'object' ) {
+                                extract_value_map(prod_vars,ppart,kpart)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else if ( prod_ast.f_type === 'call' ) {
+        //
+        let caller = popout(prod_ast.code,'(')
+        if ( caller !== '*' ) {
+            if ( match_map[caller] !== undefined ) {
+                match_map[caller] = key_ast.caller
+            }
+        }
+        if ( typeof key_ast.parts === 'string' ) {
+            let pvar = prod_ast.parts[0]
+            match_map[pvar] = key_ast.parts
+        }
+        
+    }
+
+    return match_map
+}
+
+
+
+function produce_var_while_propogating(var_producer,parent_ky,goal) {
+    //
+    if ( var_producer ) {
+        if ( typeof var_producer === 'string' ) {
+            if ( is_punctuated(var_producer) ) {
+                let [prod_vars,prod_ast] = parse_var_producer(var_producer)
+                let pky_ast = parse_expr_call(parent_ky)
+                //
+                console.log("var_producer",parent_ky,goal.var_producer)
+                console.dir(prod_ast,{ depth : null })
+                console.dir(pky_ast,{ depth : null })
+                let match_map = extract_value_map(prod_vars,prod_ast,pky_ast)
+                //
+                if ( match_map ) {
+                    if ( goal.var_evals === undefined ) goal.var_evals = match_map
+                    else {
+                        for ( let  [pvar,vval] of Object.entries(match_map) ) {
+                            goal.var_evals[pvar] = vval
+                        }
+                        
+                    }    
+                }
+                console.log("---------------------")
+                //
+            } else {
+                console.log("NOT PUNCTUATED:   ",var_producer)
+                console.log("---------------------")
+            }
+        } else {   // more to do here
+
+        }
+
+    }
+}
+
+
 function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
     //
     if ( goal ) {
@@ -4183,8 +4327,11 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
         if ( subgs ) {
             console.log("r_value_propogation_all_goals -- has subgoals" ,Object.keys(subgs))
         } else {
+            
+            produce_var_while_propogating(goal.var_producer,parent_ky,goal)
+
             if ( goal.subs ) {
-                console.log("r_value_propogation_all_goals -- needs subgoals" ,goal.subs.length)
+                //console.log("r_value_propogation_all_goals -- needs subgoals" ,goal.subs.length)
                 if ( Array.isArray(goal.subs) ) {
                     subgs = {}
                     for ( let sub of goal.subs ) {
@@ -4195,7 +4342,7 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                         }
 
                         let sky_base = sky
-    console.log( "subgoal name         -------->>   ", sky_base )
+    //console.log( "subgoal name         -------->>   ", sky_base )
                         let i = 1
                         while ( subgs[sky_base] !== undefined ) {
                             sky_base = `${sky}_${i}`
@@ -4485,14 +4632,15 @@ async function main_prog() {
     //
     await fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
     await fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
-
+    
+  /*
     let present_goals = garner_requirements(goals_obj)   // current list of things to do...
 
     //
     await fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
 
 
-    /*
+  
 
     console.log(present_goals.length)
 
