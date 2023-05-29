@@ -13,23 +13,11 @@
       "running",
       "otw",
       "running(nginx)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,default)",
       "uploaded:Z=default",
       "compositing(default)",
       "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
-    "roller(~/Documents/GitHub/configs/nginx,of-this.world)": [
-      "running",
-      "otw",
-      "running(nginx)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )",
-      "uploaded:Z=of-this.world.conf",
-      "compositing(of-this.world.conf)",
-      "roller(~/Documents/GitHub/configs/nginx,of-this.world)"
     ]
   },
   {
@@ -37,7 +25,7 @@
       "running",
       "otw",
       "running(nginx)",
-      "post(.conf:Y)",
+      "post",
       "nginx_op(-s reload)"
     ]
   },
@@ -66,7 +54,7 @@
       "running",
       "otw",
       "running(human-page-queue)",
-      "post(.conf:X)",
+      "post",
       "dirs(human-page-queue)",
       "dirs:X=human-page-queue"
     ]
@@ -76,7 +64,7 @@
       "running",
       "otw",
       "running(human-page-queue)",
-      "post(.conf:X)",
+      "post",
       "uploaded(~/, human-page-queue.conf )"
     ]
   },
@@ -85,7 +73,7 @@
       "running",
       "otw",
       "running(human-page-queue)",
-      "post(.conf:X)",
+      "post",
       "bash_op(~/,human-page-queue)"
     ]
   },
@@ -113,24 +101,12 @@
     ]
   },
   {
-    "roller(~/Documents/GitHub/configs/nginx,default)": [
-      "running",
-      "copious",
-      "running(nginx,config(copious.world))",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )",
-      "uploaded:Z=default",
-      "compositing(default)",
-      "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
     "roller(~/Documents/GitHub/configs/nginx,copious.world)": [
       "running",
       "copious",
       "running(nginx,config(copious.world))",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,copious.world)",
       "uploaded:Z=copious.world.conf",
       "compositing(copious.world.conf)",
       "roller(~/Documents/GitHub/configs/nginx,copious.world)"
@@ -141,7 +117,7 @@
       "running",
       "copious",
       "running(nginx,config(copious.world))",
-      "post(.conf:Y)",
+      "post",
       "nginx_op(-s reload)"
     ]
   },
@@ -155,24 +131,12 @@
     ]
   },
   {
-    "roller(~/Documents/GitHub/configs/nginx,default)": [
-      "running",
-      "popsong",
-      "running(nginx,popsongnow.com)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )",
-      "uploaded:Z=default",
-      "compositing(default)",
-      "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
     "roller(~/Documents/GitHub/configs/nginx,popsongnow.com)": [
       "running",
       "popsong",
       "running(nginx,popsongnow.com)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,popsongnow.com)",
       "uploaded:Z=popsongnow.com.conf",
       "compositing(popsongnow.com.conf)",
       "roller(~/Documents/GitHub/configs/nginx,popsongnow.com)"
@@ -183,7 +147,7 @@
       "running",
       "popsong",
       "running(nginx,popsongnow.com)",
-      "post(.conf:Y)",
+      "post",
       "nginx_op(-s reload)"
     ]
   },
@@ -201,23 +165,11 @@
       "running",
       "home",
       "running(nginx)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? @MASTER -- Mint Linux.conf | default -> Z )",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,default)",
       "uploaded:Z=default",
       "compositing(default)",
       "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
-    "roller(~/Documents/GitHub/configs/nginx,@MASTER -- Mint Linux)": [
-      "running",
-      "home",
-      "running(nginx)",
-      "post(.conf:Y)",
-      "uploaded(/etc/nginx/sites-enabled, /Y/? @MASTER -- Mint Linux.conf | default -> Z )",
-      "uploaded:Z=@MASTER -- Mint Linux.conf",
-      "compositing(@MASTER -- Mint Linux.conf)",
-      "roller(~/Documents/GitHub/configs/nginx,@MASTER -- Mint Linux)"
     ]
   },
   {
@@ -225,7 +177,7 @@
       "running",
       "home",
       "running(nginx)",
-      "post(.conf:Y)",
+      "post",
       "nginx_op(-s reload)"
     ]
   },
@@ -362,7 +314,7 @@
       "running",
       "otw-create",
       "running(of-this-world)",
-      "post(.conf:X)",
+      "post",
       "dirs(of-this-world)",
       "dirs:X=of-this-world"
     ]
@@ -372,7 +324,7 @@
       "running",
       "otw-create",
       "running(of-this-world)",
-      "post(.conf:X)",
+      "post",
       "uploaded(~/, of-this-world.conf )"
     ]
   },
@@ -381,7 +333,7 @@
       "running",
       "otw-create",
       "running(of-this-world)",
-      "post(.conf:X)",
+      "post",
       "bash_op(~/,of-this-world)"
     ]
   }

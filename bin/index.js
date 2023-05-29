@@ -4945,7 +4945,7 @@ async function main_prog() {
     await fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
     await fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
     
-  /*
+
     let present_goals = garner_requirements(goals_obj)   // current list of things to do...
 
     //
@@ -4976,7 +4976,7 @@ async function main_prog() {
     console.log(prioritized_present_goals.length)
 
     console.dir(prioritized_present_goals,{ depth : null })
-    */
+
 }
 
 
