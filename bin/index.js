@@ -1053,7 +1053,7 @@ function pop_selector(str) {
         let rest = parts[1]
         return [sltr,rest]
     }
-    return ["",vals]
+    return ["",false]
 }
 
 function parameter_to_binder(factoid) {
@@ -1450,6 +1450,19 @@ function has_selector_structure(producer_part) {
     return false
 }
 
+function has_selector_structure_parameter(rule_key) {
+console.log("1 has_selector_structure_parameter",rule_key)
+    let params = popout_parameters(rule_key)
+console.log("2 has_selector_structure_parameter",params)
+    params = toplevel_split(params,',')
+console.log("3 has_selector_structure_parameter",params)
+    for ( let p of params ) {
+        if ( has_selector_structure(p) ) return true
+    }
+    return false
+}
+
+
 
 function check_for_var_producer(term) {
     //
@@ -1466,23 +1479,20 @@ function check_for_var_producer(term) {
                         vparts = trimmer(vparts)
                         let pvr = vparts[1]
                         let prod_part = vparts[0]
-
+                        //
                         if ( has_selector_structure(prod_part) ) {
                             let selector_pair = pop_selector(prod_part)
                             let selections = selector_pair[1]
                             selections = toplevel_split(selections,'|')
-                            prod_part = {
-                                "source" : selector_pair[0]
-                            }
                             v_producer[pvr] = {
-                                index : (i+1),
+                                "index" : (i+1),
                                 "selections" : selections,
-                                producer : prod_part
+                                "source" : selector_pair[0]
                              }     
                         } else {
                             v_producer[pvr] = {
-                                index : (i+1),
-                                producer : prod_part
+                                "index" : (i+1),
+                                "source" : prod_part
                              }     
                         }
 
@@ -1518,6 +1528,14 @@ function unpack_vars_and_goals(line) {
             gpair[g_term] = {
                 "var_producer" : v_producer,
                 "subs" : "terminus"
+            }
+            if ( v_producer  && (typeof v_producer === 'object') ) {
+                for ( let [pky, prod] of Object.entries(v_producer) ) {
+                    if ( prod.selections ) {
+                        if ( gpair[g_term].var_consume === undefined ) gpair[g_term].var_consume = {}
+                        gpair[g_term].var_consume[prod.source] = { 'v_type' : 'selector', 'output' :  pky }
+                    }
+                }
             }
             return gpair
         })
@@ -4140,6 +4158,15 @@ function subst_global_values(sky,map_values,goal) {
             let val = get_dot_val(vpath,map_values)
             if ( (typeof val === 'string') && (val.length > 0) ) {
                 sky = subst_all(sky,`\${${vr}}`,val)
+                if ( goal.var_producer ) {
+                    for ( let [pvr,prod] of Object.entries(goal.var_producer) ) {
+                        let n = prod.selections.length
+                        for ( let i = 0; i < n; i++ ) {
+                            let txt = prod.selections[i]
+                            prod.selections[i] = subst_all(txt,`\${${vr}}`,val)
+                        }
+                    }
+                }            
             }
         } else if ( vr.indexOf('$[') === 0 ) {   // handle directory
             vr = vr.substring(1)
@@ -4157,20 +4184,19 @@ function subst_global_values(sky,map_values,goal) {
             if ( goal && goal.var_consume ) {
                 let vr_plain = popout_var_of_var_form(vr)
                 let vcnsmr = goal.var_consume[vr_plain]
-
-console.log(sky, "vr.indexOf('${')",vr,vr_plain,vcnsmr)
-
                 let val = ""
                 if ( vcnsmr ) {
                     val = (typeof vcnsmr.input === 'string') ? vcnsmr.input : vcnsmr.input.value
                     if ( (typeof val === 'string') && (val.length > 0) ) {
                         sky = subst_all(sky,`${vr}`,val)
-console.log(sky,`\${${vr}}`,val)
                     }
                 }
             }
         }
     }
+
+
+
     return sky
 }
 
@@ -4308,8 +4334,8 @@ function produce_var_while_propogating(var_producer,parent_ky,goal) {
                 console.log("---------------------")
                 //
             } else {
-                console.log("NOT PUNCTUATED:   ",var_producer)
-                console.log("---------------------")
+                //console.log("NOT PUNCTUATED:   ",var_producer)
+                //console.log("---------------------")
             }
         } else {   // more to do here
 
@@ -4317,6 +4343,62 @@ function produce_var_while_propogating(var_producer,parent_ky,goal) {
 
     }
 }
+
+
+
+function value_type_check(params,var_evals,var_consume) {
+    let [ptype,pvar] = params.split(':')
+    ptype = ptype.trim()
+    pvar = pvar.trim()
+    let vinfo = var_consume[pvar]
+
+    if ( vinfo.type ) {
+        if ( ptype === vinfo.check ) return true
+    }
+
+    //
+    return true
+}
+
+
+function value_selection_transform(ky,var_evals,var_consume) {
+
+    if ( is_branch_select(ky) ) {
+
+console.log("BRANCH SELECT:   ",ky)
+
+        let vr = popout(popafter(ky,':'),'=')
+        let op = popout(ky,':')
+        let match = popafter(ky,'=').trim()
+
+
+
+    } else if ( is_type_filter(ky) ) {
+        let stem = popout(ky,'(')
+        let params = popout_parameters(ky)
+        if ( value_type_check(params,var_evals,var_consume) ) {
+            ky = stem
+        }
+    }
+
+    return ky
+}
+
+
+
+function value_selector_transform(sky,sobj,var_evals,var_consume) {
+    //
+    let pars = popout_parameters(sky)
+    pars = toplevel_split(pars,',')
+    for ( let p of pars ) {
+        if ( has_selector_structure(p) ) {
+            console.log("HAS SELECTOR STRUCTURE",p)
+        }
+    }
+
+    return sky
+}
+
 
 
 function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
@@ -4336,9 +4418,31 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                     subgs = {}
                     for ( let sub of goal.subs ) {
                         let [sky,sobj] = pair_parts(sub)
-
+//
                         if ( is_subst_var_consumer(sky) || is_subst_dir_consumer(sky) ) {
                             sky =  subst_global_values(sky,map_values,goal)
+                        }
+                        if ( has_selector_structure_parameter(sky) ) {
+if ( parent_ky === 'post' )  console.log("PARENT IS POST SELECTOR STRUCTURE",sky)
+                            sky = value_selector_transform(sky,sobj,sobj.var_evals,sobj.var_consume)
+                        }
+                        
+                        {
+if ( parent_ky === 'post' )  console.log("PARENT IS POST TRY TRANSFORM",sky)
+
+                            let transformable = false
+                            if ( goal.var_evals && sobj.var_consume ) {
+                                transformable = true
+                                if ( sobj.var_evals === undefined ) sobj.var_evals = {}
+                                for ( let vrkey in sobj.var_consume ) {
+                                    let val = goal.var_evals[vrkey]
+                                    if ( val !== undefined ) {
+                                        sobj.var_evals[vrkey] = val
+                                    }
+                                }
+                            }
+                            console.log("CHECK TRANSFORM -- ky,sobj----",parent_ky,sky,transformable)
+                            sky = transformable ? value_selection_transform(sky,sobj.var_evals,sobj.var_consume) : sky
                         }
 
                         let sky_base = sky
@@ -4351,6 +4455,7 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                         subgs[sky_base] = sobj
                     }
                     goal.subgoals = subgs
+if ( parent_ky === 'post' )  console.dir(subgs)
                     delete goal.subs
                 } else {
                     handle_terminal(sky,parent_ky,goal,map_values,depth)
@@ -4362,10 +4467,10 @@ console.log("NO SUBS: ",sky,parent_ky,goal)
         // there are subgoals... fix them up... 
         if ( subgs ) {
             for ( let [ky,sgoal] of Object.entries(subgs) ) {
-    //console.log("ky,sgoal----",ky)
-                        let vky = ky //value_transform(ky, map_values)
+
+                let vky = ky
     //console.log("ky,sgoal----",vky)
-    //console.log("ky,sgoal-------------")
+    console.log("<<-------------ky,sgoal-------------",parent_ky,ky)
     //
                 sgoal.real_goal = vky
                 r_value_propogation_all_goals(`${sky}.${ky}`,ky,sgoal,map_values,(depth + 1))

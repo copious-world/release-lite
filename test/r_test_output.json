@@ -40,9 +40,7 @@
                               "${host.host}.conf",
                               "default"
                             ],
-                            "producer": {
-                              "source": "Y"
-                            }
+                            "source": "Y"
                           }
                         },
                         "subs": [
@@ -130,6 +128,10 @@
                           }
                         ],
                         "var_consume": {
+                          "Y": {
+                            "v_type": "selector",
+                            "output": "Z"
+                          },
                           "${host.host}": {
                             "type": "def-table",
                             "value": "?"
