@@ -42,6 +42,7 @@ const Goal = require('../lib/goal')
 
 const fs = require('fs')
 const {FileOperations} = require('extra-file-class')
+const { type } = require('os')
 let fos = new FileOperations()
 
 
@@ -2008,7 +2009,7 @@ function collect_optional_parameter_rules(dtable_rule,opt_rules,rule_heads) {
 
 
 
-function pre_process_rules(rules,optional_parameter_rules,rule_heads) {
+function pre_process_rules(rules,optional_parameter_rules,rule_heads,defs_obj) {
     let rule_base = {}
     //
     for ( let [rb_name,rbase] of Object.entries(rules) ) {
@@ -4166,7 +4167,7 @@ function subst_global_values(sky,map_values,goal) {
                             prod.selections[i] = subst_all(txt,`\${${vr}}`,val)
                         }
                     }
-                }            
+                }
             }
         } else if ( vr.indexOf('$[') === 0 ) {   // handle directory
             vr = vr.substring(1)
@@ -4385,25 +4386,223 @@ console.log("BRANCH SELECT:   ",ky)
 }
 
 
+function extract_selection_vars_of_param(param) {
+    let parts = param.split('->')
+    parts = trimmer(parts)
+    let p1 = parts[0].split('/?')
+    p1 = trimmer(p1)
+    let var_in = p1[0].substring(1)
+    let var_out = parts[1]
+    return [var_in,var_out]
+}
 
-function value_selector_transform(sky,sobj,var_evals,var_consume) {
+
+function value_selector_transform(sky,goal,p_goal,var_producer,var_consume) {
     //
     let pars = popout_parameters(sky)
     pars = toplevel_split(pars,',')
-    for ( let p of pars ) {
+    let n = pars.length
+    for ( let i = 0; i < n; i++ ) {
+        p = pars[i]
         if ( has_selector_structure(p) ) {
-            console.log("HAS SELECTOR STRUCTURE",p)
+            if ( p_goal.var_evals ) {
+                let [v_in,v_out] = extract_selection_vars_of_param(p)
+                //
+                let v_val = p_goal.var_evals[v_in]
+                let v_in_info = var_consume[v_in]
+                //
+                if ( (v_in_info.v_type === "selector") && (v_out === v_in_info.output) ) {
+                    if ( goal.var_evals === undefined ) goal.var_evals = {}
+                    goal.var_evals[v_out] = {
+                        "type" : "path-selector",
+                        "value" : v_val
+                    }
+                }
+                //
+                pars[i] = v_val
+            }
+            let new_pars = pars.join(',')    // popout_parameters(sky)
+            let stem = popout(sky,"(")
+            sky = `${stem}(${new_pars})`
         }
     }
-
+    //
     return sky
 }
 
 
+/*
+
+branch_select_var uploaded:Z=default {
+  var_evals: {},
+  subs: [ { 'compositing(default)': [Object] } ],
+  var_consume: { Z: { type: 'path-select', value: 'default', goal_op: 'uploaded' } },
+  var_producer: false
+} {
+  var_producer: { Z: { index: 2, selections: [Array], source: 'Y' } },
+  subs: [
+    { 'uploaded:Z=default': [Object], dominated: true },
+    { 'uploaded:Z=${host.host}.conf': [Object], dominated: true }
+  ],
+  var_consume: {
+    Y: { v_type: 'selector', output: 'Z' },
+    '${host.host}': { type: 'def-table', value: '?' }
+  },
+  var_evals: { Z: { type: 'path-selector', value: 'default' }, Y: 'default' },
+  real_goal: 'uploaded(/etc/nginx/sites-enabled,default)'
+} { Z: { type: 'path-select', value: 'default', goal_op: 'uploaded' } }
+
+
+
+
+
+
+"uploaded:Z=default": {
+    "var_evals": {
+        "Z": {
+            "type": "path-selector",
+            "value": "default"
+        }
+    },
+    "var_consume": {
+        "Z": {
+            "type": "path-select",
+            "value": "default",
+            "goal_op": "uploaded"
+        }
+    },
+    
+*/
+
+function var_from_selector(key) {
+    let a_var = popafter(key,':')
+    a_var = popout(a_var,'=')
+    return a_var.trim()
+}
+
+
+function branch_select_var(sky,sobj,goal,var_consume) {
+
+    console.log("branch_select_var",sky,sobj,goal.var_evals,var_consume)
+
+    let z_var = var_from_selector(sky)
+
+    if ( goal.var_evals && var_consume[z_var] ) {
+        if ( goal.var_evals[z_var].type === "path-selector" && var_consume[z_var].type == "path-select" ) {
+            let check_val = var_consume[z_var].value
+console.log("CHECK BIG",goal.var_evals[z_var].value,check_val)
+            if ( check_val.indexOf(goal.var_evals[z_var].value) === 0 ) return true
+            return false
+        }
+    }
+
+    return true
+}
+
+
+/*
+"var_evals": {
+    "Z": {
+        "type": "path-selector",
+        "value": "default"
+    }
+},
+"var_consume": {
+    "Z": {
+        "type": "path-select",
+        "value": "${host.host}.conf",
+        "goal_op": "uploaded"
+    },
+    "${host.host}": {
+        "type": "def-table",
+        "value": "?"
+    }
+},
+"var_producer": false
+"var_producer": {
+    "Z": {
+        "index": 2,
+        "selections": [
+            "of-this.world.conf",
+            "default"
+        ],
+        "source": "Y"
+    }
+},
+
+"p_list": [
+    "${master_stager}/humans",
+    "~/otw/templates/humans"
+],
+
+
+
+*/
+
+const c_remaining_fields_to_check = [ "var_evals", "var_consume", "var_consume", "p_list" ]
+
+function r_instantiate_remaining_vars_on_fields(obj,map_values,goal) {
+    if ( obj && (typeof obj !== 'string') ) {
+        if ( Array.isArray(obj) ) {
+            let vlist = obj
+            let n = vlist.length
+            for ( let i = 0; i < n; i++ ) {
+                let val = vlist[i]
+                if ( val.indexOf('${') === 0 ) {
+                    if (  val.indexOf('.') > 0 ) {
+                        let i_val = subst_global_values(ky,map_values,goal)
+                        vlist[i] = i_val
+                    } else {
+                        let vmap = map_values.top_vars
+                        let vr = popout_var_of_var_form(val)
+                        let i_val = vmap[vr]
+                        if ( i_val !== undefined ) {
+                            vlist[i] = i_val
+                        }
+                    }
+                }
+            } 
+        } else if ( typeof obj === 'object' ) {
+
+            for ( let ky in obj ) {
+                if ( ky.indexOf('${') === 0 ) {
+                    let val = subst_global_values(ky,map_values,goal)
+                    obj[val] = obj[ky]
+                    delete obj[ky]
+                }
+            }
+            for ( let ky in obj ) {
+                let fval = obj[ky]
+                if ( (typeof fval === 'string') && (fval.indexOf('${') >= 0) ) {
+                    let val = subst_global_values(fval,map_values,goal)
+                    obj[ky] = val
+                } else if ( typeof fval === 'object' ) {
+                    r_instantiate_remaining_vars_on_fields(fval,map_values,goal)
+                }
+            }
+        }
+    }
+
+}
+
+
+function instantiate_remaining_vars_on_fields(goal,map_values) {
+    //
+    for ( let comp of c_remaining_fields_to_check ) {
+        let obj = goal[comp]
+        r_instantiate_remaining_vars_on_fields(obj,map_values,goal)
+    }
+    //
+}
+
+
+// ----------------------------
 
 function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
     //
     if ( goal ) {
+        //
+        instantiate_remaining_vars_on_fields(goal,map_values)
         //
         let subgs = goal.subgoals
         if ( subgs ) {
@@ -4418,13 +4617,21 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                     subgs = {}
                     for ( let sub of goal.subs ) {
                         let [sky,sobj] = pair_parts(sub)
+
+
 //
                         if ( is_subst_var_consumer(sky) || is_subst_dir_consumer(sky) ) {
                             sky =  subst_global_values(sky,map_values,goal)
                         }
+
+                        if ( is_branch_select(sky) ) {
+                            instantiate_remaining_vars_on_fields(sobj,map_values)
+                            if ( !(branch_select_var(sky,sobj,goal,sobj.var_consume)) ) continue
+                        }
+
                         if ( has_selector_structure_parameter(sky) ) {
 if ( parent_ky === 'post' )  console.log("PARENT IS POST SELECTOR STRUCTURE",sky)
-                            sky = value_selector_transform(sky,sobj,sobj.var_evals,sobj.var_consume)
+                            sky = value_selector_transform(sky,sobj,goal,sobj.var_producer,sobj.var_consume)
                         }
                         
                         {
@@ -4710,7 +4917,7 @@ async function main_prog() {
     let rules_with_options = {}
     let rule_heads = {}
     //
-    let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads)
+    let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads,defs_obj)
     //console.dir(rule_base,{ depth : null })
     //console.dir(goals_obj,{ depth : null })
     //

@@ -41,7 +41,7 @@
               "var_producer": false,
               "real_goal": "post",
               "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )": {
+                "uploaded(/etc/nginx/sites-enabled,default)": {
                   "var_producer": {
                     "Z": {
                       "index": 2,
@@ -57,18 +57,27 @@
                       "v_type": "selector",
                       "output": "Z"
                     },
-                    "${host.host}": {
+                    "of-this.world": {
                       "type": "def-table",
                       "value": "?"
                     }
                   },
                   "var_evals": {
+                    "Z": {
+                      "type": "path-selector",
+                      "value": "default"
+                    },
                     "Y": "default"
                   },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled, /Y/? of-this.world.conf | default -> Z )",
+                  "real_goal": "uploaded(/etc/nginx/sites-enabled,default)",
                   "subgoals": {
                     "uploaded:Z=default": {
-                      "var_evals": {},
+                      "var_evals": {
+                        "Z": {
+                          "type": "path-selector",
+                          "value": "default"
+                        }
+                      },
                       "var_consume": {
                         "Z": {
                           "type": "path-select",
@@ -93,49 +102,6 @@
                                 }
                               },
                               "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "uploaded:Z=of-this.world.conf": {
-                      "var_evals": {},
-                      "var_consume": {
-                        "Z": {
-                          "type": "path-select",
-                          "value": "${host.host}.conf",
-                          "goal_op": "uploaded"
-                        },
-                        "${host.host}": {
-                          "type": "def-table",
-                          "value": "?"
-                        }
-                      },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=of-this.world.conf",
-                      "subgoals": {
-                        "compositing(of-this.world.conf)": {
-                          "var_producer": false,
-                          "var_consume": {
-                            "${host.host}": {
-                              "type": "def-table",
-                              "value": "?"
-                            }
-                          },
-                          "var_evals": {},
-                          "real_goal": "compositing(of-this.world.conf)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,of-this.world)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,of-this.world)",
-                              "var_evals": {}
                             }
                           }
                         }
@@ -333,7 +299,7 @@
               "var_producer": false,
               "real_goal": "post",
               "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )": {
+                "uploaded(/etc/nginx/sites-enabled,copious.world)": {
                   "var_producer": {
                     "Z": {
                       "index": 2,
@@ -349,56 +315,34 @@
                       "v_type": "selector",
                       "output": "Z"
                     },
-                    "${host.host}": {
+                    "copious.world": {
                       "type": "def-table",
                       "value": "?"
                     }
                   },
                   "var_evals": {
+                    "Z": {
+                      "type": "path-selector",
+                      "value": "copious.world"
+                    },
                     "Y": "copious.world"
                   },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled, /Y/? copious.world.conf | default -> Z )",
+                  "real_goal": "uploaded(/etc/nginx/sites-enabled,copious.world)",
                   "subgoals": {
-                    "uploaded:Z=default": {
-                      "var_evals": {},
-                      "var_consume": {
+                    "uploaded:Z=copious.world.conf": {
+                      "var_evals": {
                         "Z": {
-                          "type": "path-select",
-                          "value": "default",
-                          "goal_op": "uploaded"
+                          "type": "path-selector",
+                          "value": "copious.world"
                         }
                       },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=default",
-                      "subgoals": {
-                        "compositing(default)": {
-                          "var_producer": false,
-                          "real_goal": "compositing(default)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,default)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "uploaded:Z=copious.world.conf": {
-                      "var_evals": {},
                       "var_consume": {
                         "Z": {
                           "type": "path-select",
-                          "value": "${host.host}.conf",
+                          "value": "copious.world.conf",
                           "goal_op": "uploaded"
                         },
-                        "${host.host}": {
+                        "copious.world": {
                           "type": "def-table",
                           "value": "?"
                         }
@@ -409,7 +353,7 @@
                         "compositing(copious.world.conf)": {
                           "var_producer": false,
                           "var_consume": {
-                            "${host.host}": {
+                            "copious.world": {
                               "type": "def-table",
                               "value": "?"
                             }
@@ -485,7 +429,7 @@
               "var_producer": false,
               "real_goal": "post",
               "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )": {
+                "uploaded(/etc/nginx/sites-enabled,popsongnow.com)": {
                   "var_producer": {
                     "Z": {
                       "index": 2,
@@ -501,56 +445,34 @@
                       "v_type": "selector",
                       "output": "Z"
                     },
-                    "${host.host}": {
+                    "popsongnow.com": {
                       "type": "def-table",
                       "value": "?"
                     }
                   },
                   "var_evals": {
+                    "Z": {
+                      "type": "path-selector",
+                      "value": "popsongnow.com"
+                    },
                     "Y": "popsongnow.com"
                   },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled, /Y/? popsongnow.com.conf | default -> Z )",
+                  "real_goal": "uploaded(/etc/nginx/sites-enabled,popsongnow.com)",
                   "subgoals": {
-                    "uploaded:Z=default": {
-                      "var_evals": {},
-                      "var_consume": {
+                    "uploaded:Z=popsongnow.com.conf": {
+                      "var_evals": {
                         "Z": {
-                          "type": "path-select",
-                          "value": "default",
-                          "goal_op": "uploaded"
+                          "type": "path-selector",
+                          "value": "popsongnow.com"
                         }
                       },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=default",
-                      "subgoals": {
-                        "compositing(default)": {
-                          "var_producer": false,
-                          "real_goal": "compositing(default)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,default)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "uploaded:Z=popsongnow.com.conf": {
-                      "var_evals": {},
                       "var_consume": {
                         "Z": {
                           "type": "path-select",
-                          "value": "${host.host}.conf",
+                          "value": "popsongnow.com.conf",
                           "goal_op": "uploaded"
                         },
-                        "${host.host}": {
+                        "popsongnow.com": {
                           "type": "def-table",
                           "value": "?"
                         }
@@ -561,7 +483,7 @@
                         "compositing(popsongnow.com.conf)": {
                           "var_producer": false,
                           "var_consume": {
-                            "${host.host}": {
+                            "popsongnow.com": {
                               "type": "def-table",
                               "value": "?"
                             }
@@ -638,7 +560,7 @@
               "var_producer": false,
               "real_goal": "post",
               "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled, /Y/? @MASTER -- Mint Linux.conf | default -> Z )": {
+                "uploaded(/etc/nginx/sites-enabled,default)": {
                   "var_producer": {
                     "Z": {
                       "index": 2,
@@ -654,18 +576,27 @@
                       "v_type": "selector",
                       "output": "Z"
                     },
-                    "${host.host}": {
+                    "@MASTER -- Mint Linux": {
                       "type": "def-table",
                       "value": "?"
                     }
                   },
                   "var_evals": {
+                    "Z": {
+                      "type": "path-selector",
+                      "value": "default"
+                    },
                     "Y": "default"
                   },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled, /Y/? @MASTER -- Mint Linux.conf | default -> Z )",
+                  "real_goal": "uploaded(/etc/nginx/sites-enabled,default)",
                   "subgoals": {
                     "uploaded:Z=default": {
-                      "var_evals": {},
+                      "var_evals": {
+                        "Z": {
+                          "type": "path-selector",
+                          "value": "default"
+                        }
+                      },
                       "var_consume": {
                         "Z": {
                           "type": "path-select",
@@ -690,49 +621,6 @@
                                 }
                               },
                               "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "uploaded:Z=@MASTER -- Mint Linux.conf": {
-                      "var_evals": {},
-                      "var_consume": {
-                        "Z": {
-                          "type": "path-select",
-                          "value": "${host.host}.conf",
-                          "goal_op": "uploaded"
-                        },
-                        "${host.host}": {
-                          "type": "def-table",
-                          "value": "?"
-                        }
-                      },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=@MASTER -- Mint Linux.conf",
-                      "subgoals": {
-                        "compositing(@MASTER -- Mint Linux.conf)": {
-                          "var_producer": false,
-                          "var_consume": {
-                            "${host.host}": {
-                              "type": "def-table",
-                              "value": "?"
-                            }
-                          },
-                          "var_evals": {},
-                          "real_goal": "compositing(@MASTER -- Mint Linux.conf)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,@MASTER -- Mint Linux)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,@MASTER -- Mint Linux)",
-                              "var_evals": {}
                             }
                           }
                         }
@@ -976,7 +864,7 @@
                       },
                       "var_producer": false,
                       "p_list": [
-                        "${master_stager}/humans",
+                        "/media/ELEMENTS/prj_assets",
                         "~/otw/templates/humans"
                       ],
                       "live_path": true,
