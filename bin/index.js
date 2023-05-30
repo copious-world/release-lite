@@ -34,6 +34,10 @@ const {
 
 const {path_table} = require('../lib/figure_paths')
 
+
+
+// https://github.com/cheng-zhao/libast
+
 const xops = require('../lib/exec_ops')
 
 
@@ -122,8 +126,7 @@ function toplevel_split(str,delim) {
 
 
 function pop_to_unbounded_space(str) {
-
-
+    // ---- ---- ---- ---- ---- ----
     str = str.trim()
     const delim_s = ' '
     const delim_t = '\t'
@@ -4362,11 +4365,11 @@ function value_type_check(params,var_evals,var_consume) {
 }
 
 
+
+
 function value_selection_transform(ky,var_evals,var_consume) {
 
     if ( is_branch_select(ky) ) {
-
-console.log("BRANCH SELECT:   ",ky)
 
         let vr = popout(popafter(ky,':'),'=')
         let op = popout(ky,':')
@@ -4431,48 +4434,6 @@ function value_selector_transform(sky,goal,p_goal,var_producer,var_consume) {
 }
 
 
-/*
-
-branch_select_var uploaded:Z=default {
-  var_evals: {},
-  subs: [ { 'compositing(default)': [Object] } ],
-  var_consume: { Z: { type: 'path-select', value: 'default', goal_op: 'uploaded' } },
-  var_producer: false
-} {
-  var_producer: { Z: { index: 2, selections: [Array], source: 'Y' } },
-  subs: [
-    { 'uploaded:Z=default': [Object], dominated: true },
-    { 'uploaded:Z=${host.host}.conf': [Object], dominated: true }
-  ],
-  var_consume: {
-    Y: { v_type: 'selector', output: 'Z' },
-    '${host.host}': { type: 'def-table', value: '?' }
-  },
-  var_evals: { Z: { type: 'path-selector', value: 'default' }, Y: 'default' },
-  real_goal: 'uploaded(/etc/nginx/sites-enabled,default)'
-} { Z: { type: 'path-select', value: 'default', goal_op: 'uploaded' } }
-
-
-
-
-
-
-"uploaded:Z=default": {
-    "var_evals": {
-        "Z": {
-            "type": "path-selector",
-            "value": "default"
-        }
-    },
-    "var_consume": {
-        "Z": {
-            "type": "path-select",
-            "value": "default",
-            "goal_op": "uploaded"
-        }
-    },
-    
-*/
 
 function var_from_selector(key) {
     let a_var = popafter(key,':')
@@ -4490,7 +4451,6 @@ function branch_select_var(sky,sobj,goal,var_consume) {
     if ( goal.var_evals && var_consume[z_var] ) {
         if ( goal.var_evals[z_var].type === "path-selector" && var_consume[z_var].type == "path-select" ) {
             let check_val = var_consume[z_var].value
-console.log("CHECK BIG",goal.var_evals[z_var].value,check_val)
             if ( check_val.indexOf(goal.var_evals[z_var].value) === 0 ) return true
             return false
         }
@@ -4499,45 +4459,6 @@ console.log("CHECK BIG",goal.var_evals[z_var].value,check_val)
     return true
 }
 
-
-/*
-"var_evals": {
-    "Z": {
-        "type": "path-selector",
-        "value": "default"
-    }
-},
-"var_consume": {
-    "Z": {
-        "type": "path-select",
-        "value": "${host.host}.conf",
-        "goal_op": "uploaded"
-    },
-    "${host.host}": {
-        "type": "def-table",
-        "value": "?"
-    }
-},
-"var_producer": false
-"var_producer": {
-    "Z": {
-        "index": 2,
-        "selections": [
-            "of-this.world.conf",
-            "default"
-        ],
-        "source": "Y"
-    }
-},
-
-"p_list": [
-    "${master_stager}/humans",
-    "~/otw/templates/humans"
-],
-
-
-
-*/
 
 const c_remaining_fields_to_check = [ "var_evals", "var_consume", "var_consume", "p_list" ]
 
@@ -4618,8 +4539,6 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                     for ( let sub of goal.subs ) {
                         let [sky,sobj] = pair_parts(sub)
 
-
-//
                         if ( is_subst_var_consumer(sky) || is_subst_dir_consumer(sky) ) {
                             sky =  subst_global_values(sky,map_values,goal)
                         }
@@ -4630,13 +4549,10 @@ function r_value_propogation_all_goals(sky,parent_ky,goal,map_values,depth) {
                         }
 
                         if ( has_selector_structure_parameter(sky) ) {
-if ( parent_ky === 'post' )  console.log("PARENT IS POST SELECTOR STRUCTURE",sky)
                             sky = value_selector_transform(sky,sobj,goal,sobj.var_producer,sobj.var_consume)
                         }
                         
                         {
-if ( parent_ky === 'post' )  console.log("PARENT IS POST TRY TRANSFORM",sky)
-
                             let transformable = false
                             if ( goal.var_evals && sobj.var_consume ) {
                                 transformable = true
@@ -4653,7 +4569,6 @@ if ( parent_ky === 'post' )  console.log("PARENT IS POST TRY TRANSFORM",sky)
                         }
 
                         let sky_base = sky
-    //console.log( "subgoal name         -------->>   ", sky_base )
                         let i = 1
                         while ( subgs[sky_base] !== undefined ) {
                             sky_base = `${sky}_${i}`
@@ -4662,7 +4577,6 @@ if ( parent_ky === 'post' )  console.log("PARENT IS POST TRY TRANSFORM",sky)
                         subgs[sky_base] = sobj
                     }
                     goal.subgoals = subgs
-if ( parent_ky === 'post' )  console.dir(subgs)
                     delete goal.subs
                 } else {
                     handle_terminal(sky,parent_ky,goal,map_values,depth)
@@ -4696,7 +4610,6 @@ function value_propogation_all_goals(goals_obj) {
         goals_obj[ky] = clonify(all_node_goal)                      // had to make a copy (can be repeated by host(=node))
         all_node_goal = goals_obj[ky]
         for ( let [host_name_abbr,host_node] of Object.entries(all_node_goal) ) {   // these are the nodes
-console.log("value_propogation_all_goals",host_name_abbr)
             let map_values = all_vars_from_host(host_name_abbr)
             let hky = host_name_abbr
             r_value_propogation_all_goals(hky,hky,host_node,map_values,1)
@@ -4728,8 +4641,6 @@ function r_garner_requirements(gky_list,goal,fresh_goal_list) {
                         ky = sgoal.real_goal
                     }    
                     if ( !(sgoal.subgoals) ) {
-
-console.log(sgoal)
                         let gpath_info = {}
                         gpath_info[ky] = [...gky_list,ky]
                         fresh_goal_list.push( gpath_info )
@@ -4951,11 +4862,6 @@ async function main_prog() {
     //
     await fos.output_string("./present_goals.json",JSON.stringify(present_goals,null,2))
 
-
-  
-
-    console.log(present_goals.length)
-
     let prioritized_present_goals = present_goals.sort((a,b) => {
         let [a_key,a_path] = pair_parts(a)
         let [b_key,b_path] = pair_parts(b)
@@ -4974,7 +4880,6 @@ async function main_prog() {
     //
 
     console.log(prioritized_present_goals.length)
-
     console.dir(prioritized_present_goals,{ depth : null })
 
 }
