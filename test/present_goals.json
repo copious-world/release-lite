@@ -1,32 +1,9 @@
 [
   {
-    "apt_op(install nginx)": [
+    "running(nginx)": [
       "running",
       "otw",
-      "running(nginx)",
-      "pre",
-      "apt_op(install nginx)"
-    ]
-  },
-  {
-    "roller(~/Documents/GitHub/configs/nginx,default)": [
-      "running",
-      "otw",
-      "running(nginx)",
-      "post",
-      "uploaded(/etc/nginx/sites-enabled,default)",
-      "uploaded:Z=default",
-      "compositing(default)",
-      "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
-    "nginx_op(-s reload)": [
-      "running",
-      "otw",
-      "running(nginx)",
-      "post",
-      "nginx_op(-s reload)"
+      "running(nginx)"
     ]
   },
   {
@@ -152,33 +129,10 @@
     ]
   },
   {
-    "apt_op(install nginx)": [
+    "running(nginx)": [
       "running",
       "home",
-      "running(nginx)",
-      "pre",
-      "apt_op(install nginx)"
-    ]
-  },
-  {
-    "roller(~/Documents/GitHub/configs/nginx,default)": [
-      "running",
-      "home",
-      "running(nginx)",
-      "post",
-      "uploaded(/etc/nginx/sites-enabled,default)",
-      "uploaded:Z=default",
-      "compositing(default)",
-      "roller(~/Documents/GitHub/configs/nginx,default)"
-    ]
-  },
-  {
-    "nginx_op(-s reload)": [
-      "running",
-      "home",
-      "running(nginx)",
-      "post",
-      "nginx_op(-s reload)"
+      "running(nginx)"
     ]
   },
   {

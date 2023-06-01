@@ -5,12 +5,12 @@
       "www": "$[sites]",
       "configs": "configs"
     },
-    "converted": "!-running(nginx,*)> -> (*,*(Y)) | (*) => Y = default | (*,Y)\n!-- pre>                    apt_op(install nginx)\n!-- post(.conf:Y)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)\n!---uploaded:Z=default>     compositing(default)\n!---uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)\n!- running(human-page-queue), running(of-this-world)> -> X\n!-- pre>                      npm_target(global:of-this-world)\n!-- post(.conf:X)>            dirs(${X}),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})\n!---dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]\n!---dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]\n!- running(endpoint:contacts)>\n!-- pre>                     npm_target(global:copious-endpoints)\n!-- post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)\n!-?npm_target(*)>           installed(nodejs),installed(npm)\n!-?compositing(*)>  -> Y    roller($[configs]/nginx,${Y})",
+    "converted": "!-running(nginx,@)> -> (@,@(Y)) | (@) => Y = default | (@,Y)\n!-- pre>                    apt_op(install nginx)\n!-- post(.conf:Y)>          uploaded($[nginx-e], /Y/? ${host.host}.conf | default -> Z ), nginx_op(-s reload)\n!---uploaded:Z=default>     compositing(default)\n!---uploaded:Z=${host.host}.conf> compositing(${host.host}.conf)\n!- running(human-page-queue), running(of-this-world)> -> X\n!-- pre>                      npm_target(global:of-this-world)\n!-- post(.conf:X)>            dirs(${X}),  uploaded(~/, ${X}.conf ), bash_op(~/,${X})\n!---dirs:X=human-page-queue>  [~/deposit,~/media,/var/www/html/people]\n!---dirs:X=of-this-world>     [ ${master_stager}/humans, ~/otw/templates/humans ]\n!- running(endpoint:contacts)>\n!-- pre>                     npm_target(global:copious-endpoints)\n!-- post>                    uploaded(~/contacts,contact-service.conf), keys(contacts), bash_op(~/contacts,copious-contacts)\n!-?npm_target(@)>           installed(nodejs),installed(npm)\n!-?compositing(@)>  -> Y    roller($[configs]/nginx,${Y})",
     "depth_table": [
       {
         "var_stack": {},
         "rule": {
-          "running(nginx,*)": {
+          "running(nginx,@)": {
             "var_evals": {},
             "subs": [
               {
@@ -156,7 +156,7 @@
                 }
               }
             ],
-            "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
+            "var_producer": "(@,@(Y))|(@)=> Y = default | (@,Y)",
             "all_ready": false
           }
         }
@@ -584,7 +584,7 @@
       {
         "var_stack": {},
         "rule": {
-          "?npm_target(*)": {
+          "?npm_target(@)": {
             "var_evals": {},
             "subs": [
               {
@@ -607,7 +607,7 @@
       {
         "var_stack": {},
         "rule": {
-          "?compositing(*)": {
+          "?compositing(@)": {
             "var_evals": {},
             "subs": [
               {

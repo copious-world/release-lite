@@ -3,13 +3,16 @@
 // run distributed installation services over ssh
 //
 const {
+    gen_repstr,
     iswhite,
+    is_punctuated,
     strip_front,
+    remove_spaces,
     popout,
     popafter,
     popout_match,
     popout_rest_match,
-    extract_popout,
+    popout_after_index,
     replace_eol,
     has_symbol,
     next_var_form,
@@ -19,6 +22,7 @@ const {
     first_line,
     is_ipv6_at_first,
     is_octet_at_first,
+    extract_all_keys,
     get_end_var_name,
     gulp_section,
     extract_object_field,
@@ -26,27 +30,66 @@ const {
     eliminate_line_start_comments,
     eliminate_line_end_comments,
     eliminate_empty_lines,
+    clonify,
     table_to_objects,
     create_map_object,
     object_list_to_object,
-    remove_spaces
+    casual_array_to_array,
+    casual_array_lines_to_array,
+    r_remove_field,
+    get_dot_val,
+    pair_parts
 } = require('../lib/utilities')
 
 const {path_table} = require('../lib/figure_paths')
 
 
+const {
+    parameter_pop,
+    popout_parameters,
+    popout_var_of_var_form,
+    pop_to_unbounded_space,
+    is_binder,
+    is_super_binder,
+    parameter_is_binder,
+    pop_selector,
+    toplevel_split,
+    get_type_specifier,
+    form_subst,
+    get_type_marker,
+    var_from_selector,
+    extract_selection_vars_of_param,
+
+    print_tree,
+    print_tree_w_order,
+
+    has_optional_parameter_structure,
+    is_conditional_value_assignment,
+    pop_past_value_assigner,
+    pop_var_producer,
+    form_without_options,
+    has_goal_structure,
+    has_list_structure,
+    has_selector_structure,
+    has_selector_structure_parameter,
+
+    is_subst_var_consumer,
+    is_subst_dir_consumer,
+    is_match_var_consumer,
+    is_type_check,
+    is_def_table_var
+
+
+} = require('../lib/parse-tools')
+
 
 // https://github.com/cheng-zhao/libast
-
-const xops = require('../lib/exec_ops')
-
 
 const Goal = require('../lib/goal')
 
 
 const fs = require('fs')
 const {FileOperations} = require('extra-file-class')
-const { type } = require('os')
 let fos = new FileOperations()
 
 
@@ -70,199 +113,10 @@ let goals_obj = false
 
 
 
-function clonify(obj) {
-    return JSON.parse(JSON.stringify(obj))
-}
-
-
-function popout_parameters(ffrm) {
-    let pars = popout(popafter(ffrm,'('),')')
-    return pars
-}
-
-function popout_var_of_var_form(vfrm) {
-    if ( vfrm[0] === '$' ) vfrm = vfrm.substring(1)
-    let vr = popout(popafter(vfrm,'{'),'}').trim()
-    return vr
-}
-
-
-// toplevel_split
-//
-//  requires that the top level parathentical symbols be removed from a string, e.g. "(a,b(c,d),e)" 
-//  should be passed as "a,b(c,d),e"
-
-let starters = "([{"
-let enders = "}])"
-
-function toplevel_split(str,delim) {
-    
-    let cdepth = 0
-    let splits = []
-    let n = str.length
-    let cur_split = ""
-    for ( let i = 0; i < n; i++ ) {
-        let c = str[i]
-        if (( c === delim) && (cdepth === 0) ) {
-            splits.push(cur_split)
-            cur_split = ""
-        } else {
-            if ( starters.indexOf(c) >= 0 ) {
-                cdepth++
-            } else if ( enders.indexOf(c) >= 0 ) {
-                cdepth--
-            }
-            cur_split += c
-        }
-    }
-    //
-    if ( cur_split.length > 0 ) {
-        splits.push(cur_split)
-    }
-    splits = trimmer(splits)
-    //
-    return splits
-}
-
-
-function pop_to_unbounded_space(str) {
-    // ---- ---- ---- ---- ---- ----
-    str = str.trim()
-    const delim_s = ' '
-    const delim_t = '\t'
-
-    let cdepth = 0
-    let splits = []
-    let n = str.length
-    let cur_split = ""
-
-    for ( let i = 0; i < n; i++ ) {
-        let c = str[i]
-        if ( (cdepth === 0) && ( c === delim_s || c === delim_t) ) {
-            splits.push(cur_split.trim())
-            let rest  = str.substring(i+1).trim()
-            splits.push(rest)
-            break
-        } else {
-            if ( starters.indexOf(c) >= 0 ) {
-                cdepth++
-            } else if ( enders.indexOf(c) >= 0 ) {
-                cdepth--
-            }
-            cur_split += c
-        }
-    }
-
-    if ( splits.length < 2 ) {
-        splits.push(cur_split.trim())
-        splits.push("")
-    }
-    //
-    return splits
-}
-
-
 
 
 /// the file is not JSON parseable
 /// special format
-
-
-
-function casual_array_to_array(o_vals) {
-    o_vals = o_vals.trim()
-    if ( o_vals[0] === '[' ) {
-        o_vals = o_vals.substring(1)
-        o_vals = o_vals.replace(']','')
-        //
-        o_vals = o_vals.split(',')
-        o_vals = trimmer(o_vals)
-    }
-    return o_vals 
-}
-
-function casual_array_lines_to_array(arr_lines) {
-    arr_lines = arr_lines.trim()
-    if ( arr_lines[0] === '[' ) {
-        arr_lines = arr_lines.substring(1)
-        arr_lines = arr_lines.substring(0,arr_lines.lastIndexOf(']'))
-    }
-    arr_lines = arr_lines.trim()
-    arr_lines = arr_lines.split('\n')
-    arr_lines = trimmer(arr_lines)
-    arr_lines = arr_lines.filter( line => (line.length > 0) )
-    return arr_lines
-}
-
-function r_remove_field(top,fname) {
-    if ( top[fname] !== undefined ) {
-        delete top[fname]
-    }
-    for ( let val of Object.values(top) ) {
-        if ( typeof val === "object" ) {
-            r_remove_field(val,fname)
-        }
-    }
-    return top
-}
-
-
-function get_type_specifier(str) {
-    let type = str.substring(str.indexOf('('),str.indexOf(')')+1)
-    return type
-}
-
-
-function from_subst(out_str,var_forms,vf_lookup,access,maybe_addr) {
-    for ( let vf in var_forms ) {
-        let lk = [].concat(vf_lookup[vf])
-        //
-        if ( lk[0] !== 'master' ) {
-            lk.splice(1,0,maybe_addr)
-        } else {  // use the address of the master
-            lk.splice(1,0,access.master.addr)
-        }
-        //
-        let val = get_dot_val(lk,access,0)
-        //
-        let starters = out_str.split(vf)
-        out_str = starters.join(val)
-    }
-    return out_str
-}
-
-
-function unpack_values_transform(tmpl_str,maybe_addr) {
-    // --- generalize this
-    let var_forms = all_var_forms(tmpl_str)
-    let sshvals = defs_obj.ssh
-    let hosts = defs_obj.host.by_key.addr
-    let master = defs_obj.host.master
-    master = Object.assign(master,sshvals[master.addr])
-    master[master.addr] = master        /// cicrular but, the indexer uses it
-    let access = {
-        "host" : hosts,
-        "ssh" : sshvals,
-        "master" : master
-    }
-    if ( Object.keys(var_forms).length ) {
-        let unwrapped_vars = Object.keys(var_forms).map(vf => { 
-            let stopper = '}'
-            if ( vf[1] === '[') stopper = ']'
-            let vk = vf.substring(2).replace(stopper,'')
-            let fields = vk.split('.')
-            return [vf,fields]
-        })
-        //
-        let vf_lookup = {}
-        for ( let vfpair of unwrapped_vars ) {
-            vf_lookup[[vfpair[0]]] = vfpair[1]
-        }
-        //
-        tmpl_str = from_subst(tmpl_str,var_forms,vf_lookup,access,maybe_addr)
-    }
-    return tmpl_str
-}
 
 
 
@@ -465,15 +319,6 @@ function process_preamble(preamble) {   // definite def and act section for firs
     }
 
     return sections
-}
-
-function get_type_marker(table_str,deflt) {
-    let table_type = deflt
-    if ( table_str[0] === '(' ) {
-        table_type = table_str.substring(0,table_str.indexOf(')')+1)
-        table_str = table_str.replace(table_type,'').trim()
-    }
-    return [table_type,table_str]
 }
 
 
@@ -742,24 +587,6 @@ function attach_defs_to_graph(preamble,defs) {
 
 
 
-
-function get_dot_val(lk,access,index) {
-    let v = access[lk[0]]
-    let n = lk.length
-    for ( let i = 1; i < n; i++ ) {
-        v = v[lk[i]]
-        if ( Array.isArray(v) ) {
-            if ( index !== undefined ) {
-                v = v[index]
-            } else {
-                v = v.map(el => get_dot_val(lk.slice(i+1),v,index))
-            }
-        }
-        if ( v === undefined ) return ""
-    }
-    return v
-}
-
 // ---
 
 function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
@@ -836,13 +663,13 @@ function acts_generator(act_map,acts_def,preamble_obj,defs_obj) {
                                 output_map['all'] = addr_o_map
                                 for ( hh of hlist ) {
                                     let ha = string_parts['all']
-                                    ha = from_subst(ha,var_forms,vf_lookup,access,hh)
+                                    ha = form_subst(ha,var_forms,vf_lookup,access,hh)
                                     addr_o_map[hh] = ha
                                 }
                             }
                         } else {
                             let h_out = (tindex < 0) ? ("" + c_str) : ("" + string_parts[h])
-                            h_out = from_subst(h_out,var_forms,vf_lookup,access,hh)
+                            h_out = form_subst(h_out,var_forms,vf_lookup,access,hh)
                             output_map[h] = h_out
                         }
                     }
@@ -1029,37 +856,6 @@ function r_rule_tree_type_1(rtxt,depth) {
 }
 
 
-function is_binder(code) {
-    return ( /^-\>[ABCDEFGHIJKLMNOPQRSTUVWXYZ]+$/.test(code) ) 
-}
-
-function is_super_binder(code) {
-    if ( (code.indexOf('->') === 0) && ( code.substring(2).trim().length > 0 ) ) return true
-    return false
-}
-
-
-
-function parameter_is_binder(factoid) {
-    let chktxt = popout(popafter(factoid,'('),')')
-    if ( chktxt.indexOf('->') > 0 ) return true
-    return false
-}
-
-
-function pop_selector(str) {
-    str = str.trim()
-    if ( str[0] == '/' ) {
-        str = str.substring(1)
-        let parts = str.split('\/?')
-        parts = trimmer(parts)
-        let sltr = parts[0]
-        let rest = parts[1]
-        return [sltr,rest]
-    }
-    return ["",false]
-}
-
 function parameter_to_binder(factoid) {
     let binder = {
     }
@@ -1136,7 +932,7 @@ function parse_var_producer(var_producer) {
             ast_parts.push(ast)
         }
         ast.parts = ast_parts
-        delete vars['*']
+        delete vars['@']
         //
         ast.vars = vars
         ast.f_type = form_type
@@ -1157,7 +953,7 @@ function parse_var_producer(var_producer) {
         ast_parts.push(s_ast)
 
         ast.parts = ast_parts
-        delete vars['*']
+        delete vars['@']
         ast.vars = vrs
         return [vars,ast]
     } else {
@@ -1355,118 +1151,6 @@ console.log("subgoals is a string",subgoals)
 //  Handle odd rules. 
 
 
-function has_optional_parameter_structure(rhead) {
-    return /.*,\s*\*.*/.test(rhead)
-}
-
-
-
-function is_conditional_value_assignment(str) {
-    if ( str.indexOf('=>') === 0 ) return true
-    return false
-}
-
-function pop_past_value_assigner(str) {
-    let front_str = str.substring(0,2)
-    str = str.substring(2)
-    let rest = ""
-    let n = str.length
-    for ( let i = 0; i < n; i++ ) {
-        let c = str[i]
-        if ( c === '=' ) {  // start of the assignment
-            front_str += '='
-            i++
-            while ( i < n && (c == ' ' || c == '\t')  ) { c = str[i]; i++ }
-            while ( i < n && (c !== ' ' || c !== '\t')  ) { c = str[i]; front_str += c ; i++ }
-            rest = str.substring(i).trim()
-            break;
-        }
-        front_str += c
-    }
-
-    return [front_str,rest]
-}
-
-
-
-function pop_var_producer(code_src) {
-    code_src = code_src.trim()
-    let [var_producer,restl] = pop_to_unbounded_space(code_src)
-    restl = restl.trim()
-    //
-    if ( is_conditional_value_assignment(restl) ) {
-        let [var_p_continue,rest2] = pop_past_value_assigner(restl)
-        var_producer += var_p_continue
-        restl = rest2
-    }
-    //
-    while ( restl[0] === '|' ) {
-        var_producer += '|'
-        let [vp2,rest2] = pop_to_unbounded_space(restl.substring(1))
-        var_producer += vp2
-        if ( is_conditional_value_assignment(rest2) ) {
-            let [var_p_continue,rest3] = pop_past_value_assigner(rest2)
-            var_producer += var_p_continue
-            rest2 = rest3
-        }
-    
-        restl = rest2.trim()
-    }
-
-    return [var_producer,restl]
-}
-
-function form_without_options(rhead) {
-    let goal_name = popout(rhead,'(')
-    let pars = popafter(rhead,'(')
-    pars = pars.substring(0,pars.lastIndexOf(')'))
-    pars = toplevel_split(pars,',')
-    pars = pars.filter( el => (el !== '*') )
-    pars = pars.join(',')
-    return `${goal_name}(${pars})`
-}
-
-
-function has_goal_structure(goal_part) {
-    if ( typeof goal_part === 'string' ) {
-        if ( /.+\(.*\)/.test(goal_part)  ) {
-            return true
-        }
-    }
-    return false
-}
-
-function has_list_structure(goal_part) {
-    if ( typeof goal_part === 'string' ) {
-        if ( /^\[(.+)(,.+)*\]$/.test(goal_part)  ) {
-            return true
-        }
-    }
-    return false
-}
-
-
-function has_selector_structure(producer_part) {
-    let str = producer_part.trim()
-    if ( str[0] === '/' && str.indexOf('\/?') > 0 && str.indexOf('|') > 0 ) {
-        return true
-    }
-    return false
-}
-
-function has_selector_structure_parameter(rule_key) {
-console.log("1 has_selector_structure_parameter",rule_key)
-    let params = popout_parameters(rule_key)
-console.log("2 has_selector_structure_parameter",params)
-    params = toplevel_split(params,',')
-console.log("3 has_selector_structure_parameter",params)
-    for ( let p of params ) {
-        if ( has_selector_structure(p) ) return true
-    }
-    return false
-}
-
-
 
 function check_for_var_producer(term) {
     //
@@ -1640,7 +1324,7 @@ function map_rules_def_to_structure(dtable_rule) {
                 let [var_intro,subgoals] = unpack_vars_and_goals(further.rest_line)
                 //
                 further.var_producer = var_intro
-                if ( ( typeof var_intro === "string" ) && (var_intro.indexOf('*') < 0) && (rky.indexOf('*') < 0 ) ) {
+                if ( ( typeof var_intro === "string" ) && (var_intro.indexOf('@') < 0) && (rky.indexOf('@') < 0 ) ) {
                     let var_val = popout_parameters(rky)
                     further.var_evals[var_intro] = var_val
                 }
@@ -1694,48 +1378,6 @@ function map_rules_def_to_structure(dtable_rule) {
 
 
 
-/*
-            if ( dsubkey.indexOf('${') > 0 ) {   // consumer on the line.. line of subs
-                let dvr = dsubkey.substring(dsubkey.indexOf('${')+2)
-                dvr = dvr.substring(0,dvr.indexOf('}'))
-                if ( dvr ) {
-                    if ( dsubinfo.var_consume === undefined ) dsubinfo.var_consume = {}
-                    dsubinfo.var_consume[dvr] = {
-                        "type"  : "value",
-                        "value" : further.var_consume[dvr]
-                    }
-                }
-            }
-*/
-
-
-function is_subst_var_consumer(frm) {
-    if ( frm.indexOf('${') >= 0 ) return true
-    return false
-}
-
-
-function is_subst_dir_consumer(frm) {
-    if ( frm.indexOf('$[') >= 0 ) return true
-    return false
-}
-
-function is_match_var_consumer(frm) {
-    return /^.+\:.+\=/.test(frm)
-}
-
-
-function is_type_check(frm) {
-    return /^.+\(\..+\:.+\)/.test(frm)
-}
-
-
-
-function is_def_table_var(vr) {
-    if ( vr.indexOf('.') > 0 ) return true
-    return false
-}
-
 
 function last_pass_extract_var_consumers(dtable_rule) {
     if ( !(dtable_rule) ) return
@@ -1772,13 +1414,6 @@ function last_pass_extract_var_consumers(dtable_rule) {
             }
         }
     }
-}
-
-
-
-function is_constant_yielding_form(frm) {
-    if ( /^.*\(/.test(frm) ) return true
-    return false
 }
 
 
@@ -1855,10 +1490,6 @@ function push_constant_values(dtable_rule) {
 }
 
 
-function is_unbounded_rule(rdef) {
-    if ( rdef[0] === '?' ) return true
-    return false
-}
 
 
 function r_hunt_match_termini(terminal_list,marker,deeper_rules) {
@@ -1896,13 +1527,6 @@ function hunt_match_termini(terminal_list,marker,rules_of_depth,rdef) {
         }
     }
     //
-}
-
-
-function pair_parts(sub) {
-    let sub_ky = Object.keys(sub)[0]
-    let sub_obj = sub[sub_ky]
-    return [sub_ky,sub_obj]
 }
 
 
@@ -2251,7 +1875,7 @@ function form_with_options(rhead) {
     pars = toplevel_split(pars,',')
     let first_par = pars.shift()
     if ( pars.length ) {
-        pars = pars.map(par => '*')
+        pars = pars.map(par => '@')
         pars = pars.join(',')
         return `${goal_name}(${first_par},${pars})`    
     } else {
@@ -2370,15 +1994,6 @@ function find_support_points(u_rules,goals) {
     }
 }
 
-
-
-function gen_repstr(depth,c) {
-    let str = ''
-    while ( depth-- ) {
-        str += c
-    }
-    return str
-}
 
 
 
@@ -3419,39 +3034,6 @@ function check_sub_prop(top) {
     //
 }
 
-
-function print_tree(tree,path,path_type) {
-    //
-    if ( tree.depth === undefined ) { console.log(tree); return }
-    //
-    console.log('---- ------ ------',path, " -- ", (path_type == 1) ? "sib" : "sub")
-    console.log("pt - sect:: ",tree.depth,tree.type,": ",tree.sect)
-    console.log(`pt - siblings(${tree.sect})`,tree.siblings ? tree.siblings.map(s => `${s.type}: ${s.sect}`) : [])
-    console.log(`pt - subs(${tree.sect})`,tree.subs ? tree.subs.map(s => `${s.type}: ${s.sect}`) : [])
-    if ( tree.siblings ) {
-        for ( let sib of tree.siblings) print_tree(sib,`${path}.${sib.sect}`,1)
-    }
-    if ( tree.subs ) {
-        for ( let sub of tree.subs) print_tree(sub,`${path}.${sub.sect}`,0)
-    }
-}
-
-function print_tree_w_order(tree,path,path_type) {
-    if ( tree.depth === undefined ) { console.log(tree); return }
-    //
-    console.log('---- ------ ------',path, " -- ", (path_type == 1) ? "sib" : "sub")
-    console.log("pt - sect:: ",tree.depth,tree.type,": ",tree.sect)
-    console.log(`pt - ordering(${tree.sect})`, Array.isArray(tree.ordering) ? tree.ordering.map(s => `${s.sect} :: ${s.line}`) : `${tree.ordering.sect} :: ${tree.ordering.line}` )
-
-    console.log(`pt - subs(${tree.sect})`,tree.subs ? tree.subs.map(s => `${s.type}: ${s.sect}`) : [])
-    if ( tree.siblings ) {
-        for ( let sib of tree.siblings) print_tree_w_order(sib,`${path}.${sib.sect}`,1)
-    }
-    if ( tree.subs ) {
-        for ( let sub of tree.subs) print_tree_w_order(sub,`${path}.${sub.sect}`,0)
-    }
-}
-
 // --------------------------- --------------------------- ---------------------------
 // --------------------------- --------------------------- ---------------------------
 
@@ -3929,66 +3511,6 @@ async function finally_run() {
 
 
 
-async function node_operations(node) {
-    /*
-    console.log("HOST:")
-    console.dir(node,{ "depth" : null })
-    if ( node.sibs ) console.log(node.sibs)
-    else console.log("terminus")
-    */
-}
-
-async function r_traverse_graph(graph,depth,max_depth,node_op) {
-    if ( depth > max_depth ) return
-    //
-    let top_list = []
-    let paths = graph.paths
-
-    for ( let [path,node_depth] of Object.entries(paths) ) {
-        let [ky,ndpth] = node_depth.split('@')
-        ndpth = parseInt(ndpth)
-        if ( ndpth == depth ) {
-            top_list.push(path)
-        }
-    }
-    //
-    for ( let nky of top_list ) {
-        let node_ky = graph.paths[nky]
-        let nname = node_ky.split('@')[0]
-        let node = graph.g[nname]
-        //
-        //console.log("deleting",nname,nky)
-        delete graph.g[nname]
-        delete graph.paths[nky]
-        //
-        await node_op(node)
-    }
-
-}
-
-async function traverse_graph(graph) {
-    let base_graph = Object.assign({},graph)
-    //
-    base_graph.paths = Object.assign({}, base_graph.paths)
-    base_graph.g = Object.assign({}, base_graph.g)
-    //
-    let max_depth = graph.max_depth
-    let depth = 1
-    //
-    while ( depth <= max_depth ) {
-        await r_traverse_graph(base_graph,depth,max_depth,node_operations)
-        depth++
-        //console.log("GRAPH")
-        //console.dir(base_graph,{ "depth" : null })
-    }
-    //
-    console.dir(graph,{ "depth" : null })
-    //
-}
-
-
-
-
 
 function r_initial_state_all_goals(goal) {
     if ( goal ) {
@@ -4123,26 +3645,6 @@ console.dir(binders,{ depth: null })
 
 
 
-function parameter_pop(parent_ky) {
-    console.log(parent_ky)
-    let par_list = parent_ky.substring(parent_ky.indexOf('(') + 1)
-    par_list = par_list.substring(0,par_list.lastIndexOf(')'))
-    par_list = par_list.trim()
-    return par_list
-}
-
-function extract_to_binder(params,parent_ky) {
-    let binder = {}
-    if ( params.indexOf(',') > 0 ) {
-
-    } else {
-        
-        binder[params] = parameter_pop(parent_ky)
-    }
-    return binder
-}
-
-
 function handle_terminal(sky,parent_ky,goal,map_values,depth) {
 
 }
@@ -4205,17 +3707,7 @@ function subst_global_values(sky,map_values,goal) {
 }
 
 
-const c_puncts = "(){};:,\'\"!@#$%^&*`~"
 
-function is_punctuated(str) {
-    let n = c_puncts.length
-    for ( let i = 0; i < n; i++ ) {
-        let c = c_puncts[i]
-        let i_p = str.indexOf(c) 
-        if ( i_p >= 0 ) return true
-    }
-    return false
-}
 
 
 
@@ -4280,7 +3772,7 @@ function extract_value_map(prod_vars,prod_ast,key_ast) {
                         let ppart = extrct.parts[i]
                         if ( typeof kpart === typeof ppart ) {
                             if ( typeof kpart === 'string' ) {
-                                if ( ppart !== '*' ) {
+                                if ( ppart !== '@' ) {
                                     if ( match_map[ppart] !== undefined ) {
                                         match_map[ppart] = kpart
                                     }
@@ -4296,7 +3788,7 @@ function extract_value_map(prod_vars,prod_ast,key_ast) {
     } else if ( prod_ast.f_type === 'call' ) {
         //
         let caller = popout(prod_ast.code,'(')
-        if ( caller !== '*' ) {
+        if ( caller !== '@' ) {
             if ( match_map[caller] !== undefined ) {
                 match_map[caller] = key_ast.caller
             }
@@ -4321,9 +3813,6 @@ function produce_var_while_propogating(var_producer,parent_ky,goal) {
                 let [prod_vars,prod_ast] = parse_var_producer(var_producer)
                 let pky_ast = parse_expr_call(parent_ky)
                 //
-                console.log("var_producer",parent_ky,goal.var_producer)
-                console.dir(prod_ast,{ depth : null })
-                console.dir(pky_ast,{ depth : null })
                 let match_map = extract_value_map(prod_vars,prod_ast,pky_ast)
                 //
                 if ( match_map ) {
@@ -4389,16 +3878,6 @@ function value_selection_transform(ky,var_evals,var_consume) {
 }
 
 
-function extract_selection_vars_of_param(param) {
-    let parts = param.split('->')
-    parts = trimmer(parts)
-    let p1 = parts[0].split('/?')
-    p1 = trimmer(p1)
-    let var_in = p1[0].substring(1)
-    let var_out = parts[1]
-    return [var_in,var_out]
-}
-
 
 function value_selector_transform(sky,goal,p_goal,var_producer,var_consume) {
     //
@@ -4435,16 +3914,7 @@ function value_selector_transform(sky,goal,p_goal,var_producer,var_consume) {
 
 
 
-function var_from_selector(key) {
-    let a_var = popafter(key,':')
-    a_var = popout(a_var,'=')
-    return a_var.trim()
-}
-
-
 function branch_select_var(sky,sobj,goal,var_consume) {
-
-    console.log("branch_select_var",sky,sobj,goal.var_evals,var_consume)
 
     let z_var = var_from_selector(sky)
 
@@ -4694,99 +4164,7 @@ function garner_requirements(goals_obj) {
 },
 */
 
-function graph_rooted_at(node,graph) {   // fix this
-    return graph
-}
 
-
-async function ensure_json_manipulator(node,graph) {
-    // ./assets/expectpw-ssh.sh sjoseij richard 76.229.181.242 test.sh nnn simple
-    let addr = node.host.addr   // node 'home' reached from 'here' ... host will be 'home' pass for 'richard' user = 'richard'
-    let user = node.auth.user
-    let pass = node.auth.pass
-    let abbr = node.abbr
-    let bash_op = `./assets/apt-installer.sh`
-    await xops.perform_expect_op(pass, user, addr, bash_op, ['jq'])
-    await xops.expect_ensure_dir(pass,user,addr,preamble_obj.scope.master_exec_loc)
-    // #
-    await xops.expect_send_up(pass,user,addr,'./assets/expectpw-scp-helper.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/apt-installer.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/expectpw-ssh-cmd.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/expectpw-ssh.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/upload_scripts.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/arc-traveler.sh',preamble_obj.scope.master_exec_loc)
-    await xops.expect_send_up(pass,user,addr,'./assets/arc-traveler-setup.sh',preamble_obj.scope.master_exec_loc)
-
-    // at this point here->home has installed desired assets on 'home'
-    //
-    let uploader = 'upload_scripts'
-    let propagate_op = './assets/arc-traveler-setup.sh'
-    let g_hat = graph_rooted_at(node,graph)
-    if ( g_hat ) {
-        //  make a graph string and encode it 
-        let g_hat_str = JSON.stringify(g_hat)
-        let g_hat_str64 = Buffer.from(g_hat_str).toString('base64')
-        //  make an ops array string and encode it 
-        let ops = [ 'apt-get install jq', `mkdir -p ${preamble_obj.scope.master_exec_loc}` ]
-        ops = JSON.stringify(ops)
-        let ops64 = Buffer.from(ops).toString('base64')
-        //
-        // here->home  (hence home.pass, home.user, home.abbd) which is node.user, etc.
-        //
-        await xops.perform_expect_op(pass, user, addr, propagate_op, [`${abbr} ${preamble_obj.scope.master_exec_loc} ${g_hat_str64} ${ops64} ${uploader}`])           
-    }
-    //
-}
-
-
-
-async function start_arc_traveler(node,graph) {   // assume that scripts to reside on the node are already listed on the node
-    // ./assets/expectpw-ssh.sh sjoseij richard 76.229.181.242 test.sh nnn simple
-    let addr = node.host.addr   // node 'home' reached from 'here' ... host will be 'home' pass for 'richard' user = 'richard'
-    let user = node.auth.user
-    let pass = node.auth.pass
-    let abbr = node.abbr
-    // #
-    // at this point here->home has installed desired assets on 'home'
-    //
-    let scripts_to_upload = node.upload_scripts
-    let all_upload_promises = []
-    for ( let script of scripts_to_upload ) {
-        let p = xops.expect_send_up(pass,user,addr,`./assets/${script}`,preamble_obj.scope.master_exec_loc)
-        all_upload_promises.push(p)
-    }
-    await Promise.all(all_upload_promises)
-    //
-    let files_to_download = node.download_files
-    let all_download_promises = []
-    for ( let script of files_to_download ) {
-        let p = xops.expect_send_down(pass,user,addr,`./assets/${script}`,preamble_obj.scope.master_exec_loc)
-        all_upload_promises.push(p)
-    }
-    await Promise.all(all_download_promises)
-    //
-    let propagate_op = './assets/arc-traveler.sh'
-    let g_hat = graph_rooted_at(node,graph)
-    if ( g_hat ) {
-        //  make a graph string and encode it 
-        let g_hat_str = JSON.stringify(g_hat)
-        let g_hat_str64 = Buffer.from(g_hat_str).toString('base64')
-        //  make an ops array string and encode it 
-        let ops = node.required_on_node_operations
-        ops = JSON.stringify(ops)
-        let ops64 = Buffer.from(ops).toString('base64')
-        //
-        //  make an ops array string and encode it 
-        let pos_ops = node.required_on_node_post_operations
-        pos_ops = JSON.stringify(ops)
-        let post_ops64 = Buffer.from(pos_ops).toString('base64')
-        //
-        // here->home  (hence home.pass, home.user, home.abbd) which is node.user, etc.
-        //
-        await xops.perform_expect_op(pass, user, addr, propagate_op, [`${abbr} ${preamble_obj.scope.master_exec_loc} ${g_hat_str64} ${ops64} ${post_ops64}`])           
-    }
-    //
-}
 
 
 const g_out_dir_prefix = './scripts'

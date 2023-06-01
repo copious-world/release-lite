@@ -9,114 +9,8 @@
       ],
       "subgoals": {
         "running(nginx)": {
-          "var_evals": {
-            "Y": "default"
-          },
-          "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
-          "real_goal": "running(nginx)",
-          "subgoals": {
-            "pre": {
-              "var_evals": {},
-              "var_producer": false,
-              "real_goal": "pre",
-              "subgoals": {
-                "apt_op(install nginx)": {
-                  "var_producer": false,
-                  "subs": "terminus",
-                  "real_goal": "apt_op(install nginx)"
-                }
-              }
-            },
-            "post": {
-              "var_evals": {
-                "Y": "default"
-              },
-              "var_consume": {
-                "Y": {
-                  "type": "file-type",
-                  "check": ".conf"
-                }
-              },
-              "var_producer": false,
-              "real_goal": "post",
-              "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled,default)": {
-                  "var_producer": {
-                    "Z": {
-                      "index": 2,
-                      "selections": [
-                        "of-this.world.conf",
-                        "default"
-                      ],
-                      "source": "Y"
-                    }
-                  },
-                  "var_consume": {
-                    "Y": {
-                      "v_type": "selector",
-                      "output": "Z"
-                    },
-                    "of-this.world": {
-                      "type": "def-table",
-                      "value": "?"
-                    }
-                  },
-                  "var_evals": {
-                    "Z": {
-                      "type": "path-selector",
-                      "value": "default"
-                    },
-                    "Y": "default"
-                  },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled,default)",
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "var_evals": {
-                        "Z": {
-                          "type": "path-selector",
-                          "value": "default"
-                        }
-                      },
-                      "var_consume": {
-                        "Z": {
-                          "type": "path-select",
-                          "value": "default",
-                          "goal_op": "uploaded"
-                        }
-                      },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=default",
-                      "subgoals": {
-                        "compositing(default)": {
-                          "var_producer": false,
-                          "real_goal": "compositing(default)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,default)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "nginx_op(-s reload)": {
-                  "var_producer": false,
-                  "subs": "terminus",
-                  "real_goal": "nginx_op(-s reload)"
-                }
-              }
-            }
-          }
+          "real_goal": "running(nginx)"
         },
         "running(human-page-queue)": {
           "var_evals": {
@@ -270,7 +164,7 @@
           "var_evals": {
             "Y": "copious.world"
           },
-          "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
+          "var_producer": "(@,@(Y))|(@)=> Y = default | (@,Y)",
           "all_ready": false,
           "real_goal": "running(nginx,config(copious.world))",
           "subgoals": {
@@ -400,7 +294,7 @@
           "var_evals": {
             "Y": "popsongnow.com"
           },
-          "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
+          "var_producer": "(@,@(Y))|(@)=> Y = default | (@,Y)",
           "all_ready": false,
           "real_goal": "running(nginx,popsongnow.com)",
           "subgoals": {
@@ -528,114 +422,8 @@
       ],
       "subgoals": {
         "running(nginx)": {
-          "var_evals": {
-            "Y": "default"
-          },
-          "var_producer": "(*,*(Y))|(*)=> Y = default | (*,Y)",
           "all_ready": false,
-          "real_goal": "running(nginx)",
-          "subgoals": {
-            "pre": {
-              "var_evals": {},
-              "var_producer": false,
-              "real_goal": "pre",
-              "subgoals": {
-                "apt_op(install nginx)": {
-                  "var_producer": false,
-                  "subs": "terminus",
-                  "real_goal": "apt_op(install nginx)"
-                }
-              }
-            },
-            "post": {
-              "var_evals": {
-                "Y": "default"
-              },
-              "var_consume": {
-                "Y": {
-                  "type": "file-type",
-                  "check": ".conf"
-                }
-              },
-              "var_producer": false,
-              "real_goal": "post",
-              "subgoals": {
-                "uploaded(/etc/nginx/sites-enabled,default)": {
-                  "var_producer": {
-                    "Z": {
-                      "index": 2,
-                      "selections": [
-                        "@MASTER -- Mint Linux.conf",
-                        "default"
-                      ],
-                      "source": "Y"
-                    }
-                  },
-                  "var_consume": {
-                    "Y": {
-                      "v_type": "selector",
-                      "output": "Z"
-                    },
-                    "@MASTER -- Mint Linux": {
-                      "type": "def-table",
-                      "value": "?"
-                    }
-                  },
-                  "var_evals": {
-                    "Z": {
-                      "type": "path-selector",
-                      "value": "default"
-                    },
-                    "Y": "default"
-                  },
-                  "real_goal": "uploaded(/etc/nginx/sites-enabled,default)",
-                  "subgoals": {
-                    "uploaded:Z=default": {
-                      "var_evals": {
-                        "Z": {
-                          "type": "path-selector",
-                          "value": "default"
-                        }
-                      },
-                      "var_consume": {
-                        "Z": {
-                          "type": "path-select",
-                          "value": "default",
-                          "goal_op": "uploaded"
-                        }
-                      },
-                      "var_producer": false,
-                      "real_goal": "uploaded:Z=default",
-                      "subgoals": {
-                        "compositing(default)": {
-                          "var_producer": false,
-                          "real_goal": "compositing(default)",
-                          "subgoals": {
-                            "roller(~/Documents/GitHub/configs/nginx,default)": {
-                              "var_producer": false,
-                              "subs": "terminus",
-                              "var_consume": {
-                                "Y": {
-                                  "type": "value",
-                                  "value": "?"
-                                }
-                              },
-                              "real_goal": "roller(~/Documents/GitHub/configs/nginx,default)"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "nginx_op(-s reload)": {
-                  "var_producer": false,
-                  "subs": "terminus",
-                  "real_goal": "nginx_op(-s reload)"
-                }
-              }
-            }
-          }
+          "real_goal": "running(nginx)"
         },
         "running(transition:song_catcher)": {
           "all_ready": false,

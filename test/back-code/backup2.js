@@ -112,3 +112,132 @@ for ( let ky of preamble_obj.prog.acts ) {
 
 
 // mkdir -p foo/bar/zoo/andsoforth
+
+
+
+
+
+
+
+
+function unpack_values_transform(tmpl_str,maybe_addr) {
+    // --- generalize this
+    let var_forms = all_var_forms(tmpl_str)
+    let sshvals = defs_obj.ssh
+    let hosts = defs_obj.host.by_key.addr
+    let master = defs_obj.host.master
+    master = Object.assign(master,sshvals[master.addr])
+    master[master.addr] = master        /// cicrular but, the indexer uses it
+    let access = {
+        "host" : hosts,
+        "ssh" : sshvals,
+        "master" : master
+    }
+    if ( Object.keys(var_forms).length ) {
+        let unwrapped_vars = Object.keys(var_forms).map(vf => { 
+            let stopper = '}'
+            if ( vf[1] === '[') stopper = ']'
+            let vk = vf.substring(2).replace(stopper,'')
+            let fields = vk.split('.')
+            return [vf,fields]
+        })
+        //
+        let vf_lookup = {}
+        for ( let vfpair of unwrapped_vars ) {
+            vf_lookup[[vfpair[0]]] = vfpair[1]
+        }
+        //
+        tmpl_str = form_subst(tmpl_str,var_forms,vf_lookup,access,maybe_addr)
+    }
+    return tmpl_str
+}
+
+
+
+
+
+
+
+
+// ---- traverse_graph 
+//
+
+async function node_operations(node) {
+    /*
+    console.log("HOST:")
+    console.dir(node,{ "depth" : null })
+    if ( node.sibs ) console.log(node.sibs)
+    else console.log("terminus")
+    */
+}
+
+async function r_traverse_graph(graph,depth,max_depth,node_op) {
+    if ( depth > max_depth ) return
+    //
+    let top_list = []
+    let paths = graph.paths
+
+    for ( let [path,node_depth] of Object.entries(paths) ) {
+        let [ky,ndpth] = node_depth.split('@')
+        ndpth = parseInt(ndpth)
+        if ( ndpth == depth ) {
+            top_list.push(path)
+        }
+    }
+    //
+    for ( let nky of top_list ) {
+        let node_ky = graph.paths[nky]
+        let nname = node_ky.split('@')[0]
+        let node = graph.g[nname]
+        //
+        //console.log("deleting",nname,nky)
+        delete graph.g[nname]
+        delete graph.paths[nky]
+        //
+        await node_op(node)
+    }
+
+}
+
+async function traverse_graph(graph) {
+    let base_graph = Object.assign({},graph)
+    //
+    base_graph.paths = Object.assign({}, base_graph.paths)
+    base_graph.g = Object.assign({}, base_graph.g)
+    //
+    let max_depth = graph.max_depth
+    let depth = 1
+    //
+    while ( depth <= max_depth ) {
+        await r_traverse_graph(base_graph,depth,max_depth,node_operations)
+        depth++
+        //console.log("GRAPH")
+        //console.dir(base_graph,{ "depth" : null })
+    }
+    //
+    console.dir(graph,{ "depth" : null })
+    //
+}
+
+
+
+
+
+
+
+/*
+            if ( dsubkey.indexOf('${') > 0 ) {   // consumer on the line.. line of subs
+                let dvr = dsubkey.substring(dsubkey.indexOf('${')+2)
+                dvr = dvr.substring(0,dvr.indexOf('}'))
+                if ( dvr ) {
+                    if ( dsubinfo.var_consume === undefined ) dsubinfo.var_consume = {}
+                    dsubinfo.var_consume[dvr] = {
+                        "type"  : "value",
+                        "value" : further.var_consume[dvr]
+                    }
+                }
+            }
+*/
+
+
+
