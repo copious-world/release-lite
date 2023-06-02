@@ -77,8 +77,10 @@ const {
     is_subst_dir_consumer,
     is_match_var_consumer,
     is_type_check,
-    is_def_table_var
+    is_def_table_var,
 
+    is_constant_yielding_form,
+    is_unbounded_rule
 
 } = require('../lib/parse-tools')
 
@@ -1425,14 +1427,12 @@ function push_constant_values(dtable_rule) {
         if ( typeof rsub === "object" && rsub.subs ) {
             if ( is_constant_yielding_form(rdef) ) {
                 if ( (rsub.var_evals !== undefined) && ( Object.keys(rsub.var_evals).length ) ) {
-//console.dir(rsub.var_evals)
                     for ( let subm of rsub.subs ) {
                         for ( let [sky, sub] of Object.entries(subm) ) {
                             if ( sub.var_consume ) {
                                 for ( let vky in sub.var_consume ) {
                                     let cval = rsub.var_evals[vky]
                                     if ( cval !== undefined ) {
-//console.log(sky, vky, cval, sub)
                                         sub.var_consume[vky].input = cval
                                         let evaled_goal_marker = ""
                                         if ( is_subst_var_consumer(sky) ) {
@@ -1854,12 +1854,15 @@ function top_level_sections(file_str) {
 // attach the goals for a host onto the host object to access it from there.
 // after this, the goal map will not be required except as a shortcut to attach rules and build petri type graphs or retes
 //
-function associate_final_state_goal_with_machines(running,graph) {
+function associate_final_state_goal_with_machines(goal_set_ky,running,graph) {
     //
     for ( let [ky,g] of Object.entries(running) ) {
         let machine = graph[ky]
         if ( machine ) {
-            graph[ky].final_state = g
+            if ( graph[ky].final_state === undefined ) {
+                graph[ky].final_state = {}
+            }
+            graph[ky].final_state[goal_set_ky] = g
         }
     }
     //
@@ -4095,9 +4098,6 @@ function value_propogation_all_goals(goals_obj) {
 function r_garner_requirements(gky_list,goal,fresh_goal_list) {
     if ( !goal ) return 
     //
-    console.log("garner_requirements",gky_list)
-    console.dir(goal)
-    //
     if ( goal.all_ready === false || goal.all_ready === undefined ) {
         if ( goal.all_ready === undefined ) goal.all_ready = false
         //
@@ -4150,21 +4150,8 @@ function garner_requirements(goals_obj) {
 }
 
 
-/*
-'endpoint-users': {
-    depth: 3,
-    backrefs: [ 'home' ],
-    final_state: { goal_facts: [] },
-    host: {
-        addr: '192.168.1.77',
-        abbr: 'endpoint-users',
-        host: '@home=LAN -- DietPi'
-    },
-    auth: { dns: '@home:LAN -- DietPi', user: 'root', pass: 'dietpi' }
-},
-*/
 
-
+// ---------- MAIN  ----------  ----------  ----------  ----------  ----------  ---------- 
 
 
 const g_out_dir_prefix = './scripts'
@@ -4173,8 +4160,10 @@ let all_machines_script = './all-machines.conf'
 
 //  MAIN PROGRAM STARTS HERE
 async function main_prog() {
-    //
 
+    //
+    // LOAD ANY DESCRIPIONS AND CONFIGS
+    //
     let confstr = fs.readFileSync(all_machines_script).toString() // will crash if the file is not in the CWD
     
     let g_cmd_gen_filter = {}
@@ -4187,53 +4176,77 @@ async function main_prog() {
         console.log("All actions will be perormed: " + filter_json_name + " has not been found")
     }
     
+    // LOAD ANY DESCRIPIONS AND CONFIGS
     //
-    confstr = eliminate_line_start_comments(confstr,'--')
-    confstr = eliminate_empty_lines(confstr)
-    confstr = eliminate_line_end_comments(confstr,'\\s+--')
+    confstr = eliminate_line_start_comments(confstr,'--')           // comments on the whole line (gone)
+    confstr = eliminate_empty_lines(confstr)                        // empty line
+    confstr = eliminate_line_end_comments(confstr,'\\s+--')         // comments written after actionable lines ( tail line gone)
     //
-    let top_level = top_level_sections(confstr)
+    let top_level = top_level_sections(confstr)                     // pull out data structure refering to text of separate sections
 
-    ////
+    ////    process_preamble -- the preamble has variable definitions, graph definitions and current state files
     preamble_obj = process_preamble(top_level.preamble)
+    ////    process_defs -- defines the list of hosts, definitions for directories, perhaps more
     defs_obj = process_defs(top_level.defs)
+    ////    process_goals -- for each host, declares a list of desireable states (goals) to which rules can be attached
     goals_obj = process_goals(top_level.goals)
     //
+    //  subst_defs_in_scope_vars -- before further processing, put values into as many variables as possible 
     subst_defs_in_scope_vars(preamble_obj,defs_obj)
-    associate_final_state_goal_with_machines(goals_obj.running,preamble_obj.graph.g)
+
+    // For each goal class, attach the host goal structure to the access graph
+    //
+    for ( let [goal_set_ky,host_map] of Object.entries(goals_obj) ) {
+        associate_final_state_goal_with_machines(goal_set_ky,host_map,preamble_obj.graph.g)
+    }
+
+    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 
     //
+    //  (PRE) PROCESS RULES ---- all rule definitions turned into data structure with variables evaluated as much as possible
     let rules_with_options = {}
     let rule_heads = {}
     //
     let rule_base = pre_process_rules(top_level.rules,rules_with_options,rule_heads,defs_obj)
-    //console.dir(rule_base,{ depth : null })
-    //console.dir(goals_obj,{ depth : null })
-    //
-    //console.dir(rules_with_options,{ depth : null })
-    //console.dir(rule_heads,{ depth : null })
+   
+    // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+
 
     // associate_rules_with_state_goal
+    //      attach rule structures to goal states belonging to hosts. Make copies of rules for each host (for using different var values)
     //
-    // Currently, "running" is the only rule context in the test file
-    //
-    //console.dir(goals_obj,{ depth: null })
-    //
-
     console.log("--------------------------------->associate_rules_with_state_goal")
     for ( let [ky,host_map] of Object.entries(goals_obj) ) {
-        console.log(ky)
         associate_rules_with_state_goal(host_map,rule_heads,rules_with_options)
     }
 
+
+    //// IF NO CURRENT STATE
+
+    // initial_state_all_goals  -- walk the gloal/rule tree indicating that nothing has been done (initial state)
     initial_state_all_goals(goals_obj)
+
+
+    // value_propogation_all_goals -- puch values from the host down through the rules and prune unused paths
+
     console.log("--------------------------------->value_propogation_all_goals")
     value_propogation_all_goals(goals_obj)
+
+    // ELSE --- update any values derived from assessing state passed back by arc travelers
+
+    // END IF
+
+    /// CONTINUE FROM HERE
+
     //
     //
     await fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
     await fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))
     
+
+    // CURRENT SET OF GOALS
+    // garner_requirements -- walks the goal tree produce the lowest level goals needed to be completed 
+    //
 
     let present_goals = garner_requirements(goals_obj)   // current list of things to do...
 
@@ -4257,9 +4270,12 @@ async function main_prog() {
     })
     //
 
-    console.log(prioritized_present_goals.length)
-    console.dir(prioritized_present_goals,{ depth : null })
+    await fos.output_string("./prioritized_present_goals.json",JSON.stringify(prioritized_present_goals,null,2))
 
+
+    // FINALLY -- launch arc travelers with the commands needed to satisfy the current set of goals
+
+    
 }
 
 

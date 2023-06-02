@@ -1,0 +1,294 @@
+[
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "apt_op(install nginx)": [
+      "running",
+      "popsong",
+      "running(nginx,popsongnow.com)",
+      "pre",
+      "apt_op(install nginx)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "pre",
+      "npm_target(global:copious-endpoints)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "installed(nodejs)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(nodejs)"
+    ]
+  },
+  {
+    "installed(npm)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "pre",
+      "npm_target(global:of-this-world)",
+      "installed(npm)"
+    ]
+  },
+  {
+    "running(nginx)": [
+      "running",
+      "otw",
+      "running(nginx)"
+    ]
+  },
+  {
+    "on_reboot([nginx,human-page-queue])": [
+      "running",
+      "otw",
+      "on_reboot([nginx,human-page-queue])"
+    ]
+  },
+  {
+    "schedule(certbot,60000)": [
+      "running",
+      "otw",
+      "schedule(certbot,60000)"
+    ]
+  },
+  {
+    "running(nginx)": [
+      "running",
+      "home",
+      "running(nginx)"
+    ]
+  },
+  {
+    "running(transition:song_catcher)": [
+      "running",
+      "home",
+      "running(transition:song_catcher)"
+    ]
+  },
+  {
+    "running(endpoint:global_sessions)": [
+      "running",
+      "g_sessions",
+      "running(endpoint:global_sessions)"
+    ]
+  },
+  {
+    "dirs:X=human-page-queue": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post",
+      "dirs(human-page-queue)",
+      "dirs:X=human-page-queue"
+    ]
+  },
+  {
+    "uploaded(~/, human-page-queue.conf )": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post",
+      "uploaded(~/, human-page-queue.conf )"
+    ]
+  },
+  {
+    "bash_op(~/,human-page-queue)": [
+      "running",
+      "otw",
+      "running(human-page-queue)",
+      "post",
+      "bash_op(~/,human-page-queue)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,copious.world)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,copious.world)",
+      "uploaded:Z=copious.world.conf",
+      "compositing(copious.world.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,copious.world)"
+    ]
+  },
+  {
+    "nginx_op(-s reload)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "post",
+      "nginx_op(-s reload)"
+    ]
+  },
+  {
+    "roller(~/Documents/GitHub/configs/nginx,popsongnow.com)": [
+      "running",
+      "popsong",
+      "running(nginx,popsongnow.com)",
+      "post",
+      "uploaded(/etc/nginx/sites-enabled,popsongnow.com)",
+      "uploaded:Z=popsongnow.com.conf",
+      "compositing(popsongnow.com.conf)",
+      "roller(~/Documents/GitHub/configs/nginx,popsongnow.com)"
+    ]
+  },
+  {
+    "nginx_op(-s reload)": [
+      "running",
+      "popsong",
+      "running(nginx,popsongnow.com)",
+      "post",
+      "nginx_op(-s reload)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "contacts",
+      "running(endpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "uploaded(~/contacts,contact-service.conf)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "uploaded(~/contacts,contact-service.conf)"
+    ]
+  },
+  {
+    "keys(contacts)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "keys(contacts)"
+    ]
+  },
+  {
+    "bash_op(~/contacts,copious-contacts)": [
+      "running",
+      "endpoint-users",
+      "running(endpoint:contacts)",
+      "post",
+      "bash_op(~/contacts,copious-contacts)"
+    ]
+  },
+  {
+    "dirs:X=of-this-world": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "post",
+      "dirs(of-this-world)",
+      "dirs:X=of-this-world"
+    ]
+  },
+  {
+    "uploaded(~/, of-this-world.conf )": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "post",
+      "uploaded(~/, of-this-world.conf )"
+    ]
+  },
+  {
+    "bash_op(~/,of-this-world)": [
+      "running",
+      "otw-create",
+      "running(of-this-world)",
+      "post",
+      "bash_op(~/,of-this-world)"
+    ]
+  }
+]
