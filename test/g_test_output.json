@@ -180,6 +180,18 @@
                 }
               }
             },
+            "mid": {
+              "var_evals": {},
+              "var_producer": false,
+              "real_goal": "mid",
+              "subgoals": {
+                "mid_op(happy bash)": {
+                  "var_producer": false,
+                  "subs": "terminus",
+                  "real_goal": "mid_op(happy bash)"
+                }
+              }
+            },
             "post": {
               "var_evals": {
                 "Y": "copious.world"
@@ -307,6 +319,18 @@
                   "var_producer": false,
                   "subs": "terminus",
                   "real_goal": "apt_op(install nginx)"
+                }
+              }
+            },
+            "mid": {
+              "var_evals": {},
+              "var_producer": false,
+              "real_goal": "mid",
+              "subgoals": {
+                "mid_op(happy bash)": {
+                  "var_producer": false,
+                  "subs": "terminus",
+                  "real_goal": "mid_op(happy bash)"
                 }
               }
             },

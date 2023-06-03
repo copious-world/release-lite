@@ -3921,7 +3921,7 @@ function branch_select_var(sky,sobj,goal,var_consume) {
 
     let z_var = var_from_selector(sky)
 
-    if ( goal.var_evals && var_consume[z_var] ) {
+    if ( goal.var_evals && goal.var_evals[z_var] && var_consume[z_var] ) {
         if ( goal.var_evals[z_var].type === "path-selector" && var_consume[z_var].type == "path-select" ) {
             let check_val = var_consume[z_var].value
             if ( check_val.indexOf(goal.var_evals[z_var].value) === 0 ) return true
@@ -4275,7 +4275,7 @@ async function main_prog() {
 
     // FINALLY -- launch arc travelers with the commands needed to satisfy the current set of goals
 
-    
+
 }
 
 

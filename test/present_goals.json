@@ -78,6 +78,15 @@
     ]
   },
   {
+    "mid_op(happy bash)": [
+      "running",
+      "copious",
+      "running(nginx,config(copious.world))",
+      "mid",
+      "mid_op(happy bash)"
+    ]
+  },
+  {
     "roller(~/Documents/GitHub/configs/nginx,copious.world)": [
       "running",
       "copious",
@@ -105,6 +114,15 @@
       "running(nginx,popsongnow.com)",
       "pre",
       "apt_op(install nginx)"
+    ]
+  },
+  {
+    "mid_op(happy bash)": [
+      "running",
+      "popsong",
+      "running(nginx,popsongnow.com)",
+      "mid",
+      "mid_op(happy bash)"
     ]
   },
   {
