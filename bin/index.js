@@ -4194,6 +4194,9 @@ async function main_prog() {
     //  subst_defs_in_scope_vars -- before further processing, put values into as many variables as possible 
     subst_defs_in_scope_vars(preamble_obj,defs_obj)
 
+//
+await fos.output_string("./auth_graph_preamble.json",JSON.stringify(preamble_obj.graph,null,2))
+
     // For each goal class, attach the host goal structure to the access graph
     //
     for ( let [goal_set_ky,host_map] of Object.entries(goals_obj) ) {
@@ -4238,7 +4241,6 @@ async function main_prog() {
 
     /// CONTINUE FROM HERE
 
-    //
     //
     await fos.output_string("./r_test_output.json",JSON.stringify(rule_base,null,2))
     await fos.output_string("./g_test_output.json",JSON.stringify(goals_obj,null,2))

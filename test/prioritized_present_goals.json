@@ -119,24 +119,6 @@
     ]
   },
   {
-    "mid_op(happy bash)": [
-      "running",
-      "copious",
-      "running(nginx,config(copious.world))",
-      "mid",
-      "mid_op(happy bash)"
-    ]
-  },
-  {
-    "mid_op(happy bash)": [
-      "running",
-      "popsong",
-      "running(nginx,popsongnow.com)",
-      "mid",
-      "mid_op(happy bash)"
-    ]
-  },
-  {
     "running(nginx)": [
       "running",
       "home",

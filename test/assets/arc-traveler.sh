@@ -3,30 +3,42 @@
 #  // node provides e.g. 'dietpi' 'dietpi-pass' '192.168.1.???'
 # executes on the next hop and knows the downstream auth. causes next hop nodes to operate
 #
+
+function print_and_run_lines {
+
+    SAVEIFS=$IFS   # Save current IFS (Internal Field Separator)
+    IFS='\n'      # Change IFS to newline char
+    OPS=$1
+    OPS=($OPS) # split the `names` string into an array by the same name
+    IFS=$SAVEIFS   # Restore original IFS
+
+    for c in "${OPS[@]}"; do
+        c=${c//[$'\t\r\n']}
+        if [ ! -z "$c" ]; then
+            echo "command is: $c"
+            echo $(${c})
+        fi
+    done
+}
+
+
+#
 NODE_NAME=$1        # everthing is the next hop... This file is arrowed in. The previous interface is authroized for the ssh caller.
 OP_DIR=$2
 GRAPH_STR=$3
 OPS_STR=$4
 POST_OPS_STR=$5
 #
-OPS=$(bas64 --decode $OPS_STR)
-GRAPH=$(bas64 --decode $GRAPH_STR)
-POST_OPS=$(bas64 --decode $POST_OPS_STR)
+GRAPH=$(echo $GRAPH_STR | base64 --decode)
+OPS=$(echo $OPS_STR | base64 --decode)
 #
 # LOCAL -- controlled by previous hop
 # run the local ops (this script arrowed in from previous hop -- run here with local permission)
 
 pushd $OP_DIR
-
 #
-# LOCAL OPERATIONS --  BEFORE propagating files, etc.
-if [ -n $OPS ]; then
-    echo $OPS | jq -c '.[]' |
-    while IFS=$"\n" read -r c; do
-        echo "$c"
-        bash ${c}
-    done
-fi
+#
+print_and_run_lines "$OPS"
 
 # REMOTE -- next hop
 # Remove the current ply from the graph  (cut out the current node and anything same or lower depth)
@@ -69,13 +81,7 @@ done
 
 #
 # LOCAL OPERATIONS --  AFTER propagating files, etc.
-if [ -n $POST_OPS ]; then
-    echo $POST_OPS | jq -c '.[]' |
-    while IFS=$"\n" read -r c; do
-        echo "$c"
-        bash ${c}
-    done
-fi
+print_and_run_lines "$POST_OPS"
 
 
 popd $OP_DIR

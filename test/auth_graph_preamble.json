@@ -1,0 +1,85 @@
+{
+  "use": "auth",
+  "max_depth": 3,
+  "g": {
+    "here": {
+      "depth": 1,
+      "info": {},
+      "sibs": [
+        "home",
+        "otw",
+        "copious",
+        "popsong"
+      ]
+    },
+    "home": {
+      "depth": 2,
+      "backrefs": [
+        "here"
+      ],
+      "sibs": [
+        "otw",
+        "copious",
+        "g_sessions",
+        "contacts",
+        "endpoint-users",
+        "otw-create"
+      ]
+    },
+    "otw": {
+      "depth": 2,
+      "backrefs": [
+        "here",
+        "home"
+      ]
+    },
+    "copious": {
+      "depth": 2,
+      "backrefs": [
+        "here",
+        "home"
+      ]
+    },
+    "popsong": {
+      "depth": 2,
+      "backrefs": [
+        "here"
+      ]
+    },
+    "g_sessions": {
+      "depth": 3,
+      "backrefs": [
+        "home"
+      ]
+    },
+    "contacts": {
+      "depth": 3,
+      "backrefs": [
+        "home"
+      ]
+    },
+    "endpoint-users": {
+      "depth": 3,
+      "backrefs": [
+        "home"
+      ]
+    },
+    "otw-create": {
+      "depth": 3,
+      "backrefs": [
+        "home"
+      ]
+    }
+  },
+  "paths": {
+    "here": "here@1",
+    "here.home": "home@2",
+    "here.otw": "otw@2",
+    "here.copious": "copious@2",
+    "here.popsong": "popsong@2",
+    "here.home.g_sessions": "g_sessions@3",
+    "here.home.contacts": "contacts@3",
+    "here.home.endpoint-users": "endpoint-users@3",
+    "here.home.otw-create": "otw-create@3"
+  }
+}
