@@ -155,7 +155,29 @@ function subs_of_node {
 }
 
 
+function node_description {
+    local NODE_NAME=$1
+    local GRAPH=$2
 
+    echo "$GRAPH" | while IFS="\n" read -r line
+    do
+        n_name=$(name_field 'name' "$line")
+        if [ $NODE_NAME = $n_name ]; then
+            echo "$line"
+        fi
+    done
+}
+
+function limit_graph_to_node {   # $nxt_host $nxt_depth $SIBGRAPH)
+    
+    local NODE_NAME=$1
+    local GRAPH=$2
+
+    node_line=$(node_description $NODE_NAME "$GRAPH")
+    subs=$(subs_of_node $NODE_NAME "$GRAPH")
+    echo "$node_line"
+    echo "$subs"
+}
 
 #
 #
@@ -181,7 +203,6 @@ print_and_run_lines "$OPS"
 
 
 SIBGRAPH=$(subs_of_node  $NODE_NAME "$GRAPH")
-SIBG=$(echo "$SIBGRAPH" | base64)   # GRAPH ENCODED
 
 echo ""; echo ""
 echo "--------- BEGIN ======= GRAPH ---$NODE_NAME------ " ${#GRAPH}
@@ -217,12 +238,22 @@ if [[ $sibsize > 0 ]]; then
             nxt_pass=$(name_field 'pass' "$line")
             nxt_user=$(name_field 'user' "$line")
             #
-            echo "START --> $nxt_host $nxt_ip"
+echo "START --> $nxt_host $nxt_ip  $sibsize"
             #
             bash ./expectpw-ssh-cmd.sh "${nxt_pass}" ${nxt_user} ${nxt_ip} "mkdir -p $OP_DIR"
             bash ./${UPLOADER}.sh "${nxt_pass}" ${nxt_user} ${nxt_ip} $OP_DIR      # operational file ahead of the next action
             #
-            bash ./expectpw-ssh.sh "${nxt_pass}" ${nxt_user} ${nxt_ip} arc-traveler-setup.sh "${nxt_host} $OP_DIR $SIBG $OPS_STR ${UPLOADER}" #&
+
+            nxt_SIBGRAPH=$(limit_graph_to_node $nxt_host "$SIBGRAPH")
+
+# echo " SUBG BEGIN nxt_SIBGRAP"
+# echo "$nxt_SIBGRAPH"
+# echo " SUBG END nxt_SIBGRAP"
+
+
+            SIBG=$(echo "$nxt_SIBGRAPH" | base64)   # GRAPH ENCODED
+            #
+            bash ./expectpw-ssh.sh "${nxt_pass}" ${nxt_user} ${nxt_ip} arc-traveler-setup.sh "${nxt_host} $OP_DIR $SIBG $OPS_STR ${UPLOADER}" &
             echo "done: $nxt_host "
         fi
     done
