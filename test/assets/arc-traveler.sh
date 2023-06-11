@@ -29,6 +29,8 @@ GRAPH_STR=$3
 OPS_STR=$4
 POST_OPS_STR=$5
 #
+echo "BEGINNING ARC TRAVELER $NODE_NAME"
+#
 GRAPH=$(echo $GRAPH_STR | base64 --decode)
 OPS=$(echo $OPS_STR | base64 --decode)
 #
@@ -52,11 +54,13 @@ SIBG=$(base64 $SIBGRAPH)   # GRAPH ENCODED
 # Now, given there is a ply left
 echo "$SIBGRAPH" | jq -c '.[]' |
 while IFS=$"\n" read -r c; do
-    echo "start"
+    #
     nxt_host=$(echo "$c" | jq -r '.host.abbr')          # downstream node host, ip, pass, user
     nxt_ip=$(echo "$c" | jq -r '.host.addr')
     nxt_pass=$(echo "$c" | jq -r '.auth.pass')
     nxt_user=$(echo "$c" | jq -r '.auth.user')
+    #
+    echo "START --> $nxt_host $nxt_ip"
     #
     echo "$c" | jq -c '.upload_scripts' |
     while IFS=$"\n" read -r script; do
@@ -75,8 +79,8 @@ while IFS=$"\n" read -r c; do
     R_POST_OPS=$(echo "$c" | jq -r '.required_on_node_post_operations')
     POST_OPS_STR=$(base64 $R_POST_OPS)   # operation list ENCODED
     #
-    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR $POST_OPS_STR' &
-    echo $host
+    bash expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} 'arc-traveler.sh' '' '${nxt_host} $OP_DIR $SIBG $OPS_STR $POST_OPS_STR' #&
+    echo "done: $nxt_host "
 done
 
 #
@@ -85,3 +89,7 @@ print_and_run_lines "$POST_OPS"
 
 
 popd $OP_DIR
+
+
+echo "ENDING ARC TRAVELER $NODE_NAME"
+
