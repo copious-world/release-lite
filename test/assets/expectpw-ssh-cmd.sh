@@ -6,6 +6,7 @@ set IP [lindex $argv 2]
 set CMD [lindex $argv 3]
 set BIPASS [lindex $argv 4]
 set timeout 4
+puts "$PASS\n"
 spawn bash  -c "ssh $USER@$IP '$CMD'"
 if { [string length $BIPASS ] == 0 } {
     expect -exact "Are you sure you want to continue connecting \(yes/no/\[fingerprint\]\)\?"
