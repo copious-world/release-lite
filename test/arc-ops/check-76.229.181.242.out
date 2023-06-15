@@ -1,0 +1,80 @@
+spawn bash -c ssh richard@76.229.181.242 'mkdir -p ./arc-ops'
+richard@76.229.181.242's password: 
+PASS == test4test
+spawn scp ssh-wrapper.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+ssh-wrapper.sh                                                                                                                                    0%    0     0.0KB/s   --:-- ETAssh-wrapper.sh                                                                                                                                  100%  169     5.7KB/s   00:00    
+spawn scp setup_uploader.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+setup_uploader.sh                                                                                                                                 0%    0     0.0KB/s   --:-- ETAsetup_uploader.sh                                                                                                                               100%  698    27.8KB/s   00:00    
+spawn scp expectpw-scp-helper.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+expectpw-scp-helper.sh                                                                                                                            0%    0     0.0KB/s   --:-- ETAspawn scp expectpw-ssh-cmd.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+expectpw-ssh-cmd.sh                                                                                                                               0%    0     0.0KB/s   --:-- ETAexpectpw-ssh-cmd.sh                                                                                                                             100%  426    15.5KB/s   00:00    
+spawn scp expectpw-ssh.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+expectpw-ssh.sh                                                                                                                                   0%    0     0.0KB/s   --:-- ETAspawn scp arc-utils.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+arc-utils.sh                                                                                                                                      0%    0     0.0KB/s   --:-- ETAarc-utils.sh                                                                                                                                    100% 3838   129.2KB/s   00:00    
+spawn scp arc-traveler-setup.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+arc-traveler-setup.sh                                                                                                                             0%    0     0.0KB/s   --:-- ETAarc-traveler-setup.sh                                                                                                                           100% 3673   119.6KB/s   00:00    
+spawn scp arc-traveler.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+arc-traveler.sh                                                                                                                                   0%    0     0.0KB/s   --:-- ETAarc-traveler.sh                                                                                                                                 100% 3600   114.6KB/s   00:00    
+spawn scp apt-installer.sh richard@76.229.181.242:./arc-ops
+richard@76.229.181.242's password: 
+apt-installer.sh                                                                                                                                  0%    0     0.0KB/s   --:-- ETAapt-installer.sh                                                                                                                                100%   75     2.5KB/s   00:00    
+spawn ./ssh-wrapper.sh richard@76.229.181.242 arc-traveler-setup.sh home ./arc-ops aG9tZSwyLGdfc2Vzc2lvbnMgY29udGFjdHMgZW5kcG9pbnQtdXNlcnMgb3R3LWNyZWF0ZSxyaWNoYXJkLGRHVnpkRFIwWlhOMENnPT0sNzYuMjI5LjE4MS4yNDIsLi9hcmMtb3BzLDEsaGVyZQpnX3Nlc3Npb25zLDMsbm9uZSxyb290LFpHbGxkSEJwQ2c9PSwxOTIuMTY4LjEuNzEsL2hvbWUvYXJjLW9wcywwLGhvbWUgaGVyZQpjb250YWN0cywzLG5vbmUscm9vdCxaR2xsZEhCcENnPT0sMTkyLjE2OC4xLjc1LC9ob21lL2FyYy1vcHMsMCxob21lIGhlcmUKZW5kcG9pbnQtdXNlcnMsMyxub25lLHJvb3QsWkdsbGRIQnBDZz09LDE5Mi4xNjguMS43NywvaG9tZS9hcmMtb3BzLDAsaG9tZSBoZXJlCm90dy1jcmVhdGUsMyxub25lLHJvb3QsWkdsbGRIQnBDZz09LDE5Mi4xNjguMS44MSwvaG9tZS9hcmMtb3BzLDAsaG9tZSBoZXJlCg== cHdkXG5scwo= setup_uploader.sh
+SSH-WRAPPER richard@76.229.181.242 /Users/richardalbertleddy/Documents/GitHub/alphas/release-lite/test/arc-ops 
+-rwxr-xr-x@ 1 richardalbertleddy  staff  3673 Jun 15 14:47 arc-traveler-setup.sh
++ ssh richard@76.229.181.242 'bash -s' home ./arc-ops aG9tZSwyLGdfc2Vzc2lvbnMgY29udGFjdHMgZW5kcG9pbnQtdXNlcnMgb3R3LWNyZWF0ZSxyaWNoYXJkLGRHVnpkRFIwWlhOMENnPT0sNzYuMjI5LjE4MS4yNDIsLi9hcmMtb3BzLDEsaGVyZQpnX3Nlc3Npb25zLDMsbm9uZSxyb290LFpHbGxkSEJwQ2c9PSwxOTIuMTY4LjEuNzEsL2hvbWUvYXJjLW9wcywwLGhvbWUgaGVyZQpjb250YWN0cywzLG5vbmUscm9vdCxaR2xsZEhCcENnPT0sMTkyLjE2OC4xLjc1LC9ob21lL2FyYy1vcHMsMCxob21lIGhlcmUKZW5kcG9pbnQtdXNlcnMsMyxub25lLHJvb3QsWkdsbGRIQnBDZz09LDE5Mi4xNjguMS43NywvaG9tZS9hcmMtb3BzLDAsaG9tZSBoZXJlCm90dy1jcmVhdGUsMyxub25lLHJvb3QsWkdsbGRIQnBDZz09LDE5Mi4xNjguMS44MSwvaG9tZS9hcmMtb3BzLDAsaG9tZSBoZXJlCg== cHdkXG5scwo= setup_uploader.sh
+richard@76.229.181.242's password: 
+
+
+--------- BEGINNING ARC TRAVELER SETUP home --------- 
+--------- NODE_NAME home :: OP_DIR ./arc-ops :: UPLOADER setup_uploader.sh ::  
+~/arc-ops ~
+command is: pwd
+/home/richard/arc-ops
+command is: ls
+apt-installer.sh arc-traveler-setup.sh arc-traveler.sh arc-utils.sh check-192.168.1.71.out check-192.168.1.75.out check-192.168.1.77.out check-192.168.1.81.out expectpw-scp-helper.sh expectpw-ssh-cmd.sh expectpw-ssh.sh setup_uploader.sh ssh-wrapper.sh wrapper.sh
+
+
+--------- BEGIN ======= GRAPH ---home------  411
+home,2,g_sessions contacts endpoint-users otw-create,richard,dGVzdDR0ZXN0Cg==,76.229.181.242,./arc-ops,1,here
+g_sessions,3,none,root,ZGlldHBpCg==,192.168.1.71,/home/arc-ops,0,home here
+contacts,3,none,root,ZGlldHBpCg==,192.168.1.75,/home/arc-ops,0,home here
+endpoint-users,3,none,root,ZGlldHBpCg==,192.168.1.77,/home/arc-ops,0,home here
+otw-create,3,none,root,ZGlldHBpCg==,192.168.1.81,/home/arc-ops,0,home here
+<<<<<<<--------- END ======= GRAPH --------- 
+
+
+
+
+--------- BEGIN SIBLING GRAPH ---home------  301
+g_sessions,3,none,root,ZGlldHBpCg==,192.168.1.71,/home/arc-ops,0,home here
+contacts,3,none,root,ZGlldHBpCg==,192.168.1.75,/home/arc-ops,0,home here
+endpoint-users,3,none,root,ZGlldHBpCg==,192.168.1.77,/home/arc-ops,0,home here
+otw-create,3,none,root,ZGlldHBpCg==,192.168.1.81,/home/arc-ops,0,home here
+<<<<<<<--------- END SIBLING GRAPH --------- 
+
+
+home g_sessions,3,none,root,ZGlldHBpCg==,192.168.1.71,/home/arc-ops,0,home here
+home contacts,3,none,root,ZGlldHBpCg==,192.168.1.75,/home/arc-ops,0,home here
+home endpoint-users,3,none,root,ZGlldHBpCg==,192.168.1.77,/home/arc-ops,0,home here
+home otw-create,3,none,root,ZGlldHBpCg==,192.168.1.81,/home/arc-ops,0,home here
+START --> g_sessions 192.168.1.71  301  dietpi /home/arc-ops  
+done: g_sessions 
+START --> contacts 192.168.1.75  301  dietpi /home/arc-ops  
+done: contacts 
+START --> endpoint-users 192.168.1.77  301  dietpi /home/arc-ops  
+done: endpoint-users 
+START --> otw-create 192.168.1.81  301  dietpi /home/arc-ops  
+done: otw-create 
+./arc-ops /home/richard/arc-ops
+~
+--------- ENDING ARC TRAVELER SETUP home --------- 
+
+
