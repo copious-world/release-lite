@@ -92,7 +92,7 @@ if [[ $sibsize > 0 ]]; then
             nxt_pass_dec=$(echo "$nxt_pass" | base64 --decode)
             nxt_op_dir=$(name_field 'op_dir' "$line")
             #
-echo "START --> $nxt_host $nxt_ip  $sibsize  $nxt_pass $nxt_op_dir $fingerprint "
+echo "START --> $nxt_host $nxt_ip  $sibsize $nxt_op_dir $fingerprint "
             #
             {
                 set -e

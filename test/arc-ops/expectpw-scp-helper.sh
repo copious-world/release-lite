@@ -14,6 +14,5 @@ if { [string length $BIPASS ] == 0 } {
     send -- "yes\r"
 }
 expect  -exact "$USER@$IP's password:\r"
-puts "SCPHELPER $CLRPASS"
 send -- "$CLRPASS\r"
 expect eof

@@ -13,6 +13,5 @@ if { [string length $BIPASS ] == 0 } {
     send -- "yes\r"
 }
 expect  -exact "$USER@$IP's password:\r"
-puts "SSH-CMD $CLRPASS"
 send -- "$CLRPASS\r"
 expect eof
