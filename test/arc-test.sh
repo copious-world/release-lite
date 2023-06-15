@@ -13,12 +13,15 @@ pushd $DIR
 GRAPH_FLDS='name,depth,sibs,user,pass,addr,backrefs,upload_scripts,download_scripts,ops,op_dir,y_fingerprint,post_ops'
 # for startup
 GRAPH_STR=$(cat <<EOL
-here,1,home,richardalbertleddy,dGVzdDd0ZXN0Cg==,localhost,./arc-ops,1,none
+here,1,home otw copious popsong ,richardalbertleddy,dGVzdDd0ZXN0Cg==,localhost,./arc-ops,1,none
 home,2,g_sessions contacts endpoint-users otw-create,richard,dGVzdDR0ZXN0Cg==,76.229.181.242,./arc-ops,1,here
 g_sessions,3,none,root,ZGlldHBpCg==,192.168.1.71,/home/arc-ops,0,home here
 contacts,3,none,root,ZGlldHBpCg==,192.168.1.75,/home/arc-ops,0,home here
 endpoint-users,3,none,root,ZGlldHBpCg==,192.168.1.77,/home/arc-ops,0,home here
 otw-create,3,none,root,ZGlldHBpCg==,192.168.1.81,/home/arc-ops,0,home here
+otw,2,none,root,TDJ2PTk1JEoscVspNHdGLQo=,45.32.219.78,/home/arc-ops,1,here
+copious,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here
+popsong,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here
 EOL
 )
 

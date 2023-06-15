@@ -5,6 +5,7 @@ set USER [lindex $argv 1]
 set IP [lindex $argv 2]
 set CMD [lindex $argv 3]
 set BIPASS [lindex $argv 4]
+set CLRPASS [exec echo $PASS | base64 --decode]
 set timeout 4
 spawn bash  -c "ssh $USER@$IP '$CMD'"
 if { [string length $BIPASS ] == 0 } {
@@ -12,5 +13,6 @@ if { [string length $BIPASS ] == 0 } {
     send -- "yes\r"
 }
 expect  -exact "$USER@$IP's password:\r"
-send -- "$PASS\r"
+puts "SSH-CMD $CLRPASS"
+send -- "$CLRPASS\r"
 expect eof

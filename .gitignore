@@ -10,6 +10,7 @@ test/controller*.sh
 test/*.txt
 test/cluster
 test/*.out
+test/arc-ops/*
 
 
 

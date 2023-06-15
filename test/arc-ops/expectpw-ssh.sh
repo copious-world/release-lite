@@ -6,6 +6,7 @@ set IP [lindex $argv 2]
 set FILE [lindex $argv 3]
 set BIPASS [lindex $argv 4]
 set TARGET [lindex $argv 5]
+set CLRPASS [exec echo $PASS | base64 --decode]
 #set timeout 1
 spawn ./ssh-wrapper.sh $USER@$IP $FILE "$TARGET"
 if { [string length $BIPASS ] == 0 } {
@@ -13,5 +14,5 @@ if { [string length $BIPASS ] == 0 } {
     send -- "yes\r"
 }
 expect  -exact "$USER@$IP's password:\r"
-send -- "$PASS\r"
+send -- "$CLRPASS\r"
 expect "done-$USER@$IP" { exit }
