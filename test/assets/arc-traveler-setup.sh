@@ -72,10 +72,6 @@ if [[ $sibsize > 0 ]]; then
 
     FAIL=0
     echo "$SIBGRAPH" | while IFS=$"\n" read -r line; do
-        echo $NODE_NAME $line
-    done
-
-    echo "$SIBGRAPH" | while IFS=$"\n" read -r line; do
         #
         nxt_host=$(name_field 'name' "$line")          # downstream node host, ip, pass, user
         nxt_depth=$(name_field 'depth' "$line") 
