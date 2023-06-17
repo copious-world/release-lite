@@ -25,14 +25,6 @@ popsong,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,her
 EOL
 )
 
-# otw copious popsong
-# otw copious popsong 
-# otw,2,none,root,TDJ2PTk1LHFbKTR3Ri0K,45.32.219.78,/home/arc-ops,1,here home
-# copious,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here home
-# popsong,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here home
-# plopzzzzz,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,055.138.235.197,0,/home/arc-ops,butter
-
-
 GRAPH_STR=$(echo "$GRAPH_STR" | base64)
 OPS_STR=$(echo 'pwd\nls' | base64)                      # pwd ls for setup, just one 
 UPLOADER="setup_uploader.sh"
