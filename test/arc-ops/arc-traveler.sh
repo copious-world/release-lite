@@ -64,42 +64,59 @@ UPDEPTH=$((DEPTH+1))
 # # Now, given there is a ply left
 sibsize=${#SIBGRAPH}
 if [[ $sibsize > 0 ]]; then 
+
+    FAIL=0
     echo "$SIBGRAPH" | while IFS=$"\n" read -r line; do
+
+        nxt_host=$(name_field 'name' "$line")          # downstream node host, ip, pass, user
         nxt_depth=$(name_field 'depth' "$line") 
+
         if [[ $UPDEPTH == $nxt_depth ]]; then
             #
-            nxt_host=$(name_field 'name' "$line")          # downstream node host, ip, pass, user
             nxt_ip=$(name_field 'addr' "$line")
             nxt_pass=$(name_field 'pass' "$line")
             nxt_user=$(name_field 'user' "$line")
+            fingerprint=$(name_field 'y_fingerprint' "$line")
             #
-echo "START --> $nxt_host $nxt_ip  $sibsize"
+            nxt_pass_dec=$(echo "$nxt_pass" | base64 --decode)
+            nxt_op_dir=$(name_field 'op_dir' "$line")
+            #
             nxt_upload_scriptstr=$(name_field 'upload_scripts' "$line")
             nxt_upload_scriptstr=$(echo "$nxt_upload_scriptstr" | base64 --decode )
             #
-            echo "$nxt_upload_scriptsr"| while IFS=$"\n" read -r script; do
-                bash './expectpw-scp-helper.sh', '${nxt_pass}' ${nxt_user} ${nxt_ip}, "${script}", $OP_DIR
-            done
-            #
-            nxt_download_scriptstr=$(name_field 'download_scripts' "$line")
-            nxt_download_scriptstr=$(echo "$nxt_download_scriptstr" | base64 --decode )
-            #
-            echo "$nxt_download_scriptstr"| while IFS=$"\n" read -r script; do
-                bash './expectpw-scp-fetch-helper.sh', '${nxt_pass}' ${nxt_user} ${nxt_ip}, "${script}", $OP_DIR
-            done
-            #
-            OPS_STR=$(name_field 'ops' "$line") # operation list already  ENCODED
-            OPS_STR=$(echo $nxt_OPS | base64)   
-            #
-            POST_OPS_STR=$(name_field 'post_ops' "$line") # post operation list already  ENCODED
+echo "START --> $nxt_host $nxt_ip  $sibsize $nxt_op_dir $fingerprint "
+            {
+                set -e
+                echo "$nxt_upload_scriptstr"| while IFS=$"\n" read -r script; do
+                    ./expectpw-scp-helper.sh ${nxt_pass} ${nxt_user} ${nxt_ip} ${script} ${nxt_op_dir} ${fingerprint} 
+                done
+                #
+                nxt_download_scriptstr=$(name_field 'download_scripts' "$line")
+                nxt_download_scriptstr=$(echo "$nxt_download_scriptstr" | base64 --decode )
+                #
+                echo "$nxt_download_scriptstr"| while IFS=$"\n" read -r script; do
+                    ./expectpw-scp-fetch-helper.sh ${nxt_pass} ${nxt_user} ${nxt_ip} ${script} ${nxt_op_dir} ${fingerprint} 
+                done
+                #
+                OPS_STR=$(name_field 'ops' "$line") # operation list already  ENCODED
+                #
+                POST_OPS_STR=$(name_field 'post_ops' "$line") # post operation list already  ENCODED
 
-            nxt_SIBGRAPH=$(limit_graph_to_node $nxt_host "$SIBGRAPH")
-            SIBG=$(echo "$nxt_SIBGRAPH" | base64)   # GRAPH ENCODED
-            #
-            bash ./expectpw-ssh.sh '${nxt_pass}' ${nxt_user} ${nxt_ip} arc-traveler-setup.sh "${nxt_host} $OP_DIR $SIBG $OPS_STR $POST_OPS_STR" &
+                nxt_SIBGRAPH=$(limit_graph_to_node $nxt_host "$SIBGRAPH")
+                SIBG=$(echo "$nxt_SIBGRAPH" | base64)   # GRAPH ENCODED
+                #
+                ./expectpw-ssh.sh ${nxt_pass} ${nxt_user} ${nxt_ip} arc-traveler.sh "$fingerprint" "${nxt_host} ${nxt_op_dir} $SIBG $OPS_STR $POST_OPS_STR" &
+            } > "check-${nxt_ip}.out" &
             echo "done: $nxt_host"
         fi
     done
+
+    for job in `jobs -p`
+    do
+        echo $job
+        wait $job || let "FAIL+=1"
+    done
+
 fi
 
 

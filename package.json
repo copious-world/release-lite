@@ -35,5 +35,8 @@
     "node-scp": "0.0.3",
     "tar": "^6.0.1",
     "tau-prolog": "^0.3.4"
+  },
+  "devDependencies": {
+    "jsdoc": "^4.0.2"
   }
 }

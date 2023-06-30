@@ -10,7 +10,7 @@ pushd $DIR
 #
 #    upload_scripts,download_scripts,ops,post_ops
 #
-GRAPH_FLDS='name,depth,sibs,user,pass,addr,backrefs,upload_scripts,download_scripts,ops,op_dir,y_fingerprint,post_ops'
+GRAPH_FLDS='name,depth,sibs,user,pass,addr,op_dir,y_fingerprint,backrefs,upload_scripts,download_scripts,ops,post_ops'
 # for startup
 GRAPH_STR=$(cat <<EOL
 here,1,home otw copious popsong,richardalbertleddy,dGVzdDd0ZXN0Cg==,localhost,./arc-ops,1,none

@@ -1,25 +1,6 @@
 
 
-
-/*GRAPH_FLDS='name,depth,sibs,user,pass,addr,op_dir,y_fingerprint,backrefs,upload_scripts,download_scripts,opspost_ops'
-# for startup
-GRAPH_STR=$(cat <<EOL
-here,1,home otw copious popsong,richardalbertleddy,dGVzdDd0ZXN0Cg==,localhost,./arc-ops,1,none
-home,2,g_sessions contacts endpoint-users otw-create,richard,dGVzdDR0ZXN0Cg==,76.229.181.242,./arc-ops,1,here
-g_sessions,3,none,root,ZGlldHBpCg==,192.168.1.71,/home/arc-ops,0,home here
-contacts,3,none,root,ZGlldHBpCg==,192.168.1.75,/home/arc-ops,0,home here
-endpoint-users,3,none,root,ZGlldHBpCg==,192.168.1.77,/home/arc-ops,0,home here
-otw-create,3,none,root,ZGlldHBpCg==,192.168.1.81,/home/arc-ops,0,home here
-otw,2,none,root,TDJ2PTk1JEoscVspNHdGLQo=,45.32.219.78,/home/arc-ops,1,here
-copious,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here
-popsong,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here
-EOL
-)
-*/
-
-
-
-
+let arc_travler = require('../lib/arc-traveler')
 
 class AuthGraphNOde {
     constructor(node_data) {
@@ -30,12 +11,12 @@ class AuthGraphNOde {
             this.user = node_data.user
             this.pass = node_data.pass
             this.addr = node_data.addr
+            this.op_dir = node_data.op_dir
+            this.y_fingerprint = node_data.y_fingerprint
             this.backrefs = node_data.backrefs
             this.upload_scripts = node_data.upload_scripts
             this.download_scripts = node_data.download_scripts
             this.ops = node_data.download_scripts
-            this.op_dir = node_data.op_dir
-            this.y_fingerprint = node_data.y_fingerprint
             this.post_ops = node_data.post_ops    
         } else {
             let flds = "name,depth,sibs,user,pass,addr,op_dir,y_fingerprint,backrefs,upload_scripts,download_scripts,ops,post_ops"
@@ -95,7 +76,23 @@ host_descrs.push((new AuthGraphNOde()).from_csv("copious,2,none,root,aEg4P29jck0
 host_descrs.push((new AuthGraphNOde()).from_csv("popsong,2,none,root,aEg4P29jck0lZ2VibjhNTgo=,155.138.235.197,/home/arc-ops,1,here,,,,,,"))
 
 
-let host_lines = host_descrs.map(host => host.to_csv())
-let hcsv = host_lines.join('\n')
-console.log(hcsv)
 
+function output_csv_host_graph(hdscr) {
+    let host_lines = hdscr.map(host => host.to_csv())
+    let hcsv = host_lines.join('\n')
+    return hcsv
+}
+
+let xops = require('../lib/exec_ops')
+
+
+async function main() {
+    //
+    let hcsv = output_csv_host_graph(host_descrs)
+    //console.log(hcsv)
+    let ops = ["ls","pwd","date"]
+    await arc_travler.start_arc_traveler_setup(host_descrs[0],host_descrs,"arc-ops",ops,"setup_uploader.sh")
+}
+
+
+main()

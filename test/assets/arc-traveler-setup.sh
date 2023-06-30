@@ -26,17 +26,13 @@ pushd $OP_DIR # run ops in this directory
 #
 #
 #
-#
 GRAPH=$(echo $GRAPH_STR | base64 --decode)
 OPS=$(echo $OPS_STR | base64 --decode)
 #
 # LOCAL -- controlled by previous hop
 # run the local ops (this script arrowed in from previous hop -- run here with local permission)
 DEPTH=$(depth_of $NODE_NAME "$GRAPH")
-#
 
-
-#
 print_and_run_lines "$OPS"                  #-----------
 
 # REMOTE -- next hop
@@ -71,7 +67,7 @@ sibsize=${#SIBGRAPH}
 if [[ $sibsize > 0 ]]; then 
 
     FAIL=0
-    echo "$SIBGRAPH" | while IFS=$"\n" read -r line; do
+    echo "$SIBGRAPH" | while IFS=$'\n' read -r line; do
         #
         nxt_host=$(name_field 'name' "$line")          # downstream node host, ip, pass, user
         nxt_depth=$(name_field 'depth' "$line") 
